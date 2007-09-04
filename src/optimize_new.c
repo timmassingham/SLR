@@ -165,13 +165,13 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 			} else if (noisy == 1) {
 				UpdateSpinner(spin);
 			}
-		} while (fabs(opt->fc - fn) > tol || lastbound);
+		} while (fabs(opt->fc - fn) > 0.5*(fabs(opt->fc)+fabs(fn))*tol || lastbound);
 
 		if (noisy == 2) {
 			printf("***\n");
 		}
 		restarts++;
-	} while (restarts < max_restart && fabs(opt->fc - fo) > tol && RESTART);
+	} while (restarts < max_restart && fabs(opt->fc - fo) > 0.5*(fabs(opt->fc)+fabs(fn))*tol && RESTART);
 	if (noisy == 1) {
 		DeleteSpinner(spin);
 	}
