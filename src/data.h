@@ -59,6 +59,8 @@ int CountGapsAtSite ( const DATA_SET * data, const int i);
 int IsSiteSynonymous ( const DATA_SET * data, const int i, const int gencode);
 int IsConserved ( const DATA_SET * data, const int i);
 int NumNongaps ( const DATA_SET * data, const int site);
+int count_sequence_stops ( const int * seq, const int n, const int gencode);
+int count_alignment_stops ( const DATA_SET * data);
 
 #endif
 

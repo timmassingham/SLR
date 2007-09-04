@@ -331,6 +331,12 @@ DATA_SET *ReadData (const char *name, const int gencode)
   }
   FreeDataSet (tmp);
 
+	/*  Check if sequence contains stop codons  */
+	int nstop = count_alignment_stops(data);
+	if (0!=nstop){
+		fputs("Alignment contains stop codons. Cannot continue.\n",stderr);
+		abort();
+	}
   /*  Sort and compress sequence to remove redundency
    */
   sort_data (data);

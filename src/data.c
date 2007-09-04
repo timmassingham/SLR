@@ -34,9 +34,7 @@ static void     save_amino_seq(FILE * fp, int *seq, int length);
 void 
 CheckIsDataSet(const DATA_SET * data)
 {
-	int             i, j;
 	int             Nbases;
-	int             sum;
 
 #ifdef NDEBUG
 	return;
@@ -59,27 +57,27 @@ CheckIsDataSet(const DATA_SET * data)
 	       NumberPossibleBases(data->seq_type, data->gencode));
 
 	Nbases = NumberPossibleBases(data->seq_type, data->gencode);
-	//Check that sequence information is valid
-		for (i = 0; i < data->n_sp; i++) {
-		int             gapchar = GapChar(data->seq_type);
+	/*Check that sequence information is valid*/
+	for (int i = 0; i < data->n_sp; i++) {
+		int gapchar = GapChar(data->seq_type);
 		assert(NULL != data->seq[i]);
-		for (j = 0; j < data->n_unique_pts; j++) {
-			assert((0 <= data->seq[i][j] && data->seq[i][j] < Nbases)
-			       || data->seq[i][j] == gapchar);
+		for (int j = 0; j < data->n_unique_pts; j++) {
+			assert((0 <= data->seq[i][j] && data->seq[i][j] < Nbases )
+		       		|| data->seq[i][j] == gapchar);
 		}
 	}
 
-	//Check names
-		for (i = 0; i < data->n_sp; i++) {
+	/*Check names*/
+	for (int i = 0; i < data->n_sp; i++) {
 		assert(NULL != data->sp_name[i]);
 	}
 
 	//Are frequencies present and consistant.
-		assert(NULL != data->freq);
+	assert(NULL != data->freq);
 
 	//Check index
-		assert(NULL != data->index);
-	for (i = 0; i < data->n_pts; i++) {
+	assert(NULL != data->index);
+	for (int i = 0; i < data->n_pts; i++) {
 		assert(data->index[i] < data->n_unique_pts);
 		assert(data->index[i] >= -Nbases || data->index[i] == -INT_MAX);
 	}
@@ -159,20 +157,19 @@ ConvertNucToCodon(const DATA_SET * data, const int gencode)
 void 
 ConvertCodonToQcoord(DATA_SET * data)
 {
-	int             i, j;
 	int             seqtype;
 
 	CheckIsDataSet(data);
 	assert(data->seq_type == SEQTYPE_CODON);
 
 	seqtype = data->seq_type;
-	for (i = 0; i < data->n_sp; i++)
-		for (j = 0; j < data->n_unique_pts; j++)
+	for (int i = 0; i < data->n_sp; i++)
+		for (int j = 0 ; j < data->n_unique_pts; j++)
 			data->seq[i][j] =
 				CodonAsQcoord(data->seq[i][j], seqtype, data->gencode);
-	for (i = 0; i < data->n_pts; i++)
+	for (int i = 0 ; i < data->n_pts; i++)
 		if (data->index[i] < 0 && data->index[i] != -INT_MAX) {
-			j = -data->index[i] - 1;
+			int j = -data->index[i] - 1;
 			data->index[i] = -CodonAsQcoord(j, seqtype, data->gencode) - 1;
 		}
 	data->seq_type = SEQTYPE_CODONQ;
@@ -1433,3 +1430,28 @@ save_amino_seq(FILE * fp, int *seq, int length)
 			fprintf(fp, "\n");
 	}
 }
+
+int count_sequence_stops ( const int * seq, const int n, const int gencode){
+	assert(NULL!=seq);
+	assert(n>0);
+	assert(IsValidGencode(gencode));
+
+	int nstop = 0;
+	for ( int i=0 ; i<n ; i++){
+		if (IsStop(seq[i],gencode)){
+			nstop++;
+		}
+	}
+	return nstop;
+}
+
+int count_alignment_stops ( const DATA_SET * data){
+	CheckIsDataSet(data);
+
+	int nstop = 0;
+	for ( int sp=0 ; sp<data->n_sp ; sp++){
+		nstop += count_sequence_stops (data->seq[sp],data->n_unique_pts,data->gencode);
+	}
+	return nstop;
+}
+
