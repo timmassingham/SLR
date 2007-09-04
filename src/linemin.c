@@ -55,7 +55,7 @@ double linemin_multid ( double (*fun)(const double *, void *), int dim, double *
   for ( i=0 ; i<dim ; i++){
     x[i] += res * direct[i];
   }
-//printf("Linesearch res = %e (%e,%e)\t%e\n",min+res*max,min,max,res);
+printf("Linesearch res = %e (%e,%e)\t%e\n",min+res*(max-min),min,max,res);
   return fx;
 }
 
