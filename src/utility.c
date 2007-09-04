@@ -4,6 +4,7 @@
 #include <float.h>
 #include <ctype.h>
 #include <assert.h>
+#include "utility.h"
 
 #ifndef OOM
 #define OOM(A) if ( A == NULL){ \
@@ -35,7 +36,7 @@ slrwarn(int i, char *s)
 
 
 void 
-PrintMatrix(double *m, int n)
+PrintMatrix(const double *m, const int n)
 {
 	int             i, j;
 
@@ -48,13 +49,20 @@ PrintMatrix(double *m, int n)
 }
 
 void 
-PrintVector(double *x, int n)
+PrintVector(const double *x, const int n)
 {
-	int             i;
+	fprint_vector(stdout,' ',x,n);
+}
 
-	for (i = 0; i < n; i++)
-		printf("%6.5e ", x[i]);
-	printf("\n");
+void fprint_vector ( FILE * fp, const char sep, const double * x, const int n){
+	assert(NULL!=fp);
+	assert(NULL!=x);
+	assert(n>0);
+	fprintf(fp,"%6.5e",x[0]);
+	for ( int i=1 ; i<n ; i++){
+		fprintf(fp,"%c%6.5e",sep,x[i]);
+	}
+	fputc('\n',fp);
 }
 
 

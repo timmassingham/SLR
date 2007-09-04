@@ -1,9 +1,14 @@
 #ifndef _UTILITY_H_
 #define _UTILITY_H_
 
+#ifndef _STDIO_H_
+#include <stdio.h>
+#endif
+
 void slrwarn ( int i, char * s);
-void PrintMatrix ( double * m, int n);
-void PrintVector ( double * x, int n);
+void PrintMatrix ( const double * m, const int n);
+void PrintVector ( const double * x, const int n);
+void fprint_vector ( FILE * fp, const char sep, const double * x, const int n);
 void Free ( void * mem);
 int NumberPairs (int i);
 void PrintMatrixAsBinary ( double *m, int n);
