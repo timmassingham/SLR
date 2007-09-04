@@ -58,7 +58,8 @@ static void RL_sort_d (int n, double *number);
 static int ValidGenerator (int gen);
 static int double_comparison (const void *dp1, const void *dp2);
 static long long int ipow (int x, int y);
-static void InitialiseLaggedFromClock (ULL_TYPE *d, int n);
+static void InitialiseLaggedFromClock (ULL_TYPE *d, const int n);
+static void InitialiseLaggedFromSeed (const unsigned int seed, ULL_TYPE *d, const int n);
 
 
 static ULL_TYPE (*RL_generator64) (void) = RL_lagged64;
@@ -343,7 +344,7 @@ static int double_comparison (const void *dp1, const void *dp2)
 /*  Initialisation function for random number generators.
  *  Reads state of lagged generator from file ~/.rng64
  */
-void RL_Init (void)
+void RL_Init (const unsigned int seed)
 {
   FILE *seed_file;
   char *s, *r;
@@ -351,6 +352,11 @@ void RL_Init (void)
   int a;
 
   SetRandomGenerator (RL_LAGGED);
+
+	if ( seed != 0){
+		InitialiseLaggedFromSeed (seed, history64, RL_LAGGED_K);
+		return;
+	}
   
   #ifdef WINDOWS
     InitialiseLaggedFromClock (history64, RL_LAGGED_K);
@@ -404,25 +410,31 @@ void RL_Init (void)
  *  This routine makes some dangerous assumptions about the relative
  * sizes of long long int and int.
  */
-static void InitialiseLaggedFromClock (ULL_TYPE *d, int n)
+static void InitialiseLaggedFromClock (ULL_TYPE *d, const int n)
 {
-  int i,j;
   time_t t;
-
   assert (NULL != d);
   assert (n > 0);
 
   time (&t);
-  srand (t);
-  
-  for (i = 0; i < n; i++) {
-	d[i] = 0;
-	for ( j=0 ; j<sizeof(ULL_TYPE) ; j++){
-    	d[i] += rand()&0xff;
-    	d[i] <<= 8;
-    }
-  }
+	InitialiseLaggedFromSeed(t,d,n);
 }
+
+static void InitialiseLaggedFromSeed (const unsigned int seed, ULL_TYPE *d, const int n){
+  int i,j;
+  assert (NULL != d);
+  assert (n > 0);
+
+  srand (seed);
+  for ( int i = 0; i < n; i++) {
+  	d[i] = 0;
+  	for ( int j=0 ; j<sizeof(ULL_TYPE) ; j++){
+			d[i] += rand()&0xff;
+			d[i] <<= 8;
+		}
+	}
+}
+
 
 /*  Saves state of lagged generator to file ~/.rng64
  */

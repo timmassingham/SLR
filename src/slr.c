@@ -81,16 +81,16 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 
 
 /*   Strings describing options and defaults */
-int n_options = 18;
+int n_options = 19;
 char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
-"nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only","gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise" };
+"nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only","gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.84", "", "", "0" };
+"nuc.dat", "amino.dat", "0", "universal","0", "3.84", "", "", "0", "0" };
 char optiontype[] =
-  { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 's', 's', 'd'};
-int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 's', 's', 'd', 'd'};
+int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 char *default_optionfile = "slr.ctl";
 
 double gridomega[] = {0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.5, 2. , 10.0};
@@ -114,11 +114,8 @@ int main (int argc, char *argv[])
   double * entropy, *pval, *pval_adj;
   time_t slr_clock[4];
   struct slr_params * paramin_str;
+	unsigned int seed;
   
-  /*  Initialise random number generator
-   */
-  RL_Init ();
-
   /*  Option variables
    */
   ReadOptions (argc, argv);
@@ -140,12 +137,16 @@ int main (int argc, char *argv[])
   paramin = (char *)	GetOption ("paramin");
   paramout = (char *)	GetOption ("paramout");
 	skipsitewise = *(int *) GetOption ("skipsitewise");
+	seed = *(int *) GetOption("seed");
 
   PrintOptions ();
 
   if ( timemem ){
     time(slr_clock);
   }
+
+	/*  Initialise random number generator */
+  RL_Init (seed);	
 
 
 
