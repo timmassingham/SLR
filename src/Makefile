@@ -25,7 +25,7 @@ libdict:
 .f.o:
 	g77 -O3 -o $@ -c $<
 clean:
-	rm -f *~ *.o *.obj tn/*.o tn/*.obj *.obj brent/*.o brent/*.obj Meschach/*.o Meschach/*.obj *.exe *.lib Meschach/*.a ../libdict-0.2.1/*.obj
+	rm -f *~ *.o *.obj tn/*.o tn/*.obj *.obj brent/*.o brent/*.obj Meschach/*.o Meschach/*.obj *.exe *.lib Meschach/*.a && cd $(LIBDICTDIR) && make clean
 
 Meschach/meschach.a:
 	cd Meschach && make basic
