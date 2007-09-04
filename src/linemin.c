@@ -114,7 +114,7 @@ double linemin_backtrack ( double (*fun)(const double *, void *), int dim, doubl
 
   /* Has a solution been found? If not use normal line minimisation*/
   if ( fact<=tol){
-	fprintf(stderr,"Backtracking failed. Trying linear search");
+	fprintf(stderr,"Backtracking failed. Trying linear search\n");
 	linemin_multid(fun, dim, x, xnew, direct, info, 0., 1., tol, noisy, neval);
   }
 
