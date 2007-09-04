@@ -81,16 +81,16 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 
 
 /*   Strings describing options and defaults */
-int n_options = 17;
+int n_options = 18;
 char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
-"nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only","gencode","timemem","ldiff", "paramin", "paramout" };
+"nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only","gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.84", "", "" };
+"nuc.dat", "amino.dat", "0", "universal","0", "3.84", "", "", "0" };
 char optiontype[] =
-  { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 's', 's'};
-int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 's', 's', 'd'};
+int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 char *default_optionfile = "slr.ctl";
 
 double gridomega[] = {0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.5, 2. , 10.0};
@@ -109,7 +109,7 @@ int main (int argc, char *argv[])
   int codonf, nucleof, aminof, reoptimize, positive;
   double *x;
   int a,bran,i;
-  int gencode,timemem;
+  int gencode,timemem, skipsitewise;
   struct selectioninfo * selinfo;
   double * entropy, *pval, *pval_adj;
   time_t slr_clock[4];
@@ -139,6 +139,7 @@ int main (int argc, char *argv[])
   ldiff = *(double *)	GetOption ("ldiff");
   paramin = (char *)	GetOption ("paramin");
   paramout = (char *)	GetOption ("paramout");
+	skipsitewise = *(int *) GetOption ("skipsitewise");
 
   PrintOptions ();
 
@@ -253,14 +254,15 @@ int main (int argc, char *argv[])
       ("# Tree length = %4.2f, average branch length = %4.2f (min=%4.2f, max=%4.2f)\n", len, len / trees[0]->n_br, min, max);
   }
 
+	if ( ! skipsitewise ){
+  	selinfo = CalculateSelection ( trees[0], data, kappa,omega, freqs, ldiff);
+  	entropy = CalculateEntropy ( data,freqs);
+  	pval = CalculatePvals ( selinfo->llike_max, selinfo->llike_neu, data->n_pts, positive);
+  	pval_adj = AdjustPvals ( pval,data);
 
-  selinfo = CalculateSelection ( trees[0], data, kappa,omega, freqs, ldiff);
-  entropy = CalculateEntropy ( data,freqs);
-  pval = CalculatePvals ( selinfo->llike_max, selinfo->llike_neu, data->n_pts, positive);
-  pval_adj = AdjustPvals ( pval,data);
-
-  PrintResults ( outfile, selinfo, entropy, pval, pval_adj, data->n_pts);
-  PrintSummary ( stdout, selinfo, entropy, pval, pval_adj, data->n_pts);
+  	PrintResults ( outfile, selinfo, entropy, pval, pval_adj, data->n_pts);
+  	PrintSummary ( stdout, selinfo, entropy, pval, pval_adj, data->n_pts);
+	}
 
   if ( timemem ){
     struct rusage slr_usage;
