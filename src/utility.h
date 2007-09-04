@@ -27,4 +27,6 @@ char * itoa ( int i);
 double * norm_vector ( double * vec, const int n, const double sum);
 double * scale_vector ( double * vec, const int n, const double fact);
 
+int teeint ( FILE * fp, const char * s, const int i);
+
 #endif

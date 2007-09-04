@@ -306,3 +306,10 @@ scale_vector ( double * vec, const int n, const double fact){
 	return vec;
 }
 
+int teeint ( FILE * fp, const char *s, const int i){
+	assert(NULL!=fp);
+	assert(NULL!=s);
+
+	fprintf(fp,"%s%d\n",s,i);
+	return i;
+}
