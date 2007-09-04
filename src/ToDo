@@ -1,0 +1,30 @@
+. Remove use of fixed length strings for options
+. Check whether PAML compatible frequencies really are
+  - removed option
+. Seperate reoptimize function
+O Use branch length estimate for reoptimization
+O What happens if some branch lengths are not given
+O Use OOM more
+  Done for:	CodonModel.c
+. Make genetic code a commandline option
+. Remove global GenCode variable
+O Fix MLdist
+O Convert likelihood calc to use new tree iterations
+. Sort out add_data_to_tree
+O Multiple comparison adjustments to p-values
+  O Routines for linear regression
+  O chisq (p-value calculations)
+  O t distribution (robust line fitting, student-t ~ N / sqrt(chisq_n/n) )
+  O Minimally implement Hochberg step-up method. Nice to implement sharpened version
+  and FDR techniques.
+  - done FWER adjustments. Started to code gamma cumulatives for chisq
+  - need to be tested.
+O Separate output from optimisation of values
+. Frequencies should be in terms of NumberPossibleBases
+
+
+
+
+Code reading.
+  bases.c
+  gencode.c

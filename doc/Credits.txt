@@ -1,0 +1,19 @@
+This distribution of the Slr software would have been significantly
+delayed without the use of code from two other authors, to replace
+some FORTRAN code which would otherwise increased the effort required
+for a third party to compile a working version of Slr.
+
+Meschach library (David Stewart, des@thrain.anu.edu.au)
+  A linear algebra library written in C.
+
+Brent minimizer (Oleg Keselyov, oleg@ponder.csci.unt.edu)
+  Brent's method of minimization in one dimension.
+
+I have made minor alternations to the code for inclusion with Slr, which
+are marked with comments. The original code for both these libraries 
+can be obtained from http://www.netlib.org/c/
+
+
+Hash table functions (Farooq Mela fmela@uci.edu)
+   Dictionary library (hash tables and tree-based structures).
+http://www.crazycoder.org/libdict.html
