@@ -71,7 +71,7 @@ struct scaleinfo {
 int
 UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
 	     double *dxn, double *scale, const int n, double *space,
-	     int *onbound);
+	     const int *onbound);
 double 
 TakeStep(OPTOBJ * opt, const double tol, double *factor,
 	 int *newbound);
@@ -356,9 +356,6 @@ TakeStep(OPTOBJ * opt, const double tol, double *factor,
 	direct = opt->space;
 	space += opt->n;
 
-	for (i = 0; i < opt->n; i++) {
-		opt->onbound[i] = 0;
-	}
 	do {
 		norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound);
 	} while (UpdateActiveSet
@@ -401,9 +398,6 @@ TakeStep(OPTOBJ * opt, const double tol, double *factor,
 				ScaledStep(maxfactor, opt->x, opt->xn, direct, opt->onbound, opt->n);
 				opt->fn = fbound;
 				*newbound = 1;
-				UpdateActiveSet
-					(opt->xn, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
-				    opt->lb, opt->ub, opt->onbound, opt->n);
 OPTMESS(printf("Newton step hit boundary, appears optimal (maxfactor = %e)\n",maxfactor);)
 				goto optexit;
 			}
@@ -421,8 +415,6 @@ OPTMESS(printf("f(x) = %e\n",opt->f(opt->x, opt->state)););
 		/* Setup accept Newton step */
 		ScaledStep(1., opt->x, opt->xn, direct, opt->onbound, opt->n);
 		opt->fn = opt->f(opt->xn, opt->state); opt->neval++;
-		//maxfactor = 1.;
-		/*if (opt->fc - opt->fn < 10 * fabs(opt->fc) * tol) {*/
 		if  ( opt->fc<opt->fn){
 			for (i = 0; i < opt->n; i++) {
 				opt->xn[i] = opt->x[i];
@@ -452,10 +444,13 @@ optexit:
 				norm += opt->dxn[i] * opt->dxn[i];
 			}
 		}
-OPTMESS(printf("f(x) = %e\n",opt->f(opt->x, opt->state)););
+OPTMESS(printf("Failed to find improved point.\nf(x) = %e\n",opt->f(opt->x, opt->state)););
 		return sqrt(norm);
 	}
 	opt->df(opt->xn, opt->dxn, opt->state);
+	for ( int i=0 ; i<opt->n ; i++){direct[i] = -opt->dxn[i];}
+	UpdateActiveSet (opt->xn, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
+                                    opt->lb, opt->ub, opt->onbound, opt->n);
 
 	UpdateH_BFGS(opt->H, opt->x, opt->xn, opt->dx, opt->dxn,
 		     ((struct scaleinfo *) opt->state)->scale, opt->n, space,
@@ -552,7 +547,7 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 			assert(finite(InvHess[i * n + j]));
 	}
 
-	//Check boundaries
+	/*Check boundaries*/
 	for (i = 0; i < n; i++) {
 		if ((x[i] * scale[i] - lb[i] < BOUND_TOL && direct[i] <= 0.)
 		    || (ub[i] - x[i] * scale[i] < BOUND_TOL && direct[i] >= 0.)) {
@@ -635,7 +630,7 @@ ScaledStep(const double factor, const double *x, double *xn,
 int
 UpdateH_BFGS( double *H, const double *x, double *xn, const double *dx,
 	     double *dxn, double *scale, const int n, double *space,
-	     int *onbound)
+	     const int *onbound)
 {
 	double          gd = 0., *Hg, gHg = 0.;
 	double         *g, *d, f;
