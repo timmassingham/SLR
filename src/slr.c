@@ -81,16 +81,19 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 
 
 /*   Strings describing options and defaults */
-int n_options = 19;
+int n_options = 20;
 char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
-"nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only","gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed" };
+"nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only",
+"gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed",
+"saveseed" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.84", "", "", "0", "0" };
+"nuc.dat", "amino.dat", "0", "universal","0", "3.84", "", "", "0", "0", "1" };
 char optiontype[] =
-  { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 's', 's', 'd', 'd'};
-int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 
+'s', 's', 'd', 'd', 'd'};
+int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 char *default_optionfile = "slr.ctl";
 
 double gridomega[] = {0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.5, 2. , 10.0};
@@ -114,7 +117,7 @@ int main (int argc, char *argv[])
   double * entropy, *pval, *pval_adj;
   time_t slr_clock[4];
   struct slr_params * paramin_str;
-	unsigned int seed;
+	unsigned int seed, saveseed;
   
   /*  Option variables
    */
@@ -137,7 +140,8 @@ int main (int argc, char *argv[])
   paramin = (char *)	GetOption ("paramin");
   paramout = (char *)	GetOption ("paramout");
 	skipsitewise = *(int *) GetOption ("skipsitewise");
-	seed = *(int *) GetOption("seed");
+	seed = *(unsigned int *) GetOption("seed");
+	saveseed = *(unsigned int *) GetOption("saveseed");
 
   PrintOptions ();
 
@@ -272,7 +276,8 @@ int main (int argc, char *argv[])
     fprintf (stdout, "#CpuTime\t%d\n",(int)slr_usage.ru_utime.tv_sec);
     fprintf (stdout, "#DiffTimes\t%ld\t%ld\t%ld\n",slr_clock[1]-slr_clock[0],slr_clock[2]-slr_clock[1],slr_clock[3]-slr_clock[2]);
   }
-  RL_Close();
+
+  if (saveseed){ RL_Close();}
   
   return EXIT_SUCCESS;
 }
