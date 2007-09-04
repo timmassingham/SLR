@@ -9,6 +9,7 @@ void slrwarn ( int i, char * s);
 void PrintMatrix ( const double * m, const int n);
 void PrintVector ( const double * x, const int n);
 void fprint_vector ( FILE * fp, const char sep, const double * x, const int n);
+void fprint_ivector ( FILE * fp, const char sep, const int * x, const int n);
 void Free ( void * mem);
 int NumberPairs (int i);
 void PrintMatrixAsBinary ( double *m, int n);

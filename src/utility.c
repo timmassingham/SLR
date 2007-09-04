@@ -65,6 +65,17 @@ void fprint_vector ( FILE * fp, const char sep, const double * x, const int n){
 	fputc('\n',fp);
 }
 
+void fprint_ivector ( FILE * fp, const char sep, const int * x, const int n){
+        assert(NULL!=fp);
+        assert(NULL!=x);
+        assert(n>0);
+        fprintf(fp,"%d",x[0]);
+        for ( int i=1 ; i<n ; i++){
+                fprintf(fp,"%c%d",sep,x[i]);
+        }
+        fputc('\n',fp);
+}
+
 
 int 
 NumberPairs(int n)
