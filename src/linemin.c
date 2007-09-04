@@ -33,6 +33,7 @@ static void ScaleDirection( double * direct, const double min, const double max,
 
 double linemin_multid ( double (*fun)(const double *, void *), int dim, double * x, double *xnew, double * direct, void * info, const double min, const double max, const double tol, const int noisy, int * neval ){
   int i;
+	int localneval=0;
   double res,fx;
   assert(NULL!=fun);
   assert(dim>1);
@@ -49,13 +50,14 @@ double linemin_multid ( double (*fun)(const double *, void *), int dim, double *
   }
   ScaleDirection(direct,min,max,dim);
   setf (fun, dim, x, xnew, direct, NULL, info, noisy);
-  res = fminbr(0.,1.,fun_wrapper,tol,neval);
-  fx = fun_wrapper (res); *neval = *neval + 1;
+  res = fminbr(0.,1.,fun_wrapper,tol,&localneval);
+  fx = fun_wrapper (res); localneval++;
   unsetf();
   for ( i=0 ; i<dim ; i++){
     x[i] += res * direct[i];
   }
-printf("Linesearch res = %e (%e,%e)\t%e\n",min+res*(max-min),min,max,res);
+	*neval += localneval;
+printf("Linesearch res = %e (%e,%e)\t%e\t%d evals\n",min+res*(max-min),min,max,res,localneval);
   return fx;
 }
 
