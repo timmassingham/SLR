@@ -84,12 +84,12 @@ double linemin_backtrack ( double (*fun)(const double *, void *), int dim, doubl
   double fact = 2.;  
   double f;
   do {
-	fact /= 2.;
-	for ( int i=0 ; i<dim ; i++){
-		xnew[i] = x[i] + fact * direct[i];
-	}
-	f = fun(xnew,info);
-        *neval = *neval + 1;
+		fact /= 2.;
+		for ( int i=0 ; i<dim ; i++){
+			xnew[i] = x[i] + fact * direct[i];
+		}
+		f = fun(xnew,info);
+		*neval = *neval + 1;
   } while ( f>fmin && fact>tol);
   
   if ( fact>tol){
@@ -99,32 +99,33 @@ double linemin_backtrack ( double (*fun)(const double *, void *), int dim, doubl
   	do{
   		fmin = f;
   		fact /= 2.;
-		for ( int i=0 ; i<dim ; i++){
-			xnew[i] = x[i] + fact * direct[i];
-		}
-		f = fun(xnew,info);
-        *neval = *neval + 1;
+			for ( int i=0 ; i<dim ; i++){
+				xnew[i] = x[i] + fact * direct[i];
+			}
+			f = fun(xnew,info);
+       *neval = *neval + 1;
   	} while ( f<fmin && fact>tol);
   	/*  Exited because point found is worse */
   	if ( fact>tol){
-		for ( int i=0 ; i<dim ; i++){
-			xnew[i] = x[i] + 2.*fact * direct[i];
-		}
-		f = fmin;
+			for ( int i=0 ; i<dim ; i++){
+				xnew[i] = x[i] + 2.*fact * direct[i];
+			}
+			f = fmin;
   	}	
   }
 
   /* Has a solution been found? If not use normal line minimisation*/
   if ( fact<=tol){
-	fprintf(stderr,"Backtracking failed. Trying linear search\n");
-	linemin_multid(fun, dim, x, xnew, direct, info, 0., 1., tol, noisy, neval);
-  }
+		fprintf(stderr,"Backtracking failed. Trying linear search\n");
+		linemin_multid(fun, dim, x, xnew, direct, info, 0., 1., tol, noisy, neval);
+  } else {
+		printf("Backtrack factor = %e\t%e\t%e\n",fact,min,max);
+	}
 
   for ( int i=0 ; i<dim ; i++){
-	x[i] = xnew[i];
+		x[i] = xnew[i];
   }
 
-  //printf("Backtrack factor = %e\t%e\t%e\n",fact,min,max);
   return f;
 }
 
