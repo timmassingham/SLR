@@ -51,27 +51,27 @@ PrintMatrix(const double *m, const int n)
 void 
 PrintVector(const double *x, const int n)
 {
-	fprint_vector(stdout,' ',x,n);
+	fprint_vector(stdout," ",x,n);
 }
 
-void fprint_vector ( FILE * fp, const char sep, const double * x, const int n){
+void fprint_vector ( FILE * fp, const char * sep, const double * x, const int n){
 	assert(NULL!=fp);
 	assert(NULL!=x);
 	assert(n>0);
 	fprintf(fp,"%6.5e",x[0]);
 	for ( int i=1 ; i<n ; i++){
-		fprintf(fp,"%c%6.5e",sep,x[i]);
+		fprintf(fp,"%s%6.5e",sep,x[i]);
 	}
 	fputc('\n',fp);
 }
 
-void fprint_ivector ( FILE * fp, const char sep, const int * x, const int n){
+void fprint_ivector ( FILE * fp, const char * sep, const int * x, const int n){
         assert(NULL!=fp);
         assert(NULL!=x);
         assert(n>0);
         fprintf(fp,"%d",x[0]);
         for ( int i=1 ; i<n ; i++){
-                fprintf(fp,"%c%d",sep,x[i]);
+                fprintf(fp,"%s%d",sep,x[i]);
         }
         fputc('\n',fp);
 }
