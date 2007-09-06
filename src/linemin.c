@@ -57,7 +57,7 @@ double linemin_multid ( double (*fun)(const double *, void *), int dim, double *
     x[i] += res * direct[i];
   }
 	*neval += localneval;
-printf("Linesearch res = %e (%e,%e)\t%e\t%d evals\n",min+res*(max-min),min,max,res,localneval);
+//printf("Linesearch res = %e (%e,%e)\t%e\t%d evals\n",min+res*(max-min),min,max,res,localneval);
   return fx;
 }
 
@@ -74,19 +74,19 @@ double linemin_backtrack ( double (*fun)(const double *, void *), int dim, doubl
   assert(tol>=0.);
   assert(noisy==0 || noisy==1);
 
-  for ( i=0 ; i<dim ; i++){
-    x[i] += min * direct[i];
-  }
-  double fmin = fun(x,info);
+	double range = max-min;	
+	for ( int i=0 ; i<dim ; i++){
+		xnew[i] = x[i] + min*direct[i];
+	}
+  double fmin = fun(xnew,info);
   *neval = *neval + 1;
-  ScaleDirection(direct,min,max,dim);
 
   double fact = 2.;  
   double f;
   do {
 		fact /= 2.;
 		for ( int i=0 ; i<dim ; i++){
-			xnew[i] = x[i] + fact * direct[i];
+			xnew[i] = x[i] + (min+fact*range) * direct[i];
 		}
 		f = fun(xnew,info);
 		*neval = *neval + 1;
@@ -100,7 +100,7 @@ double linemin_backtrack ( double (*fun)(const double *, void *), int dim, doubl
   		fmin = f;
   		fact /= 2.;
 			for ( int i=0 ; i<dim ; i++){
-				xnew[i] = x[i] + fact * direct[i];
+				xnew[i] = x[i] + (min+fact*range) * direct[i];
 			}
 			f = fun(xnew,info);
        *neval = *neval + 1;
@@ -108,19 +108,13 @@ double linemin_backtrack ( double (*fun)(const double *, void *), int dim, doubl
   	/*  Exited because point found is worse */
   	if ( fact>tol){
 			for ( int i=0 ; i<dim ; i++){
-				xnew[i] = x[i] + 2.*fact * direct[i];
+				xnew[i] = x[i] + (min+2.*fact*range) * direct[i];
 			}
 			f = fmin;
   	}	
   }
 
-  /* Has a solution been found? If not use normal line minimisation*/
-  if ( fact<=tol){
-		fprintf(stderr,"Backtracking failed. Trying linear search\n");
-		linemin_multid(fun, dim, x, xnew, direct, info, 0., 1., tol, noisy, neval);
-  } else {
-		printf("Backtrack factor = %e\t%e\t%e\n",fact,min,max);
-	}
+	//printf("Backtrack factor = %e\t%e\t%e\n",fact,min,max);
 
   for ( int i=0 ; i<dim ; i++){
 		x[i] = xnew[i];

@@ -14,6 +14,8 @@
 #define RESET		100
 #define MAX_TRUST	10.0
 #define MIN_TRUST	1e-4
+#define MINSCALE	0.001
+#define MAXSCALE	1000.0
 
 #define HESSIAN_NONPD		  1
 #define PARAM_BOUND		  2
@@ -93,7 +95,8 @@ double          TrimAtBoundaries(const double *x, const double *direct,
 		                      const double *ub, const int *onbound);
 int             UpdateActiveSet(const double *x, double *grad, const double *scale,
 	                double *InvHess, const double *lb, const double *ub,
-				                 int *onbound, const int n);
+				                 int *onbound, const int n, int * newbound);
+double SteepestDescentStep ( OPTOBJ * opt);
 double          GetNewtonStep(double *direct, const double *InvHess,
                        const double *grad, const int n, const int *onbound);
 void            ScaledStep(const double factor, const double *x, double *xn,
@@ -127,7 +130,7 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 	double          fact;
 	double         *scale;
 	SPINNER        *spin;
-	int             newbound = 1, lastbound = 0;
+	int             newbound = 1;
 
 
 	opt = NewOpt(n);
@@ -153,7 +156,6 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 		InitializeH(opt);
 		fact = 1.;
 		do {
-			lastbound = newbound;
 			fn = opt->fc;
 			errn = 0;
 			md = TakeStep(opt, tol, &fact, &newbound);
@@ -165,19 +167,19 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 			} else if (noisy == 1) {
 				UpdateSpinner(spin);
 			}
-		} while (fabs(opt->fc - fn) > 0.5*(fabs(opt->fc)+fabs(fn))*tol || lastbound);
+		} while (((fn-opt->fc) > tol) || newbound);
 
 		if (noisy == 2) {
 			printf("***\n");
 		}
 		restarts++;
-	} while (restarts < max_restart && fabs(opt->fc - fo) > 0.5*(fabs(opt->fc)+fabs(fn))*tol && RESTART);
+	} while (restarts < max_restart && ((opt->fc-fo) > tol) && RESTART);
 	if (noisy == 1) {
 		DeleteSpinner(spin);
 	}
-	if (step == max_step) {
+	if (restarts == max_restart) {
 		printf("Didn't converge after %d restarts. Returning best value.\n",
-		       step);
+		       restarts);
 	}
 	scale = ((struct scaleinfo *) opt->state)->scale;
 	for (i = 0; i < n; i++) {
@@ -352,21 +354,20 @@ TakeStep(OPTOBJ * opt, const double tol, double *factor,
 	double          maxfactor;
 	int             i;
 
-	space = opt->space;
 	direct = opt->space;
-	space += opt->n;
+	space = opt->space + opt->n;
+	*newbound = 0;
 
 	do {
 		norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound);
 	} while (UpdateActiveSet
 	  (opt->x, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
-	   opt->lb, opt->ub, opt->onbound, opt->n));
+	   opt->lb, opt->ub, opt->onbound, opt->n,newbound));
 
 	/*  Scale step to satisfy trust region */
 	if ( norm>opt->trust){ scale_vector (direct,opt->n,opt->trust/norm); }
 
 	*factor = 1.;
-	*newbound = 0;
 	maxfactor =
 		TrimAtBoundaries(opt->x, direct,
 			   ((struct scaleinfo *) opt->state)->scale, opt->n,
@@ -397,7 +398,6 @@ TakeStep(OPTOBJ * opt, const double tol, double *factor,
 				 */
 				ScaledStep(maxfactor, opt->x, opt->xn, direct, opt->onbound, opt->n);
 				opt->fn = fbound;
-				*newbound = 1;
 OPTMESS(printf("Newton step hit boundary, appears optimal (maxfactor = %e)\n",maxfactor);)
 				goto optexit;
 			}
@@ -406,10 +406,10 @@ OPTMESS(printf("Newton step hit boundary, appears optimal (maxfactor = %e)\n",ma
 			opt->xn[i] = opt->x[i];
 		}
 OPTMESS(printf("Newton step hit boundary, doing linesearch (maxfactor = %e)\n",maxfactor);)
-OPTMESS(printf("f(x) = %e\n",opt->f(opt->x, opt->state)););
+OPTMESS(printf("f(x) = %6.5e\n",opt->f(opt->x, opt->state)););
 		opt->fn =
 			linemin_backtrack(opt->f, opt->n, opt->xn, space, direct, opt->state, 0.,
-				       maxfactor, 3e-8, 0, &opt->neval);
+				       maxfactor, 1e-5, 0, &opt->neval);
 		 opt->trust = (opt->trust/2.0<MIN_TRUST)?MIN_TRUST:opt->trust/2.0;
 	} else {
 		/* Setup accept Newton step */
@@ -433,6 +433,11 @@ OPTMESS(printf("Newton step feasible and gives improvement\n");)
 optexit:
 	OPTMESS(printf ("Trust region is now %e\n",opt->trust);)
 	if (opt->fn > opt->fc) {
+		/*  Try steepestDescentStep  */
+		opt->fn = SteepestDescentStep (opt);
+	}
+	if ( opt->fn > opt->fc){
+		/*  Still worse position  */
 		for (i = 0; i < opt->n; i++) {
 			opt->xn[i] = opt->x[i];
 			opt->dxn[i] = opt->dx[i];
@@ -450,7 +455,7 @@ OPTMESS(printf("Failed to find improved point.\nf(x) = %e\n",opt->f(opt->x, opt-
 	opt->df(opt->xn, opt->dxn, opt->state);
 	for ( int i=0 ; i<opt->n ; i++){direct[i] = -opt->dxn[i];}
 	UpdateActiveSet (opt->xn, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
-                                    opt->lb, opt->ub, opt->onbound, opt->n);
+                                    opt->lb, opt->ub, opt->onbound, opt->n,newbound);
 
 	UpdateH_BFGS(opt->H, opt->x, opt->xn, opt->dx, opt->dxn,
 		     ((struct scaleinfo *) opt->state)->scale, opt->n, space,
@@ -526,7 +531,7 @@ TrimAtBoundaries(const double *x, const double *direct,
 int 
 UpdateActiveSet(const double *x, double *direct, const double *scale,
 		double *InvHess, const double *lb, const double *ub,
-		int *onbound, const int n)
+		int *onbound, const int n, int * newbound)
 {
 	int             i, j;
 	int             nremoved = 0;
@@ -572,8 +577,25 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 			onbound[i] = 0;
 		}
 	}
+	*newbound += nremoved;
 	return nremoved;
 }
+
+double SteepestDescentStep ( OPTOBJ * opt){
+	assert(NULL!=opt);
+
+	double * direct = opt->space;
+	double * space = opt->space + opt->n;
+
+	for ( int i=0 ; i<opt->n ; i++){ 
+		opt->xn[i] = opt->x[i];
+		direct[i] = (opt->onbound[i])?0.0:-opt->dx[i];
+	}
+	double maxfactor = TrimAtBoundaries(opt->x, direct, ((struct scaleinfo *) opt->state)->scale, opt->n, opt->lb, opt->ub, opt->onbound);
+	double fnew = linemin_multid (opt->f, opt->n, opt->xn, space, direct, opt->state, 0.,
+                                       maxfactor, 3.e-8, 0, &opt->neval);
+	return fnew;
+}	
 
 
 
@@ -694,7 +716,7 @@ UpdateH_BFGS( double *H, const double *x, double *xn, const double *dx,
 	for (i = 0; i < n; i++)
 		for (j = 0; j < i; j++) 
 			H[j * n + i] = H[i * n + j];
-	Rescale(xn, dxn, H, n, scale);
+	//Rescale(xn, dxn, H, n, scale);
 
 	return 1;
 }
@@ -795,7 +817,6 @@ void
 Rescale(double *x, double *dx, double *H, int n, double *scale)
 {
 	int             i, j;
-	double          min, max;
 	double          scalefact;
 
 	assert(NULL != x);
@@ -807,6 +828,8 @@ Rescale(double *x, double *dx, double *H, int n, double *scale)
 
 	for (i = 0; i < n; i++) {
 		scalefact = sqrt(H[i * n + i]);
+		scalefact = (scalefact>MINSCALE)?scalefact:MINSCALE;
+		scalefact = (scalefact<MAXSCALE)?scalefact:MAXSCALE;
 		for (j = 0; j < n; j++) {
 			H[i * n + j] /= scalefact;
 			H[j * n + i] /= scalefact;
