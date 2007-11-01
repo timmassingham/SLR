@@ -10,7 +10,8 @@
 srcdir = .
 VPATH = .
 
-CC = cc
+CC = gcc
+AR = ar
 
 DEFS = -DHAVE_CONFIG_H
 LIBS =  -lm
@@ -21,7 +22,7 @@ CFLAGS = -O3 -funroll-loops -fomit-frame-pointer
 
 
 .c.o:
-	$(CC) -c $(CFLAGS) $(DEFS) $<
+	$(CC) -c -o $@ $(CFLAGS) $(DEFS) $<
 
 SHELL = /bin/sh
 MES_PAK = mesch12b
@@ -77,32 +78,32 @@ complex: part1 part2 zpart1 zpart2
 
 $(LIST1): $(HBASE)
 part1: $(LIST1)
-	ar ru meschach.a $(LIST1)
+	$(AR) ru meschach.a $(LIST1)
 	$(RANLIB) meschach.a
 
 $(LIST2): $(HBASE) matrix2.h
 part2: $(LIST2)
-	ar ru meschach.a $(LIST2)
+	$(AR) ru meschach.a $(LIST2)
 	$(RANLIB) meschach.a
 
 $(LIST3): $(HBASE) sparse.h sparse2.h
 part3: $(LIST3)
-	ar ru meschach.a $(LIST3)
+	$(AR) ru meschach.a $(LIST3)
 	$(RANLIB) meschach.a
 
 $(ZLIST1): $(HBASDE) zmatrix.h
 zpart1: $(ZLIST1)
-	ar ru meschach.a $(ZLIST1)
+	$(AR) ru meschach.a $(ZLIST1)
 	$(RANLIB) meschach.a
 
 $(ZLIST2): $(HBASE) zmatrix.h zmatrix2.h 
 zpart2: $(ZLIST2)
-	ar ru meschach.a $(ZLIST2)
+	$(AR) ru meschach.a $(ZLIST2)
 	$(RANLIB) meschach.a
 
 $(OLDLIST): $(HBASE) sparse.h sparse2.h 
 oldpart: $(OLDLIST)
-	ar ru meschach.a $(OLDLIST)
+	$(AR) ru meschach.a $(OLDLIST)
 	$(RANLIB) meschach.a
 
 
