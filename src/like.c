@@ -21,8 +21,8 @@
 
 
 double          CalcLike_Single(const double *param, void *data);
-void            UpdateAllParams(MODEL * model, TREE * tree, double *p);
-void            UpdateParam(MODEL * model, TREE * tree, double p, int i);
+void            UpdateAllParams(MODEL * model, TREE * tree, const double *p);
+void            UpdateParam(MODEL * model, TREE * tree, const double p, const int i);
 void            GradLike_Single(double *param, double *grad, void *data);
 void            GradLike_Full(double *param, double *grad, void *data);
 void            InfoLike_Full(double *param, double *grad, void *data);
@@ -457,7 +457,7 @@ CalcLike_Single(const double *param, void *data)
 
 
 void
-UpdateAllParams(MODEL * model, TREE * tree, double *p)
+UpdateAllParams(MODEL * model, TREE * tree, const double *p)
 {
 	int             i = 0, a;
 	NODE           *node;
@@ -475,23 +475,19 @@ UpdateAllParams(MODEL * model, TREE * tree, double *p)
 }
 
 void
-UpdateParam(MODEL * model, TREE * tree, double p, int i)
+UpdateParam(MODEL * model, TREE * tree, const double p, const int i)
 {
 	NODE           *node;
 	int             a;
 
-	if (model->has_branches) {
-		if (i < tree->n_br) {
-			node = tree->branches[i];
-			node->blength[0] = p;
-			a = find_connection(node->branch[0], node);
-			(node->branch[0])->blength[a] = p;
-			return;
-		} else {
-			i -= tree->n_br;
-		}
+	if (model->has_branches && i < tree->n_br) {
+		node = tree->branches[i];
+		node->blength[0] = p;
+		a = find_connection(node->branch[0], node);
+		(node->branch[0])->blength[a] = p;
+		return;
 	}
-	model->Update(model, p, i);
+	model->Update(model, p, model->has_branches?i-tree->n_br:i);
 
 	return;
 }
