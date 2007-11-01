@@ -249,7 +249,6 @@ MakeP_From_FactQ(const double *v, const double *ev, const double *inv_ev, const 
 			return NULL;
 	}
 	if (length * rate * scale < -DBL_EPSILON) {
-		abort();
 		err(EXIT_FAILURE,"Error. lrs less than zero. len=%e, rate=%e scale=%e\n", length, rate, scale);
 	}
 

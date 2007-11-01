@@ -5,7 +5,7 @@
 #include <assert.h>
 #include "options.h"
 
-#define OOM(A)	if(NULL==A) { fputs("Out of memory!",stderr); fflush(stderr); abort(); }
+#define OOM(A)	if(NULL==A) { fputs("Out of memory!",stderr); fflush(stderr); exit(EXIT_FAILURE); }
 #define MAXSTRING 80
 typedef struct
 {

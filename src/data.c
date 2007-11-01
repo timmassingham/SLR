@@ -856,7 +856,7 @@ RemoveTrivialObs(const DATA_SET * data)
 						singlechar = data->seq[b][a];
 				if (singlechar == gapchar) {
 					printf("Something fishy -- all gaps\n");
-					abort();
+					exit(EXIT_FAILURE);
 				}
 				UpdateIndex(new, a, -(singlechar + 1));
 				break;

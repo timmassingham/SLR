@@ -335,7 +335,7 @@ DATA_SET *ReadData (const char *name, const int gencode)
 	int nstop = count_alignment_stops(data);
 	if (0!=nstop){
 		fputs("Alignment contains stop codons. Cannot continue.\n",stderr);
-		abort();
+		exit(EXIT_FAILURE);
 	}
   /*  Sort and compress sequence to remove redundency
    */

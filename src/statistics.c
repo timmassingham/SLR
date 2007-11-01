@@ -6,7 +6,7 @@
 #include "statistics.h"
 
 #define MAXSTEP		1000
-#define OOM(A) { if( (A) == NULL ) { fputs ("Out of memory",stderr); fflush(stderr); abort(); } }
+#define OOM(A) { if( (A) == NULL ) { fputs ("Out of memory",stderr); fflush(stderr); exit(EXIT_FAILURE); } }
 
 static double pow1pm1 ( const double x, const double y);
 static int IsPvals ( const double * pval, const int n);
