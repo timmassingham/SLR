@@ -301,7 +301,6 @@ Degeneracy(const int codon, const int gencode)
 double         *
 GetAminoFrequencies(const double *codons, const int gencode)
 {
-	int             gapchar;
 	double         *af;
 
 	assert(NULL != codons);

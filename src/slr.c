@@ -366,7 +366,7 @@ DATA_SET *ReadData (const char *name, const int gencode)
 
 double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x){
   struct single_fun *info;
-  double sum, *bd,fx;
+  double *bd,fx;
   int i,nbr;
   MODEL * model;
 

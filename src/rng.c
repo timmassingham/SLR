@@ -323,7 +323,7 @@ void RL_lagged64_g (ULL_TYPE *n)
 
 /*  Sorts an array of doubles
  */
-static void RL_sort_d (int n, double *number)
+void RL_sort_d (int n, double *number)
 {
   assert (n > 0);
   assert (NULL != number);
@@ -421,7 +421,6 @@ static void InitialiseLaggedFromClock (ULL_TYPE *d, const int n)
 }
 
 static void InitialiseLaggedFromSeed (const unsigned int seed, ULL_TYPE *d, const int n){
-  int i,j;
   assert (NULL != d);
   assert (n > 0);
 

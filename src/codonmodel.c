@@ -397,7 +397,7 @@ void
 GetQ_Codon(MODEL * model)
 {
 	double         *mat, kappa, omega;
-	int             i, n;
+	int             n;
 
 	n = model->nbase;
 	mat = model->q;
@@ -474,7 +474,7 @@ Update_Codon(MODEL * model, double p, int i)
 MODEL          *
 NewCodonModel(const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type)
 {
-	int             i, n;
+	int             n;
 	MODEL          *model;
 
 	n = NumberSenseCodonsInGenCode(gencode);
@@ -796,7 +796,7 @@ GetdQ_Codon(MODEL * model, int n, double *q)
 MODEL          *
 NewCodonModel_full(const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type)
 {
-	int             i, n;
+	int             n;
 	MODEL          *model;
 
 	n = NumberSenseCodonsInGenCode(gencode);
