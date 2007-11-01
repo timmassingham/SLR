@@ -20,7 +20,6 @@ static SPINNER * linemin_spinner;
 static void setf ( double (*f)(const double *, void *), int dim, double * x, double *xnew, double *direct, double * igrad, void * info, int noisy );
 static void unsetf ( void);
 static double fun_wrapper ( double x);
-static double qfun_wrapper (double x);
 static int CheckLinemin ( void);
 static void setf1d ( double (*f)(const double *, void *), void * info, int noisy);
 static void unsetf1d (void);
@@ -62,8 +61,6 @@ double linemin_multid ( double (*fun)(const double *, void *), int dim, double *
 }
 
 double linemin_backtrack ( double (*fun)(const double *, void *), int dim, double * x, double *xnew, double * direct, void * info, const double min, const double max, const double tol, const int noisy, int * neval ){
-  int i;
-  double res,fx;
   assert(NULL!=fun);
   assert(dim>1);
   assert(NULL!=x);
@@ -247,14 +244,6 @@ static double fun_wrapper ( double x){
   //printf ("f(%e) = %e\n",x,res);
     
   return res;
-}
-
-static double qfun_wrapper ( double x){
-	if ( linemin_noisy){ UpdateSpinner(linemin_spinner); }
-	for ( int i=0 ; i<linemin_dim ; i++){
-		linemin_xnew[i] = linemin_x[i] + x * linemin_igrad[i] + x*x * (linemin_direct[i]-linemin_igrad[i]);
-  	}
-  	return linemin_function (linemin_xnew, linemin_info);
 }
 
 static int CheckLinemin ( void){
