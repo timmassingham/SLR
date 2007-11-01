@@ -22,7 +22,10 @@
 **      distribution fee considered a charge.
 **
 ***************************************************************************/
-
+/* 1Nov'07; tim.massingham@ebi.ac.uk
+ * Added include file to remove compilation warning
+ */
+#include <stdio.h>
 
 main()
 {

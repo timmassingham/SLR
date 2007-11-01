@@ -1,4 +1,4 @@
-/* machine.h.  Generated automatically by configure.  */
+/* machine.h.  Generated from machine.h.in by configure.  */
 /* Any machine specific stuff goes here */
 /* Add details necessary for your own installation here! */
 

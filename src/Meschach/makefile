@@ -1,4 +1,3 @@
-# Generated automatically from makefile.in by configure.
 #
 # Makefile for Meschach via autoconf
 #
@@ -8,21 +7,21 @@
 #
 
 srcdir = .
-VPATH = .
+
 
 CC = gcc
-AR = ar
 
 DEFS = -DHAVE_CONFIG_H
 LIBS =  -lm
 RANLIB = ranlib
+AR = ar
 
 
-CFLAGS = -O3 -funroll-loops -fomit-frame-pointer 
+CFLAGS = -O
 
 
 .c.o:
-	$(CC) -c -o $@ $(CFLAGS) $(DEFS) $<
+	$(CC) -c $(CFLAGS) $(DEFS) $<
 
 SHELL = /bin/sh
 MES_PAK = mesch12b
@@ -78,32 +77,32 @@ complex: part1 part2 zpart1 zpart2
 
 $(LIST1): $(HBASE)
 part1: $(LIST1)
-	$(AR) ru meschach.a $(LIST1)
+	$(AR) cru meschach.a $(LIST1)
 	$(RANLIB) meschach.a
 
 $(LIST2): $(HBASE) matrix2.h
 part2: $(LIST2)
-	$(AR) ru meschach.a $(LIST2)
+	$(AR) cru meschach.a $(LIST2)
 	$(RANLIB) meschach.a
 
 $(LIST3): $(HBASE) sparse.h sparse2.h
 part3: $(LIST3)
-	$(AR) ru meschach.a $(LIST3)
+	$(AR) cru meschach.a $(LIST3)
 	$(RANLIB) meschach.a
 
 $(ZLIST1): $(HBASDE) zmatrix.h
 zpart1: $(ZLIST1)
-	$(AR) ru meschach.a $(ZLIST1)
+	$(AR) cru meschach.a $(ZLIST1)
 	$(RANLIB) meschach.a
 
 $(ZLIST2): $(HBASE) zmatrix.h zmatrix2.h 
 zpart2: $(ZLIST2)
-	$(AR) ru meschach.a $(ZLIST2)
+	$(AR) cru meschach.a $(ZLIST2)
 	$(RANLIB) meschach.a
 
 $(OLDLIST): $(HBASE) sparse.h sparse2.h 
 oldpart: $(OLDLIST)
-	$(AR) ru meschach.a $(OLDLIST)
+	$(AR) cru meschach.a $(OLDLIST)
 	$(RANLIB) meschach.a
 
 

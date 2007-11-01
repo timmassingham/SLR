@@ -178,7 +178,10 @@ extern  BAND *bd_get(int,int,int), *bd_resize(BAND *,int,int,int);
 /* free (de-allocate) (band) matrices, vectors, permutations and 
    integer vectors */
 extern  int iv_free(IVEC *);
-extern	m_free(MAT *),v_free(VEC *),px_free(PERM *);
+/* 1Nov07; tim.massingham@ebi.ac.uk
+ * Added int ro declaration on following line to remove compiler warnings
+ */
+extern	int m_free(MAT *),v_free(VEC *),px_free(PERM *); 
 extern   int bd_free(BAND *);
 
 #endif

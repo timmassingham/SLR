@@ -225,8 +225,13 @@ u_int	i1,i2;		/* elements to transpose */
 
 /* myqsort -- a cheap implementation of Quicksort on integers
 		-- returns number of swaps */
+/* 1Nov07; tim.massingham@ebi.ac.uk
+ * Added unsigned restriction since only used on u_int's.
+ * Removes compilation warning (and potential bug for _very_
+ * large matrices.
+ */
 static int myqsort(a,num)
-int	*a, num;
+u_int	*a, num;
 {
 	int	i, j, tmp, v;
 	int	numswaps;

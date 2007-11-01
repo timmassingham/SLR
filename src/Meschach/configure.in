@@ -48,6 +48,7 @@ struct s2 {int (*f) (double a);};],
 AC_DEFINE(HAVE_PROTOTYPES_IN_STRUCT))])dnl
 dnl
 AC_PROG_RANLIB
+AC_CHECK_PROG([AR],[ar],[ar],[:])
 AC_HAVE_HEADERS(memory.h)
 AC_STDC_HEADERS
 AC_HEADER_CHECK(complex.h, AC_DEFINE(HAVE_COMPLEX_H),)
@@ -74,14 +75,14 @@ AC_COMPILE_CHECK([u_int],[#include <stdio.h>
 echo 'computing machine epsilon(s)'
 echo $CC -o macheps dmacheps.c
 $CC -o macheps dmacheps.c
-AC_DEFINE_UNQUOTED(D_MACHEPS,`macheps`)
+AC_DEFINE_UNQUOTED(D_MACHEPS,`./macheps`)
 echo $CC -o macheps fmacheps.c
 $CC -o macheps fmacheps.c
-AC_DEFINE_UNQUOTED(F_MACHEPS,`macheps`)
+AC_DEFINE_UNQUOTED(F_MACHEPS,`./macheps`)
 echo computing M_MAX_INT
 echo $CC -o maxint maxint.c
 $CC -o maxint maxint.c
-AC_DEFINE_UNQUOTED(M_MAX_INT,`maxint`)
+AC_DEFINE_UNQUOTED(M_MAX_INT,`./maxint`)
 echo checking char '\\0' vs. float zeros
 AC_PROGRAM_EGREP(yes,[main() {
     char	*cp = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
