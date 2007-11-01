@@ -54,7 +54,7 @@ static double RL_standard_uniform (double x, int r);
 static ULL_TYPE RL_lagged64 (void);
 static void RL_lagged64_g (ULL_TYPE *n);
 static ULL_TYPE RL_linear64 (void);
-static void RL_sort_d (int n, double *number);
+void RL_sort_d (int n, double *number);
 static int ValidGenerator (int gen);
 static int double_comparison (const void *dp1, const void *dp2);
 static long long int ipow (int x, int y);
