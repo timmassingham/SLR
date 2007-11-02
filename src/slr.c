@@ -57,8 +57,8 @@ void GradLike_Full (const double *param, double *grad, void *data);
 
 int FindBestX (double *grid, int site, int n, int positive);
 DATA_SET *ReadData (const char *name, const int gencode);
-double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x);
-struct selectioninfo *  CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff);
+double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf);
+struct selectioninfo *  CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf);
 void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double *entropy, const double * pval, const double * pval_adj, const int nsites);
 double * CalculatePvals ( const double * lmax, const double * lneu, const int n, const int positive_only);
 double * AdjustPvals ( const double * pval, DATA_SET * data);
@@ -81,19 +81,19 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 
 
 /*   Strings describing options and defaults */
-int n_options = 20;
+int n_options = 21;
 char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
 "nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only",
 "gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed",
-"saveseed" };
+"saveseed", "freqtype" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", "0", "1" };
+"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", "0", "1", "0" };
 char optiontype[] =
   { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 
-'s', 's', 'd', 'd', 'd'};
-int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+'s', 's', 'd', 'd', 'd', 'd'};
+int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 char *default_optionfile = "slr.ctl";
 
 double gridomega[] = {0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.5, 2. , 10.0};
@@ -112,7 +112,7 @@ int main (int argc, char *argv[])
   int codonf, nucleof, aminof, reoptimize, positive;
   double *x;
   int a,bran,i;
-  int gencode,timemem, skipsitewise;
+  int gencode,timemem, skipsitewise, freqtype;
   struct selectioninfo * selinfo;
   double * entropy, *pval, *pval_adj;
   time_t slr_clock[4];
@@ -139,9 +139,10 @@ int main (int argc, char *argv[])
   ldiff = *(double *)	GetOption ("ldiff");
   paramin = (char *)	GetOption ("paramin");
   paramout = (char *)	GetOption ("paramout");
-	skipsitewise = *(int *) GetOption ("skipsitewise");
-	seed = *(unsigned int *) GetOption("seed");
-	saveseed = *(unsigned int *) GetOption("saveseed");
+  skipsitewise = *(int *) GetOption ("skipsitewise");
+  seed = *(unsigned int *) GetOption("seed");
+  saveseed = *(unsigned int *) GetOption("saveseed");
+  freqtype = *(unsigned int *) GetOption("freqtype");
 
   PrintOptions ();
 
@@ -233,7 +234,7 @@ int main (int argc, char *argv[])
 
     if ( timemem ){ time(slr_clock+1);}
 
-    loglike = OptimizeTree (data,trees[0],freqs,x);
+    loglike = OptimizeTree (data,trees[0],freqs,x,freqtype,codonf);
     kappa = x[trees[0]->n_br];
     omega = x[trees[0]->n_br+1];
     printf ("# lnL = %e\n",loglike);
@@ -260,7 +261,7 @@ int main (int argc, char *argv[])
   }
 
 	if ( ! skipsitewise ){
-  	selinfo = CalculateSelection ( trees[0], data, kappa,omega, freqs, ldiff);
+  	selinfo = CalculateSelection ( trees[0], data, kappa,omega, freqs, ldiff,freqtype,codonf);
   	entropy = CalculateEntropy ( data,freqs);
   	pval = CalculatePvals ( selinfo->llike_max, selinfo->llike_neu, data->n_pts, positive);
   	pval_adj = AdjustPvals ( pval,data);
@@ -364,7 +365,7 @@ DATA_SET *ReadData (const char *name, const int gencode)
   return data;
 }
 
-double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x){
+double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf){
   struct single_fun *info;
   double *bd,fx;
   int i,nbr;
@@ -395,7 +396,7 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
       x[i] = bd[nbr+2+i]-1e-5;
   }
 
-  model = NewCodonModel_full ( data->gencode, x[0], x[1], freqs, 0,0);
+  model = NewCodonModel_full ( data->gencode, x[0], x[1], freqs, codonf ,freqtype);
   OOM(model);
   model->exact_obs = 1;
 
@@ -424,7 +425,7 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
 
 
 
-struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff){
+struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf){
   double x[1];
   struct selectioninfo * selinfo;
   int site, positive,row,pt;
@@ -444,17 +445,24 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
   assert(omega>=0.);
   assert(freqs!=NULL);
 
+  const int dosupport = (0.0==ldiff)?0:1;
+
   selinfo = malloc(sizeof(struct selectioninfo));		OOM(selinfo);
   selinfo->llike_neu = calloc(data->n_pts,sizeof(double));	OOM(selinfo->llike_neu);
   selinfo->llike_max = calloc(data->n_pts,sizeof(double));      OOM(selinfo->llike_max);
   selinfo->omega_max = calloc(data->n_pts,sizeof(double));      OOM(selinfo->omega_max);
-  selinfo->lbound = calloc(data->n_pts,sizeof(double));         OOM(selinfo->lbound);
-  selinfo->ubound = calloc(data->n_pts,sizeof(double));         OOM(selinfo->ubound);
+  if ( dosupport ){
+  	selinfo->lbound = calloc(data->n_pts,sizeof(double));         OOM(selinfo->lbound);
+  	selinfo->ubound = calloc(data->n_pts,sizeof(double));         OOM(selinfo->ubound);
+  } else {
+	selinfo->lbound = NULL;
+	selinfo->ubound = NULL;
+  }
   selinfo->type = calloc ( data->n_pts,sizeof(int));		OOM(selinfo->type);
 
   positive = *(int *) GetOption("positive_only");
 
-  model = NewCodonModel_single ( data->gencode, kappa,omega,freqs,0,0);
+  model = NewCodonModel_single ( data->gencode, kappa,omega,freqs,codonf,freqtype);
   OOM(model);
   model->exact_obs = 1;
 
@@ -539,8 +547,10 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       fm = 0.;
       fn = 0.;
       type = 0;
-      lb = 0.;
-      ub = HUGE_VAL;
+      if ( dosupport ){
+      	lb = 0.;
+      	ub = HUGE_VAL;
+      }
       //printf ("%5d all gaps\n",site);
     }
     // Does site only exist in one sequence
@@ -549,8 +559,10 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       fm = -log(model->pi[-data->index[site]-1]);
       fn = fm;
       type = 1;
-      lb = 0.;
-      ub = HUGE_VAL;
+      if ( dosupport ){
+      	lb = 0.;
+      	ub = HUGE_VAL;
+      }
       //printf ("%5d recent insert\n",site);
     }
     else if (done_usite[data->index[site]]!=-1){
@@ -558,8 +570,10 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       fn = selinfo->llike_neu[usite];
       fm = selinfo->llike_max[usite];
       omegam = selinfo->omega_max[usite];
-      lb = selinfo->lbound[usite];
-      ub = selinfo->ubound[usite];
+      if ( dosupport ){
+      	lb = selinfo->lbound[usite];
+      	ub = selinfo->ubound[usite];
+      }
       type = selinfo->type[usite];
       //printf ("%5d same as site %d\n",site,usite);
     } else {
@@ -597,24 +611,23 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       }
 
       /*  Find confidence interval for omega (actually "support") */
-      neval=0;
-      if ( grid[(data->index[site]+1)*gridlength]-fm<=ldiff/2. ){
-        lb = 0.;
-      } else {
-        Set_CalcLike_Wrapper (CalcLike_Single,fm+ldiff/2.);
-        //lb = -1.;
-        lb = find_root (0,omegam,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
-      }
-      //fprintf(stderr,"%5d lb\t%d\n",site+1,neval);
+      if ( dosupport ){
+      	neval=0;
+      	if ( grid[(data->index[site]+1)*gridlength]-fm<=ldiff/2. ){
+        	lb = 0.;
+      	} else {
+        	Set_CalcLike_Wrapper (CalcLike_Single,fm+ldiff/2.);
+        	lb = find_root (0,omegam,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
+      	}
 
 	  if ( grid[(data->index[site]+1)*gridlength + gridlength - 1]-fm<=ldiff/2. ){
 	  	ub = 99.;
 	  } else {
-      	Set_CalcLike_Wrapper (CalcLike_Single,fm+ldiff/2.);
-      	neval = 0;
-      	ub = find_root (omegam,99.,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
+      		Set_CalcLike_Wrapper (CalcLike_Single,fm+ldiff/2.);
+      		neval = 0;
+      		ub = find_root (omegam,99.,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
+      	}
       }
-      //fprintf(stderr,"%5d ub\t%d\n",site+1,neval);
 
 
       assert(data->index[site]>=0);
@@ -624,8 +637,10 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
     selinfo->llike_neu[site] = fn;
     selinfo->llike_max[site] = fm;
     selinfo->omega_max[site] = omegam;
-    selinfo->lbound[site] = lb;
-    selinfo->ubound[site] = ub;
+    if ( dosupport ){
+    	selinfo->lbound[site] = lb;
+    	selinfo->ubound[site] = ub;
+    }
     selinfo->type[site] = type;
     putchar('.');
     fflush(stdout);
@@ -649,13 +664,23 @@ void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double
   assert(NULL!=pval_adj);
   assert(nsites>0);
 
+  const int dosupport = (NULL==selinfo->lbound)?0:1;
+  assert ( !dosupport || (NULL!=selinfo->ubound && NULL!=selinfo->lbound) );
+  assert (  dosupport || (NULL==selinfo->ubound && NULL==selinfo->lbound) );
+  
+
   out_fp = fopen (outfile,"w");
   if ( NULL==out_fp){
     fprintf (stderr,"Could not open file \"%s\" for output\n",outfile); 
     return;
   }
 
-  fputs ("# Site  Neutral  Optimal   Omega    lower    upper LRT_Stat    Pval     Adj.Pval  Result Note\n", out_fp);
+  if ( dosupport ){
+  	fputs ("# Site  Neutral  Optimal   Omega    lower    upper LRT_Stat    Pval     Adj.Pval  Result Note\n", out_fp);
+  } else {
+	fputs ("# Site  Neutral  Optimal   upper LRT_Stat    Pval     Adj.Pval  Result Note\n", out_fp);
+  }
+
   for ( site=0 ; site<nsites ; site++){
     stat = 2. * (selinfo->llike_neu[site] - selinfo->llike_max[site]);
     stat_inf =  2. * (entropy[site] - selinfo->llike_max[site]);
@@ -675,9 +700,18 @@ void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double
     if ( pval[site]<=0.01)	result[1] = sign;
     if ( pval_adj[site]<=0.05)	result[2] = sign;
     if ( pval_adj[site]<=0.01)	result[3] = sign;
-    
-    fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %8.4f %8.4f %6.4e %6.4e %s %s\n",
-             site + 1, selinfo->llike_neu[site], selinfo->llike_max[site], selinfo->omega_max[site], selinfo->lbound[site], selinfo->ubound[site], stat, pval[site], pval_adj[site],result,OutString[selinfo->type[site]]);
+   
+    if ( dosupport){ 
+    	fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %8.4f %8.4f %6.4e %6.4e %s %s\n",
+		site + 1, selinfo->llike_neu[site], selinfo->llike_max[site], 
+		selinfo->omega_max[site], selinfo->lbound[site], selinfo->ubound[site], 
+		stat, pval[site], pval_adj[site],result,OutString[selinfo->type[site]]);
+    } else {
+        fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %6.4e %6.4e %s %s\n",
+                site + 1, selinfo->llike_neu[site], selinfo->llike_max[site],
+                selinfo->omega_max[site], stat, pval[site], pval_adj[site], result,
+		OutString[selinfo->type[site]]);
+    }
   }
 
   fclose(out_fp);
