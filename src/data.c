@@ -132,8 +132,8 @@ ConvertNucToCodon(const DATA_SET * data, const int gencode)
 				break;
 			default:
 				printf
-					("Odd gapping in data. Sequence %d, Site %d: %c%c%c. Treating as gap.\n",
-				    i, j, NucleoAsChar(data->seq[i][3 * j]),
+					("Odd gapping in data. Sequence %s, Site %d: %c%c%c. Treating as gap.\nNote: this may be as the result of ambiguous nucleotides being translated into gaps.\n",
+				    data->sp_name[i], j, NucleoAsChar(data->seq[i][3 * j]),
 				      NucleoAsChar(data->seq[i][3 * j + 1]),
 				     NucleoAsChar(data->seq[i][3 * j + 2]));
 			case 3:
