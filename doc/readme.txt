@@ -91,13 +91,103 @@ codonf [0]
   (not taking into account at which position in the codon it occurs).
   The nucleotide frequencies are multiplied together to get the frequency 
   of observing and then corrected for stop codons.
+
+freqtype [0]
+  How codon frequencies are incorporated into the substitution matrix.
+  0: q_{ij} = pi_{j} s_{ij}
+  1: q_{ij} = \sqrt(pi_j/pi_i) s_{ij}
+  2: q_{ij} = \pi_{n} s_{ij}, where n is the nucleotide that the 
+  subsitution is to.
+  3: q_{ij} = s_{ij} / pi_i
+  Option 0 is the tradition method of incorporating equilibrium frequencies
+  into subsitution matrices (Felsenstein 1981; Goldman and Yang, 1994)
+  Option 1 is described by Goldman and Whelan (2002), in this case with the
+  additional parameter set to 0.5.
+  Option 2 was suggested by Muse and Gaut (1994).
+  Option 3 is included as an experiment, originally suggested by Bret Larget.
+  it does not appear to describe evolution very successfully and should not
+  be used for analyses.
+
+  Kosakovsky-Pond has repeatedly stated that he finds incorporating codon
+  frequencies in the manner of option 2 to be superior to option 0. We find
+  that option 1 tends to perform better than either of these options.
   
 positive_only [0]
   If only positively selected sites are of interest, set this to "1".
   Calculation will be slightly faster, but information about sites under
   purifying selection is lost. 
 
-gencocde [universal]
+gencode [universal]
   Which genetic code to use when determining whether a given mutation
   is synonymous or nonsynonymous. Currently only "universal" and
   "mammalian" mitochondrial are supported.
+
+nucleof [0]
+  Allow for empirical exchangabilities for nucleotide substitution.
+  0: No adjustment. All nucleotides treated the same, modulo 
+  transition / transversion.
+  1: The rate at which a substitution caused a mutation from nucleotide
+  a to nucleotide b is adjust by a constant N_{ab}. This adjustment is 
+  in addition to other adjustments (e.g. transition / transversion or
+  base frequencies).
+  
+
+aminof [0]
+  Incorporate amino acid similarity parameters into substitution matrix,
+  adjusting omega for a change between amino acid i and amino acid j.
+  A_{ij} is a symmetric matrix of constants representing amino acid
+  similarities.
+  0: Constant omega for all amino acid changes
+  1: omega_{ij} = omega^{A_{ij}}
+  2: omega_{ij} = a_{ij} log(omega) / [ 1 - exp(-a_{ij} log(omega)) ]
+  Option 1 has the same form as the original codon subsitution model 
+  proposed by Goldman and Yang (but with potentially different 
+  constants).
+  Option 2 has a more population genetic derivtion, with omega being
+  interpreted as the ratio of fixation probabilities.
+
+nucfile [nuc.dat]
+  If nucleof is non-zero, read nucleotide substitution constants from
+  nucfile. If this file does not exist, hard coded constants are used.
+
+aminofile [amino.dat]
+  If aminof is non-zero, read amino acid similarity constants from
+  aminofile. If this file does not exist, hard coded constants are used.
+
+timemem [0]
+  Print summary of real time and CPU time used. Will eventually print
+  summary of memory use as well.
+
+ldiff [3.841459]
+  Twice log-likelihood difference used as a threshold for calculating 
+  support (confidence) intervals for sitewise omega estimates. This 
+  value should be the quantile from a chi-square distribution with one
+  degree of freedom corresponding to the support required. 
+  E.g. qchisq(0.95,1) = 3.841459
+     0.4549364 = 50% support
+     1.323304  = 75% support
+     2.705543  = 90% support
+     3.841459  = 95% support
+     6.634897  = 99% support
+     7.879439  = 99.5% support
+    10.82757   = 99.9% support
+
+paramin []
+  If not blank, read in parameters from file given by the argument.
+
+paramout []
+  If not blank, write out parameter estimates to file given.
+
+skipsitewise [0]
+  Skip sitewise estimation of omega. Depending on other options given, 
+  either calculate maximum likelihood or likelihood fixed at parameter
+  values given.
+
+seed [0]
+  Seed for random number generator. If seed is 0, then previously 
+  produced seed file (~/.rng64) is used. If this does not exist, the
+  random number generator is initialised using the clock.
+
+saveseed [1]
+  If non-zero, save finial seed in file (~/.rng64) to be used as initial
+  seed in future runs of program.
