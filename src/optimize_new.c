@@ -108,14 +108,14 @@ double          fWrap(const double *x, void *info);
 void            Rescale(double *x, double *dx, double *H, int n, double *scale);
 void            AnalyseOptima(double *x, double *dx, int n, int *onbound, double *lb,
 				                      double *ub);
-
-
-
-
 int             step, reset;
 int             errn=0;
 
 
+double calcerr ( const double x, const double y){
+	return x-y;
+	return 2.*(x-y)/(fabs(x)+fabs(y));
+}
 
 
 void            Optimize(double *x, int n, void (*df) (const double *, double *, void *),
@@ -167,13 +167,23 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 			} else if (noisy == 1) {
 				UpdateSpinner(spin);
 			}
-		} while (((fn-opt->fc) > tol) || newbound);
+			if ( calcerr(fn,opt->fc)<=tol){
+			   OPTMESS( printf("Step was small. Trying steepest descent.\n");)
+			   opt->fc = SteepestDescentStep(opt);
+			   for ( int i=0 ; i<opt->n ; i++){ opt->x[i] = opt->xn[i]; }
+			   opt->df(opt->x, opt->dx, opt->state);
+			   for ( int i=0 ; i<opt->n ; i++){ opt->space[i] = -opt->dx[i];}
+			   UpdateActiveSet (opt->x, opt->space, ((struct scaleinfo *) opt->state)->scale, opt->H,
+			                                       opt->lb, opt->ub, opt->onbound, opt->n,&newbound);
+			   InitializeH(opt);
+			}
+		} while ((calcerr(fn,opt->fc) > tol) || newbound );
 
 		if (noisy == 2) {
 			printf("***\n");
 		}
 		restarts++;
-	} while (restarts < max_restart && ((opt->fc-fo) > tol) && RESTART);
+	} while (restarts < max_restart && (calcerr(opt->fc,fo) > tol) && RESTART);
 	if (noisy == 1) {
 		DeleteSpinner(spin);
 	}
@@ -336,7 +346,6 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
 	opt->state = sinfo;
 	opt->df(opt->x, opt->dx, opt->state);
 
-
 	for (i = 0; i < n; i++)
 		if ((opt->x[i] <= opt->lb[i] && opt->dx[i] >= 0.)
 		    || (opt->x[i] >= opt->ub[i] && opt->dx[i] <= 0.))
@@ -432,10 +441,6 @@ OPTMESS(printf("Newton step feasible and gives improvement\n");)
 
 optexit:
 	OPTMESS(printf ("Trust region is now %e\n",opt->trust);)
-	if (opt->fn > opt->fc) {
-		/*  Try steepestDescentStep  */
-		opt->fn = SteepestDescentStep (opt);
-	}
 	if ( opt->fn > opt->fc){
 		/*  Still worse position  */
 		for (i = 0; i < opt->n; i++) {
@@ -566,7 +571,7 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 					InvHess[i*n+j] = 0.;
 					InvHess[j*n+i] = 0.;
 				}
-				InvHess[i*n+i] = diag;
+				InvHess[i*n+i] = fabs(diag);
 				InvertMatrix(InvHess,n);
 			}
 			onbound[i] = 1;
@@ -589,11 +594,12 @@ double SteepestDescentStep ( OPTOBJ * opt){
 
 	for ( int i=0 ; i<opt->n ; i++){ 
 		opt->xn[i] = opt->x[i];
-		direct[i] = (opt->onbound[i])?0.0:-opt->dx[i];
+		direct[i] = (opt->onbound[i])?0.:-opt->dx[i];
 	}
 	double maxfactor = TrimAtBoundaries(opt->x, direct, ((struct scaleinfo *) opt->state)->scale, opt->n, opt->lb, opt->ub, opt->onbound);
-	double fnew = linemin_multid (opt->f, opt->n, opt->xn, space, direct, opt->state, 0.,
-                                       maxfactor, 3.e-8, 0, &opt->neval);
+	double fnew = linemin_backtrack(opt->f, opt->n, opt->xn, space, direct, opt->state, 0.,
+                                       maxfactor, 1e-12, 0, &opt->neval);
+        OPTMESS(printf("Steepest descent: Diff = %e\n",opt->fc-fnew);)
 	return fnew;
 }	
 
@@ -716,7 +722,7 @@ UpdateH_BFGS( double *H, const double *x, double *xn, const double *dx,
 	for (i = 0; i < n; i++)
 		for (j = 0; j < i; j++) 
 			H[j * n + i] = H[i * n + j];
-	//Rescale(xn, dxn, H, n, scale);
+	Rescale(xn, dxn, H, n, scale);
 
 	return 1;
 }
