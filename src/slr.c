@@ -89,7 +89,7 @@ char *options[] =
 "saveseed" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.84", "", "", "0", "0", "1" };
+"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", "0", "1" };
 char optiontype[] =
   { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 
 's', 's', 'd', 'd', 'd'};
