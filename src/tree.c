@@ -844,3 +844,15 @@ unsigned s_hash(const unsigned char *p)
    return hash;
 }
 
+VEC branchlengths_from_tree ( const TREE * tree){
+	assert(NULL!=tree);
+	
+	VEC branlength = create_vec(tree->n_br);
+	assert(NULL!=branlength);
+	for (unsigned int bran=0 ; bran<tree->n_br ; bran++){
+		vset(branlength,bran,tree->branches[bran]->blength[0]);
+	}
+	return branlength;
+}
+
+

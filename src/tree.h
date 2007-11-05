@@ -18,6 +18,10 @@
 
 #include "../libdict-0.2.1/dict.h"
 
+#ifndef _VEC_H_
+#include "vec.h"
+#endif
+
 
 
 struct node {
@@ -71,6 +75,7 @@ int save_tree_strings ( char * filename, TREE ** trees);
 int add_lengths_to_tree ( TREE * tree, double *lengths);
 
 int find_leaf_by_name ( const char * name, const TREE * tree);
+VEC branchlengths_from_tree ( const TREE * tree);
 
 #endif
 
