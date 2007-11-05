@@ -3,6 +3,8 @@
 #include <math.h>
 #include <assert.h>
 #include <limits.h>
+#include <err.h>
+#include <errno.h>
 #include "statistics.h"
 
 #define MAXSTEP		1000
@@ -12,7 +14,9 @@ static double pow1pm1 ( const double x, const double y);
 static int IsPvals ( const double * pval, const int n);
 static double CorrectPval ( const double p, const int n, const int method);
 int CmpDoublePtr ( const void * dptr1, const void * dptr2);
-
+int CmpDouble ( const void * dptr1, const void * dptr2);
+double sample_variance_naive ( const VEC v);
+double variance_naive ( const VEC v);
 
 static double pow1pm1 ( const double x, const double y){
   return expm1( y * log1p(x) );
@@ -133,4 +137,114 @@ int CmpDoublePtr ( const void * dptr1, const void * dptr2){
     return 1;
 
   return -1;
+}
+
+int CmpDouble ( const void * dptr1, const void * dptr2){
+	if ( *(const double *)dptr1 > *(const double *)dptr2 ){
+		return 1;
+	}
+
+	return -1;
+}
+
+/* Note: quick and dirty algorithm; not numerically stable.
+ * Might need to be rewritten at some point
+ */
+double mean ( const VEC v){
+	assert(NULL!=v);
+	unsigned int len = v->n;
+	double x = 0.;
+	for ( unsigned int i=0 ; i<len ; i++){
+		x += v->x[i];
+	}
+	return x/len;
+}
+
+double median ( const VEC v){
+	return quantile(v,0.5);
+}
+
+double quantile_fromsorted ( const VEC v, double q){
+	assert(NULL!=v);
+	assert(q>=0. && q<=1.);
+
+	const unsigned int idx = (unsigned int)(q*(vlen(v)-1));
+	const double w = q*(vlen(v)-1) - idx;
+	/* Deal with corner case when q exactly one. Due to
+	 * (assumed) right continuity of indexing
+	 */
+	if ( idx == vlen(v) - 1){ return vget(v,idx);}
+	return (1.-w)*vget(v,idx) + w*vget(v,idx+1);
+}
+
+double quantile (const VEC v, const double q){
+	assert(NULL!=v);
+	assert(q>=0. && q<=1.);
+	VEC vcopy = copy_vec(v);
+	qsort (vcopy->x,vlen(vcopy),sizeof(double),CmpDouble);
+	const double med = quantile_fromsorted(vcopy,q);
+	free_vec(vcopy);
+	return med;
+}
+
+VEC quantiles ( const VEC v, const VEC q){
+	assert(NULL!=q);
+	assert(NULL!=v);
+
+	VEC quant = create_vec(vlen(q));
+	assert(NULL!=quant);
+	VEC vcopy = copy_vec(v);
+	qsort (vcopy->x,vlen(vcopy),sizeof(double),CmpDouble);
+
+	for ( unsigned int i=0; i<vlen(q) ; i++){
+		assert(vget(q,i)>=0. && vget(q,i)<=1.);
+		vset(quant,i,quantile_fromsorted(vcopy,vget(q,i)));
+	}
+	free_vec(vcopy);
+	return quant;
+}
+
+double sample_variance_naive ( const VEC v){
+	assert(NULL!=v);
+	const unsigned int len = vlen(v);
+	const double vmean = mean(v);
+	double sumsqr = 0.;
+	for ( unsigned int i=0 ; i<len ; i++){
+		sumsqr += (vget(v,i)-vmean)*(vget(v,i)-vmean);
+	}
+	return sumsqr;
+}
+
+double variance_naive ( const VEC v){
+	return sample_variance_naive(v)/(vlen(v)-1);
+}
+
+/*  Variance of data by corrected two-pass algorithm  */
+double variance (const VEC v){
+	assert(NULL!=v);
+	const unsigned int len = vlen(v);
+	const double vmean = mean(v);
+	const double correction = suma_vec(v,-vmean);
+
+	return (sample_variance_naive(v)-correction*correction/len)/(len-1);
+}
+
+double sd(const VEC v){
+	return sqrt(variance(v));
+}
+
+#define MADSCALE 1.4826 /* Constant to scale MAD so it is comparable to SD */
+/*  Some unnecessary vector copies when this function is combined with median */
+double mad ( const VEC v){
+	assert(NULL!=v);
+	const double vmedian = median(v);
+	VEC vcopy = copy_vec (v);
+	const unsigned int len = vlen(vcopy);
+	for ( unsigned int i=0 ; i<len ; i++){
+		vset(vcopy,i,vget(vcopy,i)-vmedian);
+	}
+	const double devmedian = median(vcopy);
+	free_vec(vcopy);
+
+	return devmedian * MADSCALE;
 }
