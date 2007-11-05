@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <float.h>
+#include <string.h>
 #include "vec.h"
 
 VEC create_vec ( const unsigned int n){
@@ -97,7 +98,7 @@ VEC copy_vec ( const VEC v){
 
 void fprint_vec (FILE * fp, const char * prefix, const char * sep, const char * suffix, const VEC v){
 	assert(NULL!=fp);
-	assert(NULL!=sep):
+	assert(NULL!=sep);
 	assert(NULL!=v);
 
 	fprintf (fp,"%s%e",prefix,vget(v,0));
@@ -117,5 +118,28 @@ void fprint_rvec(FILE * fp, const char * name, const VEC v){
 	memcpy(prefix,"<-c(",5*sizeof(char));
 	fprint_vec(fp,prefix,",",");\n",v);
 	free(prefix);
+}
+
+double suma_vec ( const VEC v, const double a){
+	assert(NULL!=v);
+	const unsigned int len = vlen(v);
+	double sum = 0.;
+	for ( unsigned int i=0 ; i<len ; i++){
+		sum += vget(v,i) + a;
+	}
+
+	return sum;
+}
+
+
+double sum_vec ( const VEC v){
+        assert(NULL!=v);
+        const unsigned int len = vlen(v);
+        double sum = 0.;
+        for ( unsigned int i=0 ; i<len ; i++){
+                sum += vget(v,i);
+        }
+
+        return sum;
 }
 

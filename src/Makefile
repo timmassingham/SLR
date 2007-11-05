@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -O4 -funroll-loops -DNDEBUG -fomit-frame-pointer -std=gnu99
 #CFLAGS = -static -O3 -funroll-loops -DNDEBUG -std=gnu99 -Wall
 #CFLAGS =  -DNDEBUG -pg  -Wall -DBLAS -DLAPACK -std=gnu99
-#CFLAGS = -Wall -g -DWARNINGS -std=gnu99 -DUSE_OPTMESS
+#CFLAGS = -Wall -g -DWARNINGS -std=gnu99 -pedantic
 #CFLAGS = -O -funroll-loops  -std=gnu99 -DNDEBUG
 LD = ld
 BLASLIB = atlas
@@ -11,7 +11,7 @@ INCFLAGS =
 LIBDICTDIR = ../libdict-0.2.1
 #LDFLAGS = -lm
 
-objects = like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o utility.o matrix.o optimize_new.o spinner.o options.o tree_data.o linemin.o gamma.o statistics.o mystring.o nucmodel.o root.o
+objects = like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o utility.o matrix.o optimize_new.o spinner.o options.o tree_data.o linemin.o gamma.o statistics.o mystring.o nucmodel.o root.o vec.o
 lineobj = brent/fminbr.o
 
 

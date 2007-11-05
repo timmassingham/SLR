@@ -1,6 +1,10 @@
 #ifndef _VEC_H_
 #define _VEC_H_
 
+#ifndef _STDIO_H_
+#include <stdio.h>
+#endif
+
 struct __vec {
 	double * x;
 	unsigned int n;
@@ -19,6 +23,9 @@ double maxelt_vec ( const VEC v);
 VEC copy_vec ( const VEC v);
 void fprint_vec (FILE * fp, const char * prefix, const char * sep, const char * suffix, const VEC v);
 void fprint_rvec(FILE * fp, const char * name, const VEC v);
+
+double suma_vec ( const VEC v, const double a);
+double sum_vec ( const VEC v);
 
 #define vget(VEC,I) VEC->x[(I)]
 #define vset(VEC,I,VAL) VEC->x[(I)] = (VAL)
