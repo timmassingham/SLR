@@ -81,19 +81,19 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 
 
 /*   Strings describing options and defaults */
-int n_options = 21;
+int n_options = 22;
 char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
 "nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only",
 "gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed",
-"saveseed", "freqtype" };
+"saveseed", "freqtype", "cleandata" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", "0", "1", "0" };
+"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", "0", "1", "0", "0" };
 char optiontype[] =
   { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 
-'s', 's', 'd', 'd', 'd', 'd'};
-int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+'s', 's', 'd', 'd', 'd', 'd','d'};
+int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 char *default_optionfile = "slr.ctl";
 
 double gridomega[] = {0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.5, 2. , 10.0};
@@ -117,7 +117,7 @@ int main (int argc, char *argv[])
   double * entropy, *pval, *pval_adj;
   time_t slr_clock[4];
   struct slr_params * paramin_str;
-	unsigned int seed, saveseed;
+	unsigned int seed, saveseed, cleandata;
   
   /*  Option variables
    */
@@ -143,6 +143,7 @@ int main (int argc, char *argv[])
   seed = *(unsigned int *) GetOption("seed");
   saveseed = *(unsigned int *) GetOption("saveseed");
   freqtype = *(unsigned int *) GetOption("freqtype");
+  cleandata = *(unsigned int *) GetOption("cleandata");
 
   PrintOptions ();
 
@@ -160,6 +161,7 @@ int main (int argc, char *argv[])
   SetAminoAndCodonFuncs (nucleof, aminof, nucfile, aminofile);
   gencode = GetGeneticCode (gencode_str);
 
+  if ( 0==cleandata ){ warn("cleandata options not implemented yet. Defaulting to 0 (treat ambiguous characters as gaps\n"); }
   data = ReadData (seqfile,gencode);
   if ( NULL==data){
     puts ("Problem reading data file. Aborting\n");
