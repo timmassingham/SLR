@@ -106,7 +106,7 @@ void fprint_vec (FILE * fp, const char * prefix, const char * sep, const char * 
 	for ( unsigned int i=1 ; i<len ; i++){
 		fprintf (fp, "%s%e",sep,vget(v,i));
 	}
-	fprintf(fp,"%e%s",suffix);
+	fputs(suffix,fp);
 }
 
 void fprint_rvec(FILE * fp, const char * name, const VEC v){
