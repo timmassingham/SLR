@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS = -O4 -funroll-loops -DNDEBUG -fomit-frame-pointer -std=gnu99
+#CFLAGS = -O4 -funroll-loops -DNDEBUG -DBLAS -DLAPACK -fomit-frame-pointer -std=gnu99
 #CFLAGS = -static -O3 -funroll-loops -DNDEBUG -std=gnu99 -Wall
 #CFLAGS =  -DNDEBUG -pg  -Wall -DBLAS -DLAPACK -std=gnu99
 #CFLAGS = -Wall -g -DWARNINGS -std=gnu99 -pedantic
