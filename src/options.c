@@ -26,7 +26,7 @@ static void ReadOptionsFromCommandLine (int argc, char **argv);
 static void ReadOptionsFromFile (char *filename);
 static int AddOption (const int key, const char *value);
 static void SetDefaultOptions (void);
-static void *GetOptionByKey (const int key);//, void *value);
+static void *GetOptionByKey (const int key);
 
 
 void ReadOptions (int argc, char **argv)
@@ -129,7 +129,7 @@ static void *GetOptionByKey (const int key)
     return NULL;
 
   return opt->val[key];
-};
+}
 
 void *GetOption (char *optname)
 {
@@ -248,7 +248,7 @@ char GetString (int maxsize, char *string, FILE * fp)
   if (c == '#')
     while ((c = getc (fp)) != EOF && c != '\n');
   return c;
-};
+}
 
 void PrintOptions (void)
 {
