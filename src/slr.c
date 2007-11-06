@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <err.h>
 #include <sys/resource.h>
 #include "rng.h"
 #include "gencode.h"
@@ -24,6 +25,8 @@
 #include "statistics.h"
 #include "root.h"
 #include "linemin.h"
+
+#define GRIDSIZE	50
 
 struct selectioninfo {
   double * llike_neu;
@@ -55,7 +58,8 @@ double CalcLike_Single (const double *param, void *data);
 void GradLike_Single (const double *param, double *grad, void *data);
 void GradLike_Full (const double *param, double *grad, void *data);
 
-int FindBestX (double *grid, int site, int n, int positive);
+VEC create_grid ( const unsigned int len, const int positive);
+int FindBestX (const double *grid, const int site, const int n);
 DATA_SET *ReadData (const char *name, const int gencode);
 double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf);
 struct selectioninfo *  CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf);
@@ -84,7 +88,7 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 int n_options = 22;
 char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
-"nucleof", "aminof", "reoptimize", "nucfile", "aminofile", "positive_only",
+"nucleof", "aminof", "reoptimise", "nucfile", "aminofile", "positive_only",
 "gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed",
 "saveseed", "freqtype", "cleandata" };
 char *optiondefault[] =
@@ -96,11 +100,6 @@ char optiontype[] =
 int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 char *default_optionfile = "slr.ctl";
 
-double gridomega[] = {0., 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.5, 2. , 10.0};
-int gridlength = 18;
-int gridneutral = 14;
-
-
 int main (int argc, char *argv[])
 {
   TREE **trees;
@@ -109,7 +108,7 @@ int main (int argc, char *argv[])
   struct single_fun *info;
   double kappa, omega, loglike,ldiff;
   char *seqfile, *treefile, *outfile, *nucfile, *aminofile,*gencode_str,*paramin,*paramout;
-  int codonf, nucleof, aminof, reoptimize, positive;
+  int codonf, nucleof, aminof, reoptimise, positive;
   double *x;
   int a,bran,i;
   int gencode,timemem, skipsitewise, freqtype;
@@ -132,7 +131,7 @@ int main (int argc, char *argv[])
   aminof = *(int *)	GetOption ("aminof");
   nucfile = (char *)	GetOption ("nucfile");
   aminofile = (char *)	GetOption ("aminofile");
-  reoptimize = *(int *)	GetOption ("reoptimize");
+  reoptimise = *(int *)	GetOption ("reoptimise");
   positive = *(int *)	GetOption ("positive_only");
   gencode_str = (char *)GetOption ("gencode");
   timemem = *(int *)	GetOption ("timemem");
@@ -161,7 +160,7 @@ int main (int argc, char *argv[])
   SetAminoAndCodonFuncs (nucleof, aminof, nucfile, aminofile);
   gencode = GetGeneticCode (gencode_str);
 
-  if ( 0==cleandata ){ warn("cleandata options not implemented yet. Defaulting to 0 (treat ambiguous characters as gaps\n"); }
+  if ( 0!=cleandata ){ warn("cleandata options not implemented yet. Defaulting to 0 (treat ambiguous characters as gaps).\n"); }
   data = ReadData (seqfile,gencode);
   if ( NULL==data){
     puts ("Problem reading data file. Aborting\n");
@@ -206,10 +205,10 @@ int main (int argc, char *argv[])
       assert(-1!=a);
       (node->branch[0])->blength[a] = node->blength[0];
 
-      if ( reoptimize == 0){
-	puts ("# Found branch of undetermined length. Will optimize tree");
+      if ( reoptimise == 0){
+	puts ("# Found branch of undetermined length. Will optimise tree");
       }
-      reoptimize = 1;
+      reoptimise = 1;
     }
   }
 
@@ -221,7 +220,7 @@ int main (int argc, char *argv[])
   OOM(info->p);
 
 
-  if (1 == reoptimize) {
+  if (1 == reoptimise) {
     /* Set initials
      */
     x = calloc(trees[0]->n_br+2,sizeof(double));
@@ -286,31 +285,22 @@ int main (int argc, char *argv[])
 }
 
 
-int FindBestX (double *grid, int site, int n, int positive)
+int FindBestX (const double *grid, const int site, const int n)
 {
-  int a, b;
-  double min;
-
   assert(NULL!=grid);
   assert(site>=0);
   assert(n>=0);
-  assert(positive==0 || positive==1);
 
-  min = DBL_MAX;
-
-  if (1 == positive)
-    b = gridneutral;
-  else
-    b = 0;
-
-  for (a = b; a < n; a++) {
-    if (grid[(site + 1) * n + a] < min) {
-      min = grid[(site + 1) * n + a];
-      b = a;
+  double min = DBL_MAX;
+  unsigned int bestidx = 0;
+  for (unsigned int a = 0; a < n; a++) {
+    if (grid[site * n + a] < min) {
+      min = grid[site * n + a];
+      bestidx = a;
     }
   }
 
-  return b;
+  return bestidx;
 }
 
 
@@ -430,13 +420,13 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
 struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf){
   double x[1];
   struct selectioninfo * selinfo;
-  int site, positive,row,pt;
+  int positive;
   double factor;
   MODEL * model;
   DATA_SET * data_single;
   struct single_fun * info;
   double bd[2];
-  double * grid;
+  double * likelihood_grid;
   int col;
   int * done_usite;
   int species,bufflen;
@@ -506,33 +496,38 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
   /*  Calculate grid of sitewise likelihoods for many omega, use to
    * provide good starting values for each sitewise observation.
    *  Do this since it is relative quick to calculate the sitewise for all
-   * sites for a single omega
+   * sites for a single omega (due to memory effects rather than algorithms).
    */
   puts ("# Calculating initial estimates of sitewise conservation");
   add_data_to_tree (data, tree, model);
-  grid = calloc ((1 + data->n_unique_pts) * gridlength, sizeof (double));
-  OOM(grid);
-  for ( row=0 ; row<gridlength ; row++){
-    grid[row] = gridomega[row];
-  }
-  row = (positive==1)?gridneutral:0;
-  for ( ; row< gridlength ; row++){
-    x[0] = grid[row];
+  const VEC omega_grid = create_grid(GRIDSIZE,positive);
+  /*  Fill out sitewise likelihoods for grid  */
+  likelihood_grid = calloc (data->n_unique_pts * GRIDSIZE, sizeof (double));
+  OOM(likelihood_grid);
+  for ( unsigned int row=0; row< GRIDSIZE ; row++){
+    x[0] = vget(omega_grid,row);
     CalcLike_Single (x,info);
-    for ( pt=0 ; pt<data->n_unique_pts ; pt++){
-      grid[(pt + 1) * gridlength + row] = -(tree->tree)->scalefactor - log (info->p[pt]);
+    for ( unsigned int pt=0 ; pt<data->n_unique_pts ; pt++){
+      likelihood_grid[pt*GRIDSIZE+row] = -(tree->tree)->scalefactor - log (info->p[pt]);
     }
+  }
+  /*  Fill out vector of likelihoods for neutral evolution */
+  double * likelihood_neutral = calloc(data->n_unique_pts,sizeof(double));
+  x[0] = 1.;
+  CalcLike_Single (x,info);
+  for ( unsigned int pt=0 ; pt<data->n_unique_pts ; pt++){
+    likelihood_neutral[pt] = -(tree->tree)->scalefactor - log (info->p[pt]);
   }
 
   
   puts ("# Calculating conservation at each site. This may take a while.");
   col = 0;
   done_usite = calloc ( data->n_unique_pts, sizeof(int));
-  for ( site=0 ; site<data->n_unique_pts ; site++){
+  for ( unsigned int site=0 ; site<data->n_unique_pts ; site++){
     done_usite[site] = -1;
   }
 
-  for ( site=0 ; site<data->n_pts ; site++){
+  for ( unsigned int site=0 ; site<data->n_pts ; site++){
     double fm,fn;
     double lb,ub;
     double omegam;
@@ -553,7 +548,6 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       	lb = 0.;
       	ub = HUGE_VAL;
       }
-      //printf ("%5d all gaps\n",site);
     }
     // Does site only exist in one sequence
     else if ( data->index[site] < 0){
@@ -583,26 +577,15 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       // General case
       CopySiteToDataSet (data, data_single, site);
       add_data_to_tree (data_single, tree, model);
-      start = FindBestX (grid, data->index[site], gridlength, positive);
-      fn = grid[(data->index[site]+1)*gridlength + gridneutral];
+      start = FindBestX (likelihood_grid, data->index[site], GRIDSIZE);
+      fn = likelihood_neutral[data->index[site]];
 
-      bd[0] = (start>0)?gridomega[start-1]:0.;
-      bd[1] = (start<gridlength-1)?gridomega[start+1]:99.;
-      x[0] = gridomega[start];
+      bd[0] = (start>0)?vget(omega_grid,start-1):0.;
+      bd[1] = (start<GRIDSIZE-1)?vget(omega_grid,start+1):99.;
+      x[0] = vget(omega_grid,start);
       
-      if (positive && start<gridneutral){
-		bd[0] = 1.;
-      }
       int neval=0;
-      /*printf("%d:\t%f\t(%f,%f)\n",site,x[0],bd[0],bd[1]);
-      if ( start>0 && start<gridlength-1){
-      printf("1.0=%e\tlb=%e\tmid=%e\tub=%e\n", grid[(data->index[site]+1)*gridlength + gridneutral],
-      								   grid[(data->index[site]+1)*gridlength + start - 1],
-      								   grid[(data->index[site]+1)*gridlength + start ],
-      								   grid[(data->index[site]+1)*gridlength + start + 1]);
-      }*/
       fm = linemin_1d ( CalcLike_Single, x, (void *)info, bd[0], bd[1], 1e-5,0,&neval);
-      //fprintf(stderr,"%5d opt\t%d\n",site+1,neval);
       omegam = model->param[1];
       if ( IsConserved(data,site) ){
 	type = 4;
@@ -615,19 +598,19 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       /*  Find confidence interval for omega (actually "support") */
       if ( dosupport ){
       	neval=0;
-      	if ( grid[(data->index[site]+1)*gridlength]-fm<=ldiff/2. ){
+      	if ( likelihood_grid[data->index[site]*GRIDSIZE]-fm<=ldiff/2. ){
         	lb = 0.;
       	} else {
         	Set_CalcLike_Wrapper (CalcLike_Single,fm+ldiff/2.);
         	lb = find_root (0,omegam,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
       	}
 
-	  if ( grid[(data->index[site]+1)*gridlength + gridlength - 1]-fm<=ldiff/2. ){
-	  	ub = 99.;
-	  } else {
-      		Set_CalcLike_Wrapper (CalcLike_Single,fm+ldiff/2.);
-      		neval = 0;
-      		ub = find_root (omegam,99.,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
+        if ( likelihood_grid[data->index[site]*GRIDSIZE + GRIDSIZE - 1]-fm<=ldiff/2. ){
+          ub = 99.;
+	} else {
+          Set_CalcLike_Wrapper (CalcLike_Single,fm+ldiff/2.);
+          neval = 0;
+          ub = find_root (omegam,99.,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
       	}
       }
 
@@ -648,6 +631,9 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
     fflush(stdout);
   }
   free(done_usite);
+  free(likelihood_grid);
+  free(likelihood_neutral);
+  free_vec(omega_grid);
   putchar('\n');
 
   return selinfo;
@@ -998,4 +984,21 @@ error_exit:
   }
   return NULL;
 }
+
+#define OMEGAMAX	50.0
+#define OMEGAEXPCONST	0.5
+
+VEC create_grid ( const unsigned int len, const int positive){
+	assert(len>1);
+	assert(0==positive || 1==positive);
+	
+	VEC grid = create_vec (len);
+	const double expconst = (positive==0) ? (OMEGAMAX / expm1(OMEGAEXPCONST*(double)(len-1)))
+                                              : ((OMEGAMAX-1.) / expm1(OMEGAEXPCONST*(double)(len-1)));
+	for ( unsigned int i=0 ; i<len ; i++){
+		vset(grid,i,expconst*expm1(OMEGAEXPCONST*(double)i)+((positive==0)?0:1));
+	}
+	return grid;
+}
+
 
