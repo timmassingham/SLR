@@ -12,23 +12,47 @@ struct __vec {
 
 typedef struct __vec * VEC;
 
+struct __ivec {
+        int * x;
+        unsigned int n;
+};
+
+typedef struct __ivec * IVEC;
+
+
 VEC create_vec ( const unsigned int n);
 VEC create_zerovec ( const unsigned int n);
 void initialize_vec ( VEC v, const double val);
-void free_vec ( const VEC v); 
-double dotproduct_vec ( const VEC a, const VEC B);
-double norm_vec ( const VEC v);
+void free_vec ( const VEC v);
+IVEC create_ivec ( const unsigned int n);
+IVEC create_zeroivec ( const unsigned int n);
+void initialize_ivec ( IVEC v, const int val);
+void free_ivec ( const IVEC v);
+
 double minelt_vec ( const VEC v);
 double maxelt_vec ( const VEC v);
 VEC copy_vec ( const VEC v);
+int minelt_ivec ( const IVEC v);
+int maxelt_ivec ( const IVEC v);
+IVEC copy_ivec ( const IVEC v);
+
 void fprint_vec (FILE * fp, const char * prefix, const char * sep, const char * suffix, const VEC v);
 void fprint_rvec(FILE * fp, const char * name, const VEC v);
+void fprint_ivec (FILE * fp, const char * prefix, const char * sep, const char * suffix, const IVEC v);
+void fprint_rivec(FILE * fp, const char * name, const IVEC v);
 
 double suma_vec ( const VEC v, const double a);
 double sum_vec ( const VEC v);
+int suma_ivec ( const IVEC v, const int a);
+int sum_ivec ( const IVEC v);
+
+
+double dotproduct_vec ( const VEC a, const VEC B);
+double norm_vec ( const VEC v);
 
 #define vget(VEC,I) VEC->x[(I)]
 #define vset(VEC,I,VAL) VEC->x[(I)] = (VAL)
 #define vlen(VEC) VEC->n
+
 
 #endif

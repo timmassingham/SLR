@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <float.h>
+#include <limits.h>
 #include <string.h>
 #include "vec.h"
 
@@ -136,6 +137,130 @@ double sum_vec ( const VEC v){
         assert(NULL!=v);
         const unsigned int len = vlen(v);
         double sum = 0.;
+        for ( unsigned int i=0 ; i<len ; i++){
+                sum += vget(v,i);
+        }
+
+        return sum;
+}
+
+
+
+
+
+IVEC create_ivec ( const unsigned int n){
+	assert(n>0);
+
+	IVEC v = malloc(sizeof(struct __ivec));
+	if ( NULL==v){return NULL;}
+
+	v->n = n;
+	v->x = malloc(n*sizeof(int));
+	if ( NULL==v){ free(v); return NULL;}
+
+	return v;
+}
+
+IVEC create_zeroivec ( const unsigned int n){
+	assert(n>0);
+
+        IVEC v = malloc(sizeof(struct __ivec));
+        if ( NULL==v){return NULL;}
+
+        v->n = n;
+        v->x = calloc(n,sizeof(int));
+        if ( NULL==v){ free(v); return NULL;}
+
+        return v;
+}
+
+void initialize_ivec ( IVEC v, const int val){
+	assert(NULL!=v);
+	const int len = v->n;
+	for ( unsigned int i=0 ; i<len ; i++){
+		v->x[i] = val;
+	}
+}
+
+void free_ivec ( const IVEC v){
+	assert(NULL!=v);
+	assert(NULL!=v->x);
+
+	free(v->x);
+	free(v);
+}
+	
+int minelt_ivec ( const IVEC v){
+	assert(NULL!=v);
+	double minelt = INT_MAX;
+	const unsigned int len = v->n;
+	for ( unsigned int i=0 ; i<len ; i++){
+		if ( minelt>v->x[i]){ minelt = v->x[i];}
+	}
+	return minelt;
+}
+
+int maxelt_ivec ( const IVEC v){
+	assert(NULL!=v);
+        double maxelt = -INT_MAX;
+        const unsigned int len = v->n;
+        for ( unsigned int i=0 ; i<len ; i++){
+                if ( maxelt<v->x[i]){ maxelt = v->x[i];}
+        }
+	return maxelt;
+}
+
+IVEC copy_ivec ( const IVEC v){
+	assert(NULL!=v);
+	const int len = v->n;
+	IVEC vcopy = create_ivec(len);
+	assert(NULL!=vcopy);
+	for ( unsigned int i=0 ; i<len ; i++){
+		vcopy->x[i] = v->x[i];
+	}
+	return vcopy;
+}
+
+void fprint_ivec (FILE * fp, const char * prefix, const char * sep, const char * suffix, const IVEC v){
+	assert(NULL!=fp);
+	assert(NULL!=sep);
+	assert(NULL!=v);
+
+	fprintf (fp,"%s%d",prefix,vget(v,0));
+	const unsigned int len = vlen(v);
+	for ( unsigned int i=1 ; i<len ; i++){
+		fprintf (fp, "%s%d",sep,vget(v,i));
+	}
+	fputs(suffix,fp);
+}
+
+void fprint_rivec(FILE * fp, const char * name, const IVEC v){
+	assert(NULL!=fp);
+	assert(NULL!=name);
+	assert(NULL!=v);
+	char * prefix = malloc((strlen(name)+5)*sizeof(char));
+	memcpy(prefix,name,strlen(name)*sizeof(char));
+	memcpy(prefix,"<-c(",5*sizeof(char));
+	fprint_ivec(fp,prefix,",",");\n",v);
+	free(prefix);
+}
+
+int suma_ivec ( const IVEC v, const int a){
+	assert(NULL!=v);
+	const unsigned int len = vlen(v);
+	int sum = 0;
+	for ( unsigned int i=0 ; i<len ; i++){
+		sum += vget(v,i) + a;
+	}
+
+	return sum;
+}
+
+
+int sum_ivec ( const IVEC v){
+        assert(NULL!=v);
+        const unsigned int len = vlen(v);
+        int sum = 0;
         for ( unsigned int i=0 ; i<len ; i++){
                 sum += vget(v,i);
         }
