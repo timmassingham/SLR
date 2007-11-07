@@ -155,8 +155,6 @@ int main (int argc, char *argv[])
 
 
 
-  printf ("#\t Phylogenie site conservation detection.\n");
-
   SetAminoAndCodonFuncs (nucleof, aminof, nucfile, aminofile);
   gencode = GetGeneticCode (gencode_str);
 
