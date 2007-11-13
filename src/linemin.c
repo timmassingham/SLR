@@ -6,6 +6,7 @@
 
 /* Prototype for Brent*/
 double fminbr ( double a, double b, double (*f)(double), double tol, int * neval);
+double brentmin ( double lb, const double * flbp, double ub, const double * fubp, double x, double * fxp, double (*fun)(const double, void *), const double tol, void * info);
 
 static double (*linemin_function)(const double *, void *) = NULL;
 static int linemin_dim = 0;
@@ -24,6 +25,7 @@ static int CheckLinemin ( void);
 static void setf1d ( double (*f)(const double *, void *), void * info, int noisy);
 static void unsetf1d (void);
 static double fun_wrapper1d ( double x);
+static double fun_wrapper1d_new ( double x, void * info);
 static int CheckLinemin1D (void);
 static void ScaleDirection( double * direct, const double min, const double max, const int n);
 
@@ -142,8 +144,9 @@ double linemin_1d ( double (*fun)(const double *, void *), double * x, void * in
   assert(noisy==0 || noisy==1);
 
   setf1d (fun,info,noisy);
-  res = fminbr ( min,max,fun_wrapper1d,tol,neval);
-  fx = fun_wrapper1d(res); *neval = *neval + 1;
+  res = brentmin (min,NULL,max,NULL,x[0],NULL,fun_wrapper1d_new,1e-5,info);
+  //res = fminbr ( min,max,fun_wrapper1d,tol,neval);
+  fx = fun_wrapper1d_new(res,info); *neval = *neval + 1;
   x[0] = res;
   unsetf1d();
 
@@ -186,6 +189,10 @@ static double fun_wrapper1d ( double x){
   res = linemin_function ( &x, linemin_info);
 
   return res;
+}
+
+static double fun_wrapper1d_new ( double x, void * info){
+	return linemin_function(&x,info);
 }
 
 
