@@ -68,7 +68,7 @@ MakeQ_From_S_WGfreq(double *mat, const double *pi, const int n)
 			for (j = 0; j < n; j++) {
 				mat[i * n + j] = 0;
 			}
-			mat[i * n + i] = 1;
+			//mat[i * n + i] = 1;
 		}
 	}
 
@@ -93,7 +93,7 @@ MakeQ_From_S_Largetfreq(double *mat, const double *pi, const int n)
 			for (j = 0; j < n; j++) {
 				mat[i * n + j] = 0.;
 			}
-			mat[i * n + i] = 1.;
+			//mat[i * n + i] = 1.;
 		}
 	}
 
@@ -645,7 +645,7 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param, con
 			sumsqrdiff += (p_test[j] - dp_test[i * nbase * nbase + j]) * (p_test[j] - dp_test[i * nbase * nbase + j]);
 			sumsqrsum += (p_test[j] + dp_test[i * nbase * nbase + j]) * (p_test[j] + dp_test[i * nbase * nbase + j]);
 		}
-		printf("param %d: sumsqr = %e\t%e\n", i, sumsqrdiff, sumsqrsum);
+		printf("param %d: sumsqr = %e\tdiff = %e\n", i, sumsqrsum, sumsqrdiff);
 		model->Update(model, param[i], i);
 	}
 
