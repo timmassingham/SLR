@@ -2,16 +2,5 @@ In short, it's probably best not to try. The makefile may work on Unix
 platforms and the batch file make.bat compiles the code on at least on
 Windows machine.
 
-  Two options can be set at compile time (as defines)
-USE_BLAS	Use the BLAS (Basic Linear Algebra Subprograms)
-		library to accelerate matrix calculations.
-USE_LAPACK	Use the LAPACK (Linear Algebra PACK) for matrix
-		routines.
-
-SLR does not depend on either of these libraries being available, but 
-can be configured to use them for extra speed and accuracy. If BLAS is
-not available, C routines are used. If LAPACK is not available, the
-matrix routines from the Meshach library.
-
   The binary Slr_P4optimised was compiled using both the BLAS and
 LAPACK libraries.
