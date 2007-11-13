@@ -668,14 +668,13 @@ GetdQ_Codon_singleDnDs(MODEL * model, int n, double *q)
 
 
 void
-GetdQ_Codon(MODEL * model, int n, double *q)
+GetdQ_Codon(MODEL * model, int has_nucfunc, double *q)
 {
-	int             i, j, ai, aj;
 	int             nbase, gencode;
 	int             tran, nonsyn;
 	double         *mat, omega, kappa;
 	double          ds, s;
-	int             cdn1, cdn2, diff, pos, nuc;
+	int             diff, pos, nuc;
 
 	nbase = model->nbase;
 	gencode = model->gencode;
@@ -684,15 +683,15 @@ GetdQ_Codon(MODEL * model, int n, double *q)
 	kappa = model->param[0];
 	omega = model->param[1];
 
-	if (n != 0 && n != 1)
+	if (has_nucfunc != 0 && has_nucfunc != 1)
 		return;
-	for (i = 0; i < nbase * nbase; i++)
+	for (int i = 0; i < nbase * nbase; i++)
 		mat[i] = 0.;
-	for (i = 0; i < 64; i++) {
-		ai = CodonToQcoord(i, gencode);
+	for (int i = 0; i < 64; i++) {
+		int ai = CodonToQcoord(i, gencode);
 		if (!IsStop(i, gencode)) {
-			for (j = 0; j < i; j++) {
-				aj = CodonToQcoord(j, gencode);
+			for (int j = 0; j < i; j++) {
+				int aj = CodonToQcoord(j, gencode);
 				if (i != j && !IsStop(j, gencode) && NumberNucChanges(i, j) < 2) {
 					tran = 0;
 					nonsyn = 0;
@@ -701,11 +700,11 @@ GetdQ_Codon(MODEL * model, int n, double *q)
 					if (IsNonSynonymous(i, j, gencode)) {
 						nonsyn = 1;
 					}
-					if (n == 0 && tran == 1) {
+					if (has_nucfunc == 0 && tran == 1) {
 						mat[ai * nbase + aj] = NucleoFunc(i, j);
 						if (nonsyn == 1)
 							mat[ai * nbase + aj] *= CodonOmegaFunc(i, j, gencode, omega);
-					} else if (n == 1 && nonsyn == 1) {
+					} else if (has_nucfunc == 1 && nonsyn == 1) {
 						mat[ai * nbase + aj] =
 							NucleoFunc(i, j) * CodonOmegaDFunc(i, j, gencode, omega);
 						if (tran == 1)
@@ -719,31 +718,31 @@ GetdQ_Codon(MODEL * model, int n, double *q)
 
 	switch (model->freq_type) {
 	case 0:
-		for (i = 0; i < nbase; i++)
-			for (j = 0; j < nbase; j++)
+		for (int i = 0; i < nbase; i++)
+			for (int j = 0; j < nbase; j++)
 				mat[i * nbase + j] *= model->pi[j];
 		break;
 
 	case 1:
-		for (i = 0; i < nbase; i++) {
+		for (int i = 0; i < nbase; i++) {
 			if (model->pi[i] > DBL_EPSILON) {
-				for (j = 0; j < nbase; j++)
+				for (int j = 0; j < nbase; j++)
 					mat[i * nbase + j] *= sqrt(model->pi[j] / model->pi[i]);
 			} else {
-				for (j = 0; j < nbase; j++)
-					mat[i * nbase + j] *= 0.;
+				for (int j = 0; j < nbase; j++)
+					mat[i * nbase + j] = 0.;
 			}
 		}
 		break;
 
 	case 2:
-		for (i = 0; i < nbase; i++) {
-			cdn1 = QcoordToCodon(i, model->gencode);
-			for (j = 0; j < nbase; j++) {
+		for (int i = 0; i < nbase; i++) {
+			int cdn1 = QcoordToCodon(i, model->gencode);
+			for (int j = 0; j < nbase; j++) {
 				if (i == j) {
 					continue;
 				}
-				cdn2 = QcoordToCodon(j, model->gencode);
+				int cdn2 = QcoordToCodon(j, model->gencode);
 				diff = cdn1 ^ cdn2;
 				if ((diff & 3) != 0) {
 					pos = 2;
@@ -761,14 +760,14 @@ GetdQ_Codon(MODEL * model, int n, double *q)
 		break;
 
 	case 3:
-		for (i = 0; i < n; i++) {
+		for (int i = 0; i < nbase; i++) {
 			if (model->pi[i] > DBL_EPSILON) {
-				for (j = 0; j < n; j++) {
-					mat[i * n + j] /= model->pi[i];
+				for (int j = 0; j < nbase ; j++) {
+					mat[i * nbase + j] /= model->pi[i];
 				}
 			} else {
-				for (j = 0; j < n; j++) {
-					mat[i * n + j] = 0.;
+				for (int j = 0; j < nbase; j++) {
+					mat[i * nbase + j] = 0.;
 				}
 			}
 		}
@@ -782,12 +781,12 @@ GetdQ_Codon(MODEL * model, int n, double *q)
 	DoDiagonalOfQ(mat, nbase);
 
 	ds = 0.;
-	for (i = 0; i < nbase; i++)
+	for (int i = 0; i < nbase; i++)
 		ds += model->pi[i] * mat[i * nbase + i];
 	ds *= s;
 
-	for (i = 0; i < nbase; i++)
-		for (j = 0; j < nbase; j++)
+	for (int i = 0; i < nbase; i++)
+		for (int j = 0; j < nbase; j++)
 			mat[i * nbase + j] = (mat[i * nbase + j] + ds * q[i * nbase + j]);
 
 }
