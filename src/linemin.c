@@ -5,7 +5,6 @@
 #include "spinner.h"
 
 /* Prototype for Brent*/
-double fminbr ( double a, double b, double (*f)(double), double tol, int * neval);
 double brentmin ( double lb, const double * flbp, double ub, const double * fubp, double x, double * fxp, double (*fun)(const double, void *), const double tol, void * info);
 
 static double (*linemin_function)(const double *, void *) = NULL;
@@ -31,36 +30,6 @@ static void ScaleDirection( double * direct, const double min, const double max,
 
 
 
-
-double linemin_multid ( double (*fun)(const double *, void *), int dim, double * x, double *xnew, double * direct, void * info, const double min, const double max, const double tol, const int noisy, int * neval ){
-  int i;
-	int localneval=0;
-  double res,fx;
-  assert(NULL!=fun);
-  assert(dim>1);
-  assert(NULL!=x);
-  assert(NULL!=xnew);
-  assert(NULL!=direct);
-  assert(NULL!=info);
-  assert(min<max);
-  assert(tol>=0.);
-  assert(noisy==0 || noisy==1);
-
-  for ( i=0 ; i<dim ; i++){
-    x[i] += min * direct[i];
-  }
-  ScaleDirection(direct,min,max,dim);
-  setf (fun, dim, x, xnew, direct, NULL, info, noisy);
-  res = fminbr(0.,1.,fun_wrapper,tol,&localneval);
-  fx = fun_wrapper (res); localneval++;
-  unsetf();
-  for ( i=0 ; i<dim ; i++){
-    x[i] += res * direct[i];
-  }
-	*neval += localneval;
-//printf("Linesearch res = %e (%e,%e)\t%e\t%d evals\n",min+res*(max-min),min,max,res,localneval);
-  return fx;
-}
 
 double linemin_backtrack ( double (*fun)(const double *, void *), int dim, double * x, double *xnew, double * direct, void * info, const double min, const double max, const double tol, const int noisy, int * neval ){
   assert(NULL!=fun);
