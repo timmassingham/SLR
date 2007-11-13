@@ -8,24 +8,7 @@
 #include "matrix.h"
 #include "utility.h"
 
-#ifdef USE_BLAS
-	#include <cblas.h>
-	//#include <f2c.h>
-#endif
-
-#ifndef USE_LAPACK
-	#include "Meschach/matrix.h"
-	#include "Meschach/matrix2.h"
-#endif
-
-/*#ifdef USE_BLAS
-void dgemm_     (const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA,
-                 const enum CBLAS_TRANSPOSE TransB, const int M, const int N,
-		 const int K, const double alpha, const double *A,
-		 const int lda, const double *B, const int ldb,
-		 const double beta, double *C, const int ldc);
-#endif
-*/
+#include <cblas.h>
 
 void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double * C){
   int i,j,k;
@@ -35,18 +18,7 @@ void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const 
   assert(NULL!=C);
   assert(nc1==nr2);
 
-#ifndef USE_BLAS
-
-	for ( i=0 ; i<nr1 ; i++)
-		for ( j=0 ; j<nc2 ; j++){
-			double tmp = 0.;
-			for ( k=0 ; k<nc1 ; k++)
-				tmp += A[i*nc1+k] * B[k*nc2+j];
-			C[i*nc2+j] = tmp;
-		}
-#else
-	cblas_dgemm (CblasRowMajor ,CblasNoTrans , CblasNoTrans , nr1, nc2, nc1 , 1.0, A, nc1 , B, nc2 , 0., C, nc2);
-#endif
+  cblas_dgemm (CblasRowMajor ,CblasNoTrans , CblasNoTrans , nr1, nc2, nc1 , 1.0, A, nc1 , B, nc2 , 0., C, nc2);
 
 }
 
@@ -58,19 +30,7 @@ void Matrix_MatrixT_Mult ( const double * A, const int nr1, const int nc1, const
   assert(NULL!=C);
   assert(nc1==nr2);
 
-  #ifdef USE_BLAS
-    cblas_dgemm ( CblasRowMajor ,CblasNoTrans , CblasTrans , nr1, nc2, nc1 , 1.0, A, nc1 , B, nr2 , 0., C, nc2);
-  #else
-    for ( i=0 ; i<nr1 ; i++){
-      for ( j=0 ; j<nc2 ; j++){
-	double tmp = 0.;
-	for ( k=0 ; k<nc1 ; k++){
-	  tmp += A[i*nc1+k] * B[j*nr2+k];
-	}
-	C[i*nc2+j] = tmp;
-      }
-    }
-  #endif
+  cblas_dgemm ( CblasRowMajor ,CblasNoTrans , CblasTrans , nr1, nc2, nc1 , 1.0, A, nc1 , B, nr2 , 0., C, nc2);
 }
 
 void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C){
@@ -81,19 +41,7 @@ void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const
   assert(NULL!=C);
   assert(nc1==nr2);
 
-  #ifdef USE_BLAS
-    cblas_dgemm ( CblasRowMajor ,CblasTrans , CblasNoTrans , nr1, nc2, nc1 , 1.0, A, nr1 , B, nc2 , 0., C, nc2);
-  #else
-    for ( i=0 ; i<nr1 ; i++){
-      for ( j=0 ; j<nc2 ; j++){
-        double tmp = 0.;
-        for ( k=0 ; k<nc1 ; k++){
-          tmp += A[k*nr1+i] * B[k*nc2+j];
-        }
-        C[i*nc2+j] = tmp;
-      }
-    }
-  #endif
+  cblas_dgemm ( CblasRowMajor ,CblasTrans , CblasNoTrans , nr1, nc2, nc1 , 1.0, A, nr1 , B, nc2 , 0., C, nc2);
 }
 
 
@@ -222,11 +170,7 @@ void GramSchmidtTranspose ( double * A, int n){
 
 
 
-#ifdef USE_LAPACK
-	//int dsyev_(char *jobz, char *uplo, integer *n, doublereal *a, integer *lda, doublereal *w, doublereal *work, integer *lwork, integer *info);
-	int dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w, double *work, int *lwork, int *info);
-
-
+int dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w, double *work, int *lwork, int *info);
 int Factorize ( double * A, double * val, int n){
         char JOBZ = 'V';
         char UPLO = 'L';
@@ -254,51 +198,8 @@ int Factorize ( double * A, double * val, int n){
 	
 	return INFO;
 }
-#else
-int Factorize ( double * A, double * val, int n){
-  MAT * B, * Q;
-  VEC * out;
-  int i,j;
-
-  assert(NULL!=A);
-  assert(NULL!=val);
-  assert(n>0);
-
-  out = malloc(sizeof(VEC));
-  out->max_dim = out->dim = n;
-  out->ve = val;
-
-  B = malloc(sizeof(MAT));
-  B->m = B->n = B->max_m = B->max_n = n;
-  B->max_size = n*n;
-  B->base = A;
-  B->me = malloc(n*sizeof(double *));
-  for ( i=0 ; i<n ; i++){
-    B->me[i] = &A[i*n];
-  }
-
-  Q = m_get (n,n);
-
-  symmeig (B,Q,out);
-  for ( i=0 ; i<n ; i++){
-    for ( j=0 ; j<n ; j++){
-      A[j*n+i] = Q->me[i][j];
-    }
-  }
-
-  m_free(Q);
-  free(B->me);
-  free(B);
-  free(out);
-
-  return 1;
-}
-#endif
 
 
-#ifdef USE_LAPACK
-//int dgetrf_(integer *m, integer *n, doublereal *a, integer * lda, integer *ipiv, integer *info);
-//int dgetri_(integer *n, doublereal *a, integer *lda, integer *ipiv, doublereal *work,integer *lwork, integer *info);
 int dgetrf_(int *m, int *n, double *a, int * lda, int *ipiv, int *info);
 int dgetri_(int *n, double *a, int *lda, int *ipiv, double *work,int *lwork, int *info);
 
@@ -337,40 +238,6 @@ int InvertMatrix ( double * A, int n){
                 return -1;
         return 0;
 }
-#else
-int InvertMatrix ( double * A, int n){
-  MAT * Amat,*Bmat;
-  int i,j;
-
-  assert(NULL!=A);
-  assert(n>0);
-
-  Amat = malloc(sizeof(MAT));
-  Amat->m = Amat->n = Amat->max_m = Amat->max_n = n;
-  Amat->max_size = n*n;
-  Amat->base = A;
-  Amat->me = calloc(n,sizeof(double));
-  for ( i=0 ; i<n ; i++){
-    Amat->me[i] = &A[i*n];
-  }
-
-  Bmat = m_get (n,n);
-
-  m_inverse (Amat,Bmat);
-
-  for (i=0 ; i<n ; i++){
-    for ( j=0 ; j<n ; j++){
-      A[i*n+j] = Bmat->me[i][j];
-    }
-  }
-  m_free(Bmat);
-  free(Amat->me);
-  free(Amat);
-
-  return 1;
-}
-#endif
-
 
 
 /*	Hadamard multiplication A.B
