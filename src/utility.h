@@ -23,6 +23,7 @@ char * ReadString ( FILE * fp);
 char gchar ( FILE * fp);
 
 char * itoa ( int i);
+int sign (const double x);
 
 double * norm_vector ( double * vec, const int n, const double sum);
 double * scale_vector ( double * vec, const int n, const double fact);

@@ -3,14 +3,10 @@
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
+#include "utility.h"
 
 
 
-int sign (double x){
-   if ( x<0 ) return -1;
-   if ( x>0 ) return 1;
-   return 0;
-}
 /*  Root finding via Ridders' method. 
  */
 double find_root ( double min, double max, double (*f)(const double*,void*), void *info, double *fmin, double *fmax, const double tol, int * neval ){
