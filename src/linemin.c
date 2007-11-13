@@ -114,7 +114,6 @@ double linemin_1d ( double (*fun)(const double *, void *), double * x, void * in
 
   setf1d (fun,info,noisy);
   res = brentmin (min,NULL,max,NULL,x[0],NULL,fun_wrapper1d_new,1e-5,info);
-  //res = fminbr ( min,max,fun_wrapper1d,tol,neval);
   fx = fun_wrapper1d_new(res,info); *neval = *neval + 1;
   x[0] = res;
   unsetf1d();
