@@ -161,12 +161,6 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 			md = TakeStep(opt, tol, &fact, &newbound);
 			MakeErrString(&errstring, errn);
 			step++;
-			if (noisy == 2) {
-				printf("%3d: %9f %10.5e %4d %s\t%9.3f\n", step, opt->fc,
-				  fabs(opt->fc - fn), opt->neval, errstring, md);
-			} else if (noisy == 1) {
-				UpdateSpinner(spin);
-			}
 			if ( calcerr(fn,opt->fc)<=tol){
 			   OPTMESS( printf("Step was small. Trying steepest descent.\n");)
 			   opt->fc = SteepestDescentStep(opt);
@@ -177,6 +171,13 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 			                                       opt->lb, opt->ub, opt->onbound, opt->n,&newbound);
 			   InitializeH(opt);
 			}
+                        if (noisy == 2) {
+                                printf("%3d: %9f %10.5e %4d %s\t%9.3f\n", step, opt->fc,
+                                  fabs(opt->fc - fn), opt->neval, errstring, md);
+                        } else if (noisy == 1) {
+                                UpdateSpinner(spin);
+                        }
+
 		} while ((calcerr(fn,opt->fc) > tol) || newbound );
 
 		if (noisy == 2) {
