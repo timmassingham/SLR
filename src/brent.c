@@ -16,13 +16,16 @@ static double parabolic_interpolate ( const double a, const double b, const doub
 }
 
 
-double brentmin ( double lb, const double * flbp, double ub, const double * fubp, double x, double * fxp, double (*fun)(const double, void *), const double tol, void * info){
+double brentmin ( double lb, const double * flbp, double ub, const double * fubp, double x, double * fxp, double (*fun)(const double, void *), const double tol, void * info, int * neval){
 	assert (lb<=x && x<=ub);
 
 	/*  If function evaluations not given, evaluated */
 	double flb = (NULL!=flbp) ? *flbp : fun(lb,info);
 	double fub = (NULL!=fubp) ? *fubp : fun(ub,info);
 	double fx  = (NULL!=fxp)  ? *fxp  : fun(x,info);
+	if (NULL==flbp) *neval++;
+	if (NULL==fubp) *neval++;
+	if (NULL==fxp) *neval++;
 
 	/*  Ensure that points given actually bracket a minimum */
 	assert(fx<=flb && fx<=fub);
@@ -54,6 +57,7 @@ double brentmin ( double lb, const double * flbp, double ub, const double * fubp
 		x_new = (diff>=fractol)?x_new:x+fractol*sign(x_new-x);
 		//if ( diff<=fractol ){printf("\tToo small (x_new = %e)\n",x_new);}
 		double f_new = fun(x_new,info);
+		*neval++;
 		/*  Sort out new bracket  */
 		if ( f_new < fx){ /* New minimum */
 			if ( x_new >= x){
