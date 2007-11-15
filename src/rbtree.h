@@ -24,6 +24,9 @@ typedef struct __rbtree * RBTREE;
 
 
 RBTREE create_rbtree ( int (*compfun)(const void *, const void *), void * (*copykey)(const void *), void (*freekey)(void *) );
+void free_rbtree (RBTREE tree, void (*freevalue)(void *));
+RBTREE copy_rbtree ( const RBTREE tree, void * (*copyvalue)(const void *) );
+
 void * getelt_rbtree ( const RBTREE tree, const void * key);
 bool member_rbtree ( const RBTREE tree, const void * key);
 void * insertelt_rbtree ( RBTREE tree, void * key, void * value);

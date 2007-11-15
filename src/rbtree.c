@@ -75,6 +75,56 @@ RBNODE create_rbnode ( enum rbcolour colour ){
 	return node;
 }
 
+void free_rbnode ( RBNODE node, void (*freekey)(void *), void (*freevalue)(void *) ){
+	assert(NULL!=node);
+
+	freekey(node->key);
+	if(NULL!=freevalue){freevalue(node->value);}
+	free(node);
+}
+
+void free_rbnode_sub ( RBNODE node, void (*freekey)(void *), void (*freevalue)(void *) ){
+	assert(NULL!=node);
+	assert(NULL!=freekey);
+	if(NULL!=node->left) free_rbnode_sub(node->left,freekey,freevalue);
+	if(NULL!=node->right) free_rbnode_sub(node->right,freekey,freevalue);
+	free_rbnode(node,freekey,freevalue);
+}
+
+void free_rbtree ( RBTREE tree, void (*freevalue)(void *) ){
+	assert(NULL!=tree);
+	if ( NULL!=tree->root) free_rbnode_sub(tree->root, tree->freekey, freevalue);
+	free(tree);
+}
+
+RBNODE copy_rbnode_sub ( const RBNODE node, void * (*copykey)(const void *), void * (*copyvalue)(const void *) ){
+	assert(NULL!=node);
+	assert(NULL!=copykey);
+
+	RBNODE newnode = create_rbnode(black);
+	newnode->colour = node->colour;
+	newnode->key = copykey(node->key);
+	newnode->value = (NULL!=copyvalue)?copyvalue(node->value):node->value;
+	if (NULL!=node->left){
+		newnode->left = copy_rbnode_sub(node->left,copykey,copyvalue);
+		newnode->left->parent = newnode;
+	}
+	if (NULL!=node->right){
+		newnode->right = copy_rbnode_sub(node->right,copykey,copyvalue);
+		newnode->right->parent = newnode;
+	}
+	return newnode;
+}
+
+RBTREE copy_rbtree ( const RBTREE tree, void * (*copyvalue)(const void *) ){
+	assert(NULL!=tree);
+	RBTREE newtree = create_rbtree(tree->compfun,tree->copykey,tree->freekey);
+	if (NULL!=tree->root){
+		newtree->root = copy_rbnode_sub(tree->root,tree->copykey,copyvalue);
+		newtree->root->parent = NULL;
+	}
+	return newtree;
+}
 
 
 void * getelt_rbtree ( const RBTREE tree, const void * key){
@@ -509,6 +559,12 @@ int main ( int argc, char * argv[]) {
 		check_rbtree(tree);
 	}
 
+	printf ("Copying tree\n");
+	RBTREE tree2 = copy_rbtree(tree,strcopykey);
+	check_rbtree(tree2);
+	printf("Freeing copied tree\n");
+	free_rbtree(tree2,free);
+
 	printf ("Removing elements\n");
 	unsigned int * rperm = random_permutation(nelt);
 	fputs("Permutation: ",stdout);
@@ -518,5 +574,6 @@ int main ( int argc, char * argv[]) {
 		removeelt_rbtree(tree,keys[rperm[i]]);
 		check_rbtree(tree);
 	}
+	free_rbtree(tree,free);
 }
 #endif
