@@ -8,7 +8,7 @@ LDFLAGS =  -lm
 INCFLAGS = -I/System/Library/Frameworks/vecLib.framework/Headers/
 #LDFLAGS = -lm
 
-objects = like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o utility.o matrix.o optimize_new.o spinner.o options.o tree_data.o linemin.o gamma.o statistics.o mystring.o nucmodel.o root.o vec.o brent.o
+objects = like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o utility.o matrix.o optimize_new.o spinner.o options.o tree_data.o linemin.o gamma.o statistics.o mystring.o nucmodel.o root.o vec.o brent.o rbtree.o
 
 
 Slr: slr.o $(objects)
