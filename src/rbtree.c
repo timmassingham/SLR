@@ -169,6 +169,17 @@ void unsafemap_rbtree ( RBTREE tree, void (*mapfun)(RBNODE) ){
 	unsafemap_rbtree_sub(tree->root,mapfun);
 }
 
+unsigned int nmemb_rbtree_sub( const RBNODE node){
+	if(NULL==node) return 0;
+	return 1 + nmemb_rbtree_sub(node->left) + nmemb_rbtree_sub(node->right);
+}
+
+unsigned int nmemb_rbtree (const RBTREE tree){
+	assert(NULL!=tree);
+
+	return (NULL!=tree->root)?nmemb_rbtree_sub(tree->root):0;
+}
+
 void * insertelt_rbtree ( RBTREE tree, void * key, void * value){
 	assert(NULL!=tree);
 	assert(NULL!=key);
@@ -558,6 +569,9 @@ int main ( int argc, char * argv[]) {
 		insertelt_rbtree(tree,keys[i],"a");
 		check_rbtree(tree);
 	}
+	unsigned int ntree_elt = nmemb_rbtree(tree);
+	printf ("Tree contains %u elements in total\n",ntree_elt);
+	assert(ntree_elt<=nelt);
 
 	printf ("Copying tree\n");
 	RBTREE tree2 = copy_rbtree(tree,strcopykey);
@@ -574,6 +588,7 @@ int main ( int argc, char * argv[]) {
 		removeelt_rbtree(tree,keys[rperm[i]]);
 		check_rbtree(tree);
 	}
+	assert(nmemb_rbtree(tree)==0);
 	free_rbtree(tree,free);
 }
 #endif

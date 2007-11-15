@@ -35,6 +35,7 @@ void * removeelt_rbtree (RBTREE tree, const void * key);
 void map_rbtree ( RBTREE tree, void * (*mapfun)(const void *, void *) );
 void * minelt_rbtree ( const RBTREE tree);
 void * maxelt_rbtree ( const RBTREE tree);
+unsigned int nmemb_rbtree (const RBTREE tree);
 
 int lexo ( const void * pt1, const void * pt2);
 void * strcopykey(const void * key);
