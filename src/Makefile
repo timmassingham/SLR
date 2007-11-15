@@ -2,7 +2,7 @@ CC = gcc
 #CFLAGS = -O4 -funroll-loops -DNDEBUG -fomit-frame-pointer -std=gnu99
 #CFLAGS = -static -O3 -funroll-loops -DNDEBUG -std=gnu99 -Wall
 CFLAGS = -Wall -g -DWARNINGS -std=gnu99 -pedantic
-#CFLAGS = -O -funroll-loops  -std=gnu99 -DNDEBUG
+#CFLAGS = -pg -std=gnu99 -DNDEBUG
 LD = ld
 LDFLAGS =  -lm 
 INCFLAGS = -I/System/Library/Frameworks/vecLib.framework/Headers/
@@ -12,7 +12,7 @@ objects = like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o uti
 
 
 Slr: slr.o $(objects)
-	gcc  -o ../bin/$@ slr.o $(objects) $(LDFLAGS) -lblas -llapack 
+	gcc  -o ../bin/$@ slr.o $(objects) $(CFLAGS) $(LDFLAGS) -lblas -llapack 
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCFLAGS) -o $@ -c $<
