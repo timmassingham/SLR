@@ -11,8 +11,6 @@
 #include <cblas.h>
 
 void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double * C){
-  int i,j,k;
-
   assert(NULL!=A);
   assert(NULL!=B);
   assert(NULL!=C);
@@ -23,8 +21,6 @@ void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const 
 }
 
 void Matrix_MatrixT_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C){
-  int i,j,k;
-
   assert(NULL!=A);
   assert(NULL!=B);
   assert(NULL!=C);
@@ -34,8 +30,6 @@ void Matrix_MatrixT_Mult ( const double * A, const int nr1, const int nc1, const
 }
 
 void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C){
-  int i,j,k;
-
   assert(NULL!=A);
   assert(NULL!=B);
   assert(NULL!=C);
