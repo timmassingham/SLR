@@ -16,7 +16,9 @@
                   exit (EXIT_FAILURE); }
 #endif
 
-#include "../libdict-0.2.1/dict.h"
+#ifndef _RBTREE_H_
+#include "rbtree.h"
+#endif
 
 #ifndef _VEC_H_
 #include "vec.h"
@@ -49,7 +51,7 @@ typedef struct {
         NODE * tree;
         NODE * branches[MAX_BR];
         NODE * leaves[MAX_SP];
-	dict * leaf_names;
+	RBTREE leaf_names;
 } TREE;
 
 

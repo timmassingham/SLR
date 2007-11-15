@@ -40,8 +40,6 @@ static void Recurse_backward_sub (const NODE * node, const NODE * parent,
 void CheckIsTree (const TREE * tree)
 {
 	int leaf,branch;
-	char * leaves;
-	dict_itor *itor;
 #ifdef NDEBUG
   return;
 #endif
@@ -63,21 +61,9 @@ void CheckIsTree (const TREE * tree)
   }
   
   /*  Check that all leaves have exactly one name. No name is repeated
-    * twice by uniqueness of keys in hashtable*/
-  leaves = calloc(tree->n_sp,sizeof(char));
-  itor = dict_itor_new(tree->leaf_names);
-  for ( ; dict_itor_valid(itor) ; dict_itor_next(itor) ){
-     leaf = * (int *) dict_itor_data(itor);
-     assert(leaf>=0 && leaf<tree->n_sp);
-     assert(0==leaves[leaf]);
-     leaves[leaf] = 1;
-   }
-   dict_itor_destroy(itor);
-   for ( leaf=0 ; leaf<tree->n_sp ; leaf++){
-      assert(1==leaves[leaf]);
-   }
-   free(leaves);
-
+    * twice by uniqueness of keys in tree*/
+  unsigned int nuleaves = nmemb_rbtree(tree->leaf_names);
+  assert(nuleaves==tree->n_sp);
   
   
   for ( branch = 0; branch < tree->n_br; branch++) {
@@ -145,7 +131,7 @@ void create_tree (TREE * tree)
 
   tmp = tree->tstring;
   old_sp = tree->n_sp;
-  tree->leaf_names = hashtable_dict_new ((dict_cmp_func)strcmp,(dict_hsh_func)s_hash,free,free,old_sp);
+  tree->leaf_names = create_rbtree(lexo,strcopykey,strfreekey);
   tree->n_sp = 0;
   tree->tree = create_tree_sub (&tmp, NULL, tree);
   tree->tree->bnumber = tree->n_br;
@@ -299,7 +285,7 @@ NODE *create_tree_sub (const char **tree_str, NODE * parent, TREE * tree)
       name = GetLeafName(tree_str);
       value = malloc(sizeof(int));
       value[0] = tree->n_sp;
-      if (dict_insert(tree->leaf_names,name,value,0)){
+      if (insertelt_rbtree(tree->leaf_names,name,value)){
 	 fprintf(stderr,"Species name %s already used in tree. Please make unique and rerun program.\n",name);
 	 exit(EXIT_FAILURE);
       }
@@ -538,14 +524,16 @@ TREE *CopyTree (const TREE * tree)
   return tree_new;
 }
 
+void * intpcopy(const void * intp){
+	assert(NULL!=intp);
+	int * new_intp = malloc(sizeof(int));
+	*new_intp = *(int *)intp;
+	return new_intp;
+}
 
 TREE *CloneTree (TREE * tree)
 {
   TREE *tree_new;
-  int bufflen;
-  dict_itor *itor;
-  char * name,*name2;
-  int * leafno,*leafno2;
 
   CheckIsTree (tree);
 
@@ -557,20 +545,7 @@ TREE *CloneTree (TREE * tree)
   tree_new->n_br = tree->n_br;
   tree_new->tstring = malloc ((1 + strlen (tree->tstring)) * sizeof (char));
   strcpy (tree_new->tstring, tree->tstring);
-  /*  Copy names  */
-  tree_new->leaf_names = hashtable_dict_new((dict_cmp_func)strcmp,(dict_hsh_func)s_hash,free,free,tree->n_sp);
-  itor = dict_itor_new(tree->leaf_names);
-  for ( ; dict_itor_valid(itor) ; dict_itor_next(itor) ){
-     name = (char *) dict_itor_key(itor);
-     leafno = (int *) dict_itor_data(itor);
-     bufflen = strlen(name)+1;
-     name2 = malloc ( bufflen * sizeof(char) );
-     strncpy(name2,name,bufflen);
-     leafno2 = malloc(sizeof(int));
-     *leafno2 = *leafno;
-   }
-   dict_itor_destroy(itor);
-
+  tree_new->leaf_names = copy_rbtree(tree->leaf_names,intpcopy);
   tree_new->tree = CloneTree_sub (tree->tree, NULL, tree, tree_new);
 
   CheckIsTree (tree_new);
@@ -629,7 +604,7 @@ void FreeTree (TREE * tree)
 
   FreeNode (tree->tree, NULL);
   Free (&tree->tstring);
-  dict_destroy(tree->leaf_names,TRUE);
+  free_rbtree(tree->leaf_names,free);
   Free (&tree);
 }
 
@@ -824,7 +799,7 @@ int find_leaf_by_name ( const char * name, const TREE * tree){
    CheckIsTree(tree);
    assert(NULL!=name);
 
-   leafno = (int *) dict_search ( tree->leaf_names, name);
+   leafno = (int *) getelt_rbtree ( tree->leaf_names, name);
    if ( NULL==leafno){ return -1;}
 
    assert(*leafno>=0 && *leafno<tree->n_sp);
@@ -832,17 +807,6 @@ int find_leaf_by_name ( const char * name, const TREE * tree){
 }
 
 
-
-unsigned s_hash(const unsigned char *p)
-{
-   unsigned hash = 0;
-
-   while (*p) {
-      hash *= 31;
-      hash += *p++;
-   }
-   return hash;
-}
 
 VEC branchlengths_from_tree ( const TREE * tree){
 	assert(NULL!=tree);
