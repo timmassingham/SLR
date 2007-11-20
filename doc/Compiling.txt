@@ -1,6 +1,0 @@
-In short, it's probably best not to try. The makefile may work on Unix
-platforms and the batch file make.bat compiles the code on at least on
-Windows machine.
-
-  The binary Slr_P4optimised was compiled using both the BLAS and
-LAPACK libraries.
