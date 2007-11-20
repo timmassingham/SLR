@@ -8,7 +8,10 @@
 #include "matrix.h"
 #include "utility.h"
 
-#include <cblas.h>
+/*  Definition derived from blas reference implementation
+ * http://www.netlib.org/blas/dgemm.f
+ */
+ void dgemm_ ( const char * transA, const char * transB, const int * nrOa, const int * ncOb, const int * ncOa, const double * alpha, const double * A, const int * lda, const double * B, const int * ldb, const double * beta, double * C, const int * ldc);
 
 void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double * C){
   assert(NULL!=A);
@@ -16,7 +19,12 @@ void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const 
   assert(NULL!=C);
   assert(nc1==nr2);
 
-  cblas_dgemm (CblasRowMajor ,CblasNoTrans , CblasNoTrans , nr1, nc2, nc1 , 1.0, A, nc1 , B, nc2 , 0., C, nc2);
+  const double alpha = 1.;
+  const double beta = 0.;
+  const char NoTran = 'N';
+  const char Tran = 'T';
+  dgemm_ (&NoTran, &NoTran, &nc2, &nr1, &nc1 , &alpha, B, &nc2 , A, &nc1 , &beta, C, &nc2);
+
 
 }
 
@@ -26,7 +34,11 @@ void Matrix_MatrixT_Mult ( const double * A, const int nr1, const int nc1, const
   assert(NULL!=C);
   assert(nc1==nr2);
 
-  cblas_dgemm ( CblasRowMajor ,CblasNoTrans , CblasTrans , nr1, nc2, nc1 , 1.0, A, nc1 , B, nr2 , 0., C, nc2);
+  const double alpha = 1.;
+  const double beta = 0.;
+  const char NoTran = 'N';
+  const char Tran = 'T';
+  dgemm_ ( &Tran, &NoTran , &nc2, &nr1, &nc1 , &alpha, B, &nr2 , A, &nc1 , &beta, C, &nc2);
 }
 
 void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C){
@@ -35,7 +47,11 @@ void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const
   assert(NULL!=C);
   assert(nc1==nr2);
 
-  cblas_dgemm ( CblasRowMajor ,CblasTrans , CblasNoTrans , nr1, nc2, nc1 , 1.0, A, nr1 , B, nc2 , 0., C, nc2);
+  const double alpha = 1.;
+  const double beta = 0.;
+  const char NoTran = 'N';
+  const char Tran = 'T';
+  dgemm_ (&NoTran, &Tran, &nc2, &nr1, &nc1 , &alpha, B, &nc2 , A, &nr1 , &beta, C, &nc2);
 }
 
 
