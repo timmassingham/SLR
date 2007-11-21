@@ -317,7 +317,7 @@ GradLike(TREE * tree, MODEL * model, double p[], double grad[])
 {
 	int             i, nparam;
 
-	nparam = (model->has_branches) ? model->nparam + tree->n_br : model->nparam;
+	nparam = (Branches_Variable==model->has_branches) ? model->nparam + tree->n_br : model->nparam;
 	for (i = 0; i < nparam; i++)
 		grad[i] = PartialDeriv(tree, model, p, i);
 
@@ -483,7 +483,7 @@ UpdateAllParams(MODEL * model, TREE * tree, const double *p)
 	int             i = 0, a;
 	NODE           *node;
 
-	if (model->has_branches)
+	if (Branches_Variable==model->has_branches)
 		for (; i < tree->n_br; i++) {
 			node = tree->branches[i];
 			node->blength[0] = p[i];
@@ -501,14 +501,14 @@ UpdateParam(MODEL * model, TREE * tree, const double p, const int i)
 	NODE           *node;
 	int             a;
 
-	if (model->has_branches && i < tree->n_br) {
+	if (Branches_Variable==model->has_branches && i < tree->n_br) {
 		node = tree->branches[i];
 		node->blength[0] = p;
 		a = find_connection(node->branch[0], node);
 		(node->branch[0])->blength[a] = p;
 		return;
 	}
-	model->Update(model, p, model->has_branches?i-tree->n_br:i);
+	model->Update(model, p, (Branches_Variable==model->has_branches)?i-tree->n_br:i);
 
 	return;
 }
@@ -564,7 +564,7 @@ GradLike_Full(double *param, double *grad, void *data)
 	info = (struct single_fun *) data;
 	UpdateAllParams(info->model, info->tree, param);
 	n = info->model->nparam;
-	if (info->model->has_branches) {
+	if (Branches_Variable==info->model->has_branches) {
 		n += info->tree->n_br;
 	}
 	npts = info->model->n_unique_pts;
@@ -591,7 +591,7 @@ InfoLike_Full(double *param, double *grad, void *data)
 	info = (struct single_fun *) data;
 	UpdateAllParams(info->model, info->tree, param);
 	n = info->model->nparam;
-	if (info->model->has_branches) {
+	if (Branches_Variable==info->model->has_branches) {
 		n += info->tree->n_br;
 	}
 	npts = info->model->n_unique_pts;
@@ -705,7 +705,7 @@ DoDerivatives(MODEL * model, TREE * tree, double *grad, double *lvec)
 
 	Backwards(tree->tree, NULL, tree, model);
 	DoBranchDerivatives(model, tree, grad_ptr, lvec, lscale);
-	if (model->has_branches) {
+	if (Branches_Variable==model->has_branches) {
 		grad_ptr += tree->n_br * model->n_unique_pts;
 	}
 	DoModelDerviatives(model, tree, grad_ptr, lvec, lscale);
@@ -732,7 +732,7 @@ DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
 		GetQP(model->q, node->mat, node->bmat, n);
 		Matrix_MatrixT_Mult(node->back, model->n_unique_pts, model->nbase, node->bmat, model->nbase, model->nbase, model->tmp_plik);
 
-		if (model->has_branches) {
+		if (Branches_Variable==model->has_branches) {
 			if (!ISLEAF(tree->branches[i])) {
 				for (j = 0; j < model->n_unique_pts; j++) {
 					tmp = 0.;
@@ -905,7 +905,7 @@ GetParam(MODEL * model, TREE * tree, int i)
 	assert(i > 0);
 	int             offset = 0;
 
-	if (model->has_branches) {
+	if (Branches_Variable==model->has_branches) {
 		if (i < tree->n_br)
 			return (tree->branches[i])->blength[0];
 		else

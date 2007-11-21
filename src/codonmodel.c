@@ -537,7 +537,7 @@ NewCodonModel_single(const int gencode, const double kappa, const double omega, 
 	model->GetParam = GetParam_Codon_single;
 	model->GetdQ = GetdQ_Codon_single;
 
-	model->has_branches = 0;
+	model->has_branches = Branches_Fixed;
 
 	return model;
 }
@@ -556,7 +556,7 @@ NewCodonModel_singleDnDs(const int gencode, const double kappa, const double ome
 	model->GetdQ = GetdQ_Codon_singleDnDs;
 	model->Rate = Rate_Codon_singleDnDs;
 
-	model->has_branches = 0;
+	model->has_branches = Branches_Fixed;
 
 	return model;
 }
@@ -835,7 +835,7 @@ NewCodonModel_full(const int gencode, const double kappa, const double omega, co
 		model->seqtype = SEQTYPE_CODON;
 		model->nparam = 2;
 
-		model->has_branches = 1;
+		model->has_branches = Branches_Variable;
 
 		model->pi = GetEquilibriumDistCodon(pi, codonf, gencode);
 

@@ -393,7 +393,7 @@ NewModel(const int n, const int nparam)
 	model->pt_freq = NULL;
 	model->index = NULL;
 
-	model->has_branches = 0;
+	model->has_branches = Branches_Fixed;
 	model->optimize_pi = 0;
 	model->alternate_scaling = 0;
 

@@ -23,6 +23,7 @@
 #define _MODEL_H_
 
 
+enum model_branches { Branches_Fixed, Branches_Variable, Branches_Proportional };
 
 typedef struct md {
         double * q;
@@ -55,8 +56,10 @@ typedef struct md {
         double *dp,*F,*dq;
         void (*GetdQ)(struct md *,int ,double *);
 
-        int has_branches,alternate_scaling,optimize_pi;
+        int alternate_scaling,optimize_pi;
+	enum model_branches has_branches;
 } MODEL;
+
 
 void DoDiagonalOfQ ( double * mat, const int n);
 void MakeQ_From_S ( double * mat, const double * pi, const int n);

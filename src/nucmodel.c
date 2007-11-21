@@ -57,7 +57,7 @@ NewJC69Model_full(int nbr)
 
 		model->seqtype = SEQTYPE_NUCLEO;
 		model->nparam = 0;
-		model->has_branches = 1;
+		model->has_branches = Branches_Variable;
 
 		model->pi = calloc(4, sizeof(double));
 		for (int i = 0; i < 4; i++) {
@@ -96,7 +96,7 @@ NewNNNModel_full(const int *desc, const double *params, const int nparam, const 
 	model->GetdQ = GetdQ_NNN;
 
 	model->seqtype = SEQTYPE_NUCLEO;
-	model->has_branches = (nbr>0)?1:0;
+	model->has_branches = (nbr>0)?Branches_Variable:Branches_Fixed;
 	model->desc = desc;
 	model->nparam = tnparam;
 	model->alternate_scaling = alt_scale;
