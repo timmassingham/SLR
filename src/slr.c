@@ -48,7 +48,7 @@
 #include "linemin.h"
 
 #define GRIDSIZE	50
-#define VERSIONSTRING	"development"
+#define VERSIONSTRING	"1.1"
 
 struct selectioninfo {
   double * llike_neu;
