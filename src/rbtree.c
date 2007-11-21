@@ -528,6 +528,70 @@ void * strcopykey(const void * key){
 void strfreekey (void * key){
 	free(key);
 }
+
+RBITER iter_rbtree (const RBTREE tree){
+	assert(NULL!=tree);
+	RBITER iter = malloc(sizeof(struct __rbiter));
+	iter->current = tree->root;
+	iter->last = NULL;
+	return iter;
+}
+
+void freeiter_rbtree( RBITER iter){
+	assert(NULL!=iter);
+	free(iter);
+}
+
+RBNODE iteratedown_rbtree( RBNODE node){
+	while(NULL!=node->left) node = node->left;
+	return (NULL==node->right)?node:iteratedown_rbtree(node->right);
+}
+
+bool next_rbtree ( RBITER rbit ){
+	assert(NULL!=rbit);
+
+	if ( rbit->current == rbit->last){
+		/* Asscending tree */
+		rbit->current = rbit->current->parent;
+	}
+	/*  No tree or passed root  */
+	if ( NULL==rbit->current){
+                goto rbtree_next_ret;
+        }
+
+
+	if ( NULL!=rbit->current->left && rbit->last==rbit->current->parent){
+		/*  Come from parent and have left node  */
+		rbit->current = iteratedown_rbtree(rbit->current->left);
+		rbit->last = rbit->current;
+	} else if (NULL!=rbit->current->right && rbit->last!=rbit->current->right) {
+		/*  Have right node and have not come from right  */
+		rbit->current = iteratedown_rbtree(rbit->current->right);
+		rbit->last = rbit->current;
+	} else {
+		/* No more leaves to descent */
+		rbit->last = rbit->current;
+		//rbit->current = rbit->current->parent;
+		goto rbtree_next_ret;
+	}
+
+	
+rbtree_next_ret:
+	if ( NULL==rbit->current){
+		free(rbit);
+		return false;
+	}
+	return true;
+}
+
+const void * itervalue_rbtree ( const RBITER iter){
+	return iter->current->value;
+}
+
+const void * iterkey_rbtree ( const RBITER iter){
+	return iter->current->key;
+}
+
 	
 
 #ifdef TEST
@@ -594,11 +658,24 @@ int main ( int argc, char * argv[]) {
 	printf ("Tree contains %u elements in total\n",ntree_elt);
 	assert(ntree_elt<=nelt);
 
+
 	printf ("Copying tree\n");
 	RBTREE tree2 = copy_rbtree(tree,strcopykey);
 	check_rbtree(tree2);
 	printf("Freeing copied tree\n");
 	free_rbtree(tree2,free);
+
+	printf("Printing tree\n");
+	unsafemap_rbtree (tree,print_node);
+
+	printf("Iterating through tree\n");
+	unsigned int iter_count = 0;
+	for ( RBITER iter = iter_rbtree(tree) ; next_rbtree(iter) ; ){
+		const char * key = (const char *) iterkey_rbtree(iter);
+		printf("\tfound %s\n",key);
+		iter_count++;
+	}
+	assert(iter_count==ntree_elt);  
 
 	printf ("Removing elements\n");
 	unsigned int * rperm = random_permutation(nelt);

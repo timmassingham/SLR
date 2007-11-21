@@ -43,6 +43,12 @@ struct __rbtree {
 };
 typedef struct __rbtree * RBTREE;
 
+struct __rbiter {
+	RBNODE last;
+	RBNODE current;
+};
+typedef struct __rbiter * RBITER;
+
 
 RBTREE create_rbtree ( int (*compfun)(const void *, const void *), void * (*copykey)(const void *), void (*freekey)(void *) );
 void free_rbtree (RBTREE tree, void (*freevalue)(void *));
@@ -52,11 +58,17 @@ void * getelt_rbtree ( const RBTREE tree, const void * key);
 bool member_rbtree ( const RBTREE tree, const void * key);
 void * insertelt_rbtree ( RBTREE tree, void * key, void * value);
 void * removeelt_rbtree (RBTREE tree, const void * key);
+RBITER iter_rbtree (const RBTREE tree);
+const void * itervalue_rbtree (const RBITER iter);
+void freeiter_rbtree( RBITER iter);
+bool next_rbtree ( RBITER rbit );
+
 
 void map_rbtree ( RBTREE tree, void * (*mapfun)(const void *, void *) );
 void * minelt_rbtree ( const RBTREE tree);
 void * maxelt_rbtree ( const RBTREE tree);
 unsigned int nmemb_rbtree (const RBTREE tree);
+
 
 int lexo ( const void * pt1, const void * pt2);
 void * strcopykey(const void * key);
