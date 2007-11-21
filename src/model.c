@@ -625,6 +625,7 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param, con
 
 	/* Get analytic derivatives, interms of S-params and (perhaps) pi's */
 	for (int i = 0; i < nparam; i++) {
+		GetP(model,blen,model->p);
 		MakeSdQS(model, i);
 		MakeDerivFromP(model, blen, dp_test + i * nbase * nbase);
 	}
