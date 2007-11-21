@@ -48,6 +48,7 @@
 #include "linemin.h"
 
 #define GRIDSIZE	50
+#define VERSIONSTRING	"development"
 
 struct selectioninfo {
   double * llike_neu;
@@ -174,7 +175,9 @@ int main (int argc, char *argv[])
 	/*  Initialise random number generator */
   RL_Init (seed);	
 
-
+  fputs("# SLR \"Sitewise Likelihood Ratio\" selection detection program. Version ",stdout);
+  fputs(VERSIONSTRING,stdout);
+  fputc('\n',stdout);
 
   SetAminoAndCodonFuncs (nucleof, aminof, nucfile, aminofile);
   gencode = GetGeneticCode (gencode_str);
