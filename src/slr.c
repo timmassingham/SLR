@@ -382,14 +382,14 @@ DATA_SET *ReadData (const char *name, const int gencode)
 double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf){
   struct single_fun *info;
   double *bd,fx;
-  int i,nbr;
+  int i;
   MODEL * model;
 
   CheckIsDataSet (data);
   CheckIsTree (tree);
   assert(NULL!=x);
 
-  nbr = tree->n_br;
+  const unsigned int nbr = tree->n_br;
   bd = calloc ( 2*(nbr+2),sizeof(double)); OOM(bd);
 
   /* Set boundaries
@@ -410,7 +410,7 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
       x[i] = bd[nbr+2+i]-1e-5;
   }
 
-  model = NewCodonModel_full ( data->gencode, x[0], x[1], freqs, codonf ,freqtype);
+  model = NewCodonModel_full ( data->gencode, x[nbr+0], x[nbr+1], freqs, codonf ,freqtype, Branches_Variable);
   OOM(model);
   model->exact_obs = 1;
 
@@ -420,11 +420,17 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
   info->p = calloc (data->n_pts * 2,sizeof (double));
   OOM(info->p);
   info->model = model;
+
   
   add_data_to_tree (data, tree, model);
+  //x[nbr-1] = 1.;
+  //CheckModelDerivatives(model,0.5,x+nbr,1e-5);
   fx = CalcLike_Single ( x, info);
 
+printf ("Initial Kappa = %e omega = %e\tloglike = %e\n",x[nbr],x[nbr+1],fx);
   Optimize (x, nbr+model->nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2);
+  //bd[0] = 1e-5; bd[1] = 1e-5; bd[2] = 1e-5; bd[3] = 50.; bd[4] = 50.; bd[5] = 50.;
+  //Optimize (x+nbr-1, model->nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2);
   
   FreeModel (model);
   free(bd);

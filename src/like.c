@@ -483,16 +483,18 @@ UpdateAllParams(MODEL * model, TREE * tree, const double *p)
 	int             i = 0, a;
 	NODE           *node;
 
-	if (Branches_Variable==model->has_branches)
+	if (Branches_Variable==model->has_branches){
 		for (; i < tree->n_br; i++) {
 			node = tree->branches[i];
 			node->blength[0] = p[i];
 			a = find_connection(node->branch[0], node);
 			(node->branch[0])->blength[a] = p[i];
 		}
+	}
 
-	for (a = 0; a < model->nparam; a++)
+	for (a = 0; a < model->nparam; a++){
 		model->Update(model, p[a + i], a);
+	}
 }
 
 void
@@ -793,7 +795,6 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 			/* Note: code make assumption that parent node is always branch 0*/
 			node = tree->branches[j];
 			MakeDerivFromP(model, node->blength[0], node->bmat);
-			/*Matrix_MatrixT_Mult(node->back, model->n_unique_pts, model->nbase, node->bmat, model->nbase, model->nbase, node->dback);*/
 		}
 		for (j = 0; j < model->n_unique_pts; j++) {
 			tmp = 0.;

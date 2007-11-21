@@ -177,6 +177,7 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 		InitializeH(opt);
 		fact = 1.;
 		do {
+printf ("... %e %e %e\n",opt->x[0]*((struct scaleinfo *) opt->state)->scale[0],opt->x[1]*((struct scaleinfo *) opt->state)->scale[1],opt->x[2]*((struct scaleinfo *) opt->state)->scale[2]);
 			fn = opt->fc;
 			errn = 0;
 			md = TakeStep(opt, tol, &fact, &newbound);

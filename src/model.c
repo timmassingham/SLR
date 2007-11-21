@@ -350,7 +350,8 @@ GetP(MODEL * model, const double length, double *mat)
 		model->factorized = 1;
 
 	}
-	MakeP_From_FactQ(model->v, model->ev, model->inv_ev, length, Rate(model), Scale(model), mat, nbase, model->space, model->pi, model->q);
+	double length_fact = (Branches_Proportional==model->has_branches)?model->param[0]:1.;
+	MakeP_From_FactQ(model->v, model->ev, model->inv_ev, length_fact*length, Rate(model), Scale(model), mat, nbase, model->space, model->pi, model->q);
 
 	return mat;
 }
@@ -436,6 +437,9 @@ MakeDerivFromP(MODEL * model, const double blen, double *bmat)
 	dp = bmat;
 
 	factor = Scale(model) * Rate(model) * blen;
+	if ( Branches_Proportional == model->has_branches){
+		factor *= model->param[0];
+	}
 	CalculateF(model->F, model->v, model->space, factor, n);
 
 	/* Calculate A1 = S^{-1} dQ S */
@@ -624,6 +628,7 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param, con
 	}
 
 	/* Get analytic derivatives, interms of S-params and (perhaps) pi's */
+	GetP(model,blen,model->p);
 	for (int i = 0; i < nparam; i++) {
 		MakeSdQS(model, i);
 		MakeDerivFromP(model, blen, dp_test + i * nbase * nbase);

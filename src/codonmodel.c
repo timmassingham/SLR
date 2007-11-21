@@ -31,6 +31,7 @@
 #include "utility.h"
 #include "data.h"
 #include "utility.h"
+#include "matrix.h"
 #include <assert.h>
 #include <err.h>
 
@@ -422,8 +423,9 @@ GetQ_Codon(MODEL * model)
 
 	n = model->nbase;
 	mat = model->q;
-	kappa = model->param[0];
-	omega = model->param[1];
+	const unsigned int offset = (Branches_Proportional!=model->has_branches)?0:1;
+	kappa = model->param[0+offset];
+	omega = model->param[1+offset];
 
 	mat = GetS_Codon(mat, kappa, omega, model->gencode);
 	if (NULL == mat)
@@ -493,13 +495,14 @@ Update_Codon(MODEL * model, double p, int i)
 }
 
 MODEL          *
-NewCodonModel(const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type)
+NewCodonModel(const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type, const enum model_branches branopt)
 {
 	int             n;
 	MODEL          *model;
-
+	
+	const unsigned int nparam = (Branches_Proportional==branopt)?3:2;
 	n = NumberSenseCodonsInGenCode(gencode);
-	model = NewModel(n, 2);
+	model = NewModel(n, nparam);
 	if (NULL != model) {
 		model->gencode = gencode;
 		model->Getq = GetQ_Codon;
@@ -509,16 +512,18 @@ NewCodonModel(const int gencode, const double kappa, const double omega, const d
 		model->GetParam = GetParam_Codon_full;
 		model->GetdQ = GetdQ_Codon;
 
-		model->param[0] = kappa;
-		model->param[1] = omega;
+		model->param[0] = 1.; /* scale param. Overwritten if nparam=2*/
+		model->param[nparam-2] = kappa;
+		model->param[nparam-1] = omega;
 		model->seqtype = SEQTYPE_CODON;
-		model->nparam = 2;
+		model->nparam = nparam;
 
 		model->pi = GetEquilibriumDistCodon(pi, codonf, gencode);
 		model->freq_type = freq_type;
 		if (freq_type == 2) {
 			model->mgfreq = CreateMGFreqs(pi, codonf, gencode);
 		}
+		model->has_branches = branopt;
 	}
 	return model;
 }
@@ -529,15 +534,13 @@ NewCodonModel_single(const int gencode, const double kappa, const double omega, 
 {
 	MODEL          *model;
 
-	model = NewCodonModel(gencode, kappa, omega, pi, codonf, freq_type);
+	model = NewCodonModel(gencode, kappa, omega, pi, codonf, freq_type, Branches_Fixed);
 
 	model->nparam = 1;
 	model->Scale = Scale_Codon_single;
 	model->Update = Update_Codon_single;
 	model->GetParam = GetParam_Codon_single;
 	model->GetdQ = GetdQ_Codon_single;
-
-	model->has_branches = Branches_Fixed;
 
 	return model;
 }
@@ -547,7 +550,7 @@ NewCodonModel_singleDnDs(const int gencode, const double kappa, const double ome
 {
 	MODEL          *model;
 
-	model = NewCodonModel(gencode, kappa, omega, pi, codonf, freq_type);
+	model = NewCodonModel(gencode, kappa, omega, pi, codonf, freq_type, Branches_Fixed);
 
 	model->nparam = 2;
 	model->Scale = Scale_Codon_single;
@@ -555,8 +558,6 @@ NewCodonModel_singleDnDs(const int gencode, const double kappa, const double ome
 	model->GetParam = GetParam_Codon_singleDnDs;
 	model->GetdQ = GetdQ_Codon_singleDnDs;
 	model->Rate = Rate_Codon_singleDnDs;
-
-	model->has_branches = Branches_Fixed;
 
 	return model;
 }
@@ -689,7 +690,7 @@ GetdQ_Codon_singleDnDs(MODEL * model, int n, double *q)
 
 
 void
-GetdQ_Codon(MODEL * model, int has_nucfunc, double *q)
+GetdQ_Codon(MODEL * model, int param, double *q)
 {
 	int             nbase, gencode;
 	int             tran, nonsyn;
@@ -704,7 +705,19 @@ GetdQ_Codon(MODEL * model, int has_nucfunc, double *q)
 	kappa = model->param[0];
 	omega = model->param[1];
 
-	if (has_nucfunc != 0 && has_nucfunc != 1)
+	if ( Branches_Proportional == model->has_branches){
+		if (0==param){
+			CopyMatrix(model->q,mat,nbase);
+			for ( unsigned int i=0 ; i<nbase*nbase ; i++){
+				mat[i] *= s;
+			}
+			return;
+		} else {
+			assert(param>0);
+			param--;
+		}
+	}
+	if (param<0 || param>=model->nparam)
 		return;
 	for (int i = 0; i < nbase * nbase; i++)
 		mat[i] = 0.;
@@ -721,11 +734,11 @@ GetdQ_Codon(MODEL * model, int has_nucfunc, double *q)
 					if (IsNonSynonymous(i, j, gencode)) {
 						nonsyn = 1;
 					}
-					if (has_nucfunc == 0 && tran == 1) {
+					if (param == 0 && tran == 1) {
 						mat[ai * nbase + aj] = NucleoFunc(i, j);
 						if (nonsyn == 1)
 							mat[ai * nbase + aj] *= CodonOmegaFunc(i, j, gencode, omega);
-					} else if (has_nucfunc == 1 && nonsyn == 1) {
+					} else if (param == 1 && nonsyn == 1) {
 						mat[ai * nbase + aj] =
 							NucleoFunc(i, j) * CodonOmegaDFunc(i, j, gencode, omega);
 						if (tran == 1)
@@ -814,13 +827,14 @@ GetdQ_Codon(MODEL * model, int has_nucfunc, double *q)
 
 
 MODEL          *
-NewCodonModel_full(const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type)
+NewCodonModel_full(const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type, const enum model_branches branopt)
 {
 	int             n;
 	MODEL          *model;
 
+	const unsigned int nparam = (Branches_Proportional==branopt)?3:2;
 	n = NumberSenseCodonsInGenCode(gencode);
-	model = NewModel(n, 2);
+	model = NewModel(n, nparam);
 	if (NULL != model) {
 		model->gencode = gencode;
 		model->Getq = GetQ_Codon;
@@ -830,12 +844,13 @@ NewCodonModel_full(const int gencode, const double kappa, const double omega, co
 		model->GetParam = GetParam_Codon_full;
 		model->GetdQ = GetdQ_Codon;
 
-		model->param[0] = kappa;
-		model->param[1] = omega;
+		model->param[0] = 1.; /*  Scale parameter. Overwriten if nparam=2 */
+		model->param[nparam-2] = kappa;
+		model->param[nparam-1] = omega;
 		model->seqtype = SEQTYPE_CODON;
-		model->nparam = 2;
+		model->nparam = nparam;
 
-		model->has_branches = Branches_Variable;
+		model->has_branches = branopt;
 
 		model->pi = GetEquilibriumDistCodon(pi, codonf, gencode);
 

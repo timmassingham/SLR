@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include "model.h"
 #include "bases.h"
+#include "matrix.h"
 #include <assert.h>
 #include <err.h>
 #include <math.h>
@@ -246,7 +247,17 @@ GetParam_Nuc(MODEL * model, int i)
 void 
 GetdQ_JC69(MODEL * model, int n, double *q)
 {
-	warn("Called GetdQ for JC69, which has no parameters!\n");
+	/*  Does model have scaling factor  */
+	if ( Branches_Proportional==model->has_branches && 0==n){
+		model->Getq(model);
+		CopyMatrix(q,model->dq,model->nbase);
+		const double s = Scale(model);
+		for ( unsigned int i=0 ; i<model->nbase*model->nbase ; i++){
+			model->dq[i] *= s;
+		}
+	} else {
+		warn("Called GetdQ for JC69, which has no parameters!\n");
+	}
 	return;
 }
 
@@ -272,6 +283,13 @@ GetdQ_NNN(MODEL * model, int p, double *q)
 	s = Scale(model);
 	model->Getq(model);
 
+	if ( Branches_Proportional == model->has_branches && 0==p){
+		CopyMatrix(model->q,dmat,n);
+		for (unsigned int i=0 ; i<n*n ; i++){
+			dmat[i] *= s;
+		}
+		return;
+	}
 	if (model->optimize_pi && p >= pioffset) {
 		int             base = p - pioffset;
 		assert(base >= 0 && base < model->nbase);
@@ -320,6 +338,10 @@ GetdQ_NNN(MODEL * model, int p, double *q)
 			}
 		}
 	} else {
+		if ( Branches_Proportional==model->has_branches){
+			assert(0!=p);
+			p--;
+		}
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
 				if (model->desc[i * n + j] != p) {
