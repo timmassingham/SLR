@@ -19,10 +19,19 @@
  *  along with SLR.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-MODEL * NewCodonModel ( const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type);
+#ifndef _CODONMODEL_H_
+#define _CODONMODEL_H_
+
+#ifndef _MODEL_H_
+#include "model.h"
+#endif
+
+MODEL * NewCodonModel ( const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type, const enum model_branches branopt);
 MODEL *NewCodonModel_singleDnDs (const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type);
 MODEL * NewCodonModel_single ( const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type);
-MODEL * NewCodonModel_full ( const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type);
+MODEL * NewCodonModel_full ( const int gencode, const double kappa, const double omega, const double *pi, const int codonf, const int freq_type, const enum model_branches branopt);
 double GetScale_single ( MODEL * model, const double f);
 void SetAminoAndCodonFuncs ( const int nucleo_type, const int amino_type, const char * nucleofile, const char * aminofile);
 double *  GetEquilibriumDistCodon (const double * pi,const int codonf, const int gencode);
+
+#endif

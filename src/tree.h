@@ -22,6 +22,10 @@
 #ifndef _TREE_H_
 #define _TREE_H_
 
+#ifndef _STDIO_H_
+#include <stdio.h>
+#endif
+
 #define MAX_SP          1000
 #define MAX_BR          2010
 
