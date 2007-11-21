@@ -103,7 +103,7 @@ MakeMatrixDiagonal(double *A, const int n)
 }
 
 
-void CopyMatrix ( double * A, double *B, int n){
+void CopyMatrix ( const double * A, double *B, int n){
 	int i,j;
 
 	for (i=0 ; i<n ; i++)
