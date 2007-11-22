@@ -291,12 +291,12 @@ MakeP_From_FactQ(const double *v, const double *ev, const double *inv_ev, const 
 	 * to be very small rather than trying to divine it by looking at
 	 * whether the ev's are close to 1. or not.
 	 */
-	if (fabs(ev1) < 1e-8) {
+	/*if (fabs(ev1) < 1e-8) {
 		for (i = 0; i < n; i++)
 			for (j = 0; j < n; j++)
 				p[i * n + j] = pi[j];
 		return p;
-	}
+	}*/
 	for (i = 0; i < n; i++)
 		for (j = 0; j < n; j++)
 			p[i * n + j] = ev[i * n + j] * expl[j];
@@ -350,8 +350,8 @@ GetP(MODEL * model, const double length, double *mat)
 		model->factorized = 1;
 
 	}
-	double length_fact = (Branches_Proportional==model->has_branches)?model->param[0]:1.;
-	MakeP_From_FactQ(model->v, model->ev, model->inv_ev, length_fact*length, Rate(model), Scale(model), mat, nbase, model->space, model->pi, model->q);
+	const double lenfact = (Branches_Proportional==model->has_branches)?model->param[0]:1.0;
+	MakeP_From_FactQ(model->v, model->ev, model->inv_ev, lenfact*length, Rate(model), Scale(model), mat, nbase, model->space, model->pi, model->q);
 
 	return mat;
 }
@@ -428,19 +428,16 @@ FreeModel(MODEL * model)
 void 
 MakeDerivFromP(MODEL * model, const double blen, double *bmat)
 {
-	int             i, n;
 	double         *tmp, *dp;
 	double          factor;
 
-	n = model->nbase;
+	const unsigned int n = model->nbase;
 	tmp = model->space;
 	dp = bmat;
 
 	factor = Scale(model) * Rate(model) * blen;
-	if ( Branches_Proportional == model->has_branches){
-		factor *= model->param[0];
-	}
-	CalculateF(model->F, model->v, model->space, factor, n);
+	const double sfactor = (Branches_Proportional==model->has_branches)?model->param[0]:1.;
+	CalculateF(model->F, model->v, model->space, sfactor*factor, n);
 
 	/* Calculate A1 = S^{-1} dQ S */
 	/* Hadamard conjugate (A2 = F.A1) */
@@ -450,11 +447,26 @@ MakeDerivFromP(MODEL * model, const double blen, double *bmat)
 
 	Matrix_Matrix_Mult(model->ev, n, n, tmp, n, n, dp);
 	/* Multiply through by factor */
-	for (i = 0; i < n * n; i++)
+	for (unsigned int i = 0; i < n * n; i++)
 		dp[i] *= factor;
 
 }
 
+void MakeRateDerivFromP ( MODEL * model, const double blen, double * dp){
+	assert(NULL!=model);
+	assert(blen>=0.);
+	assert(NULL!=dp);
+	assert(Branches_Proportional==model->has_branches);
+
+	const unsigned int nbase = model->nbase;
+
+	GetQ(model);
+	GetP(model,blen,model->p);
+	GetQP(model->q,model->p,dp,nbase);
+	for ( unsigned int i=0 ; i<nbase*nbase ; i++){
+		dp[i] *= blen * Scale(model);
+	}
+}
 
 void 
 MakeSdQS(MODEL * model, const int param)
@@ -630,8 +642,12 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param, con
 	/* Get analytic derivatives, interms of S-params and (perhaps) pi's */
 	GetP(model,blen,model->p);
 	for (int i = 0; i < nparam; i++) {
-		MakeSdQS(model, i);
-		MakeDerivFromP(model, blen, dp_test + i * nbase * nbase);
+		if ( Branches_Proportional==model->has_branches && 0==i){
+			MakeRateDerivFromP(model,blen,dp_test+i*nbase*nbase);
+		} else {
+			MakeSdQS(model, i);
+			MakeDerivFromP(model, blen, dp_test + i * nbase * nbase);
+		}
 	}
 	if (model->optimize_pi) {
 		double         *dpidparam, *tmp;
@@ -671,7 +687,7 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param, con
 			sumsqrdiff += (p_test[j] - dp_test[i * nbase * nbase + j]) * (p_test[j] - dp_test[i * nbase * nbase + j]);
 			sumsqrsum += (p_test[j] + dp_test[i * nbase * nbase + j]) * (p_test[j] + dp_test[i * nbase * nbase + j]);
 		}
-		printf("param %d: sumsqr = %e\tdiff = %e\n", i, sumsqrsum, sumsqrdiff);
+		printf("param %d (%e): sumsqr = %e\tdiff = %e\t%e %e\n", i, param[i], sumsqrsum, sumsqrdiff,p_test[0],dp_test[i*nbase*nbase]);
 		model->Update(model, param[i], i);
 	}
 

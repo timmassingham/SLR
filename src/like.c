@@ -769,42 +769,47 @@ void
 DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 		   double *lvec, double lscale)
 {
-	int             i, j, k, l, n, npts;
-	int             base, nparam, pioffset;
-	NODE           *node;
 	double          factor, tmp, expscale;
 	double         *gradpi, *dpidparam;
 	double sum;
 
 	factor = Scale(model) * Rate(model);
-	n = model->nbase;
-	npts = model->n_unique_pts;
-	nparam = model->nparam;
+	const unsigned int n = model->nbase;
+	const unsigned int npts = model->n_unique_pts;
+	unsigned int nparam = model->nparam;
 	if (model->optimize_pi) {
 		nparam++;
 		gradpi = calloc(nparam * npts, sizeof(double));
 	} else {
 		gradpi = grad;
 	}
-	pioffset = model->nparam - model->nbase + 1;
+	const unsigned int pioffset = model->nparam - model->nbase + 1;
 	expscale = exp(lscale);
 
-	for (i = 0; i < nparam; i++) {
-		MakeSdQS(model, i);
-		for (j = 0; j < tree->n_br; j++){
-			/* Note: code make assumption that parent node is always branch 0*/
-			node = tree->branches[j];
-			MakeDerivFromP(model, node->blength[0], node->bmat);
+	for (unsigned int i = 0; i < nparam; i++) {
+		if ( Branches_Proportional==model->has_branches && 0==i){
+			for ( unsigned int j=0 ; j<tree->n_br ; j++){
+				NODE * node = tree->branches[j];
+				MakeRateDerivFromP(model,node->blength[0],node->bmat);
+			}
+		} else {
+			MakeSdQS(model, i);
+			for (unsigned int j = 0; j < tree->n_br; j++){
+				/* Note: code make assumption that parent node is always branch 0*/
+				NODE * node = tree->branches[j];
+				MakeDerivFromP(model, node->blength[0], node->bmat);
+				/*Matrix_MatrixT_Mult(node->back, model->n_unique_pts, model->nbase, node->bmat, model->nbase, model->nbase, node->dback);*/
+			}
 		}
-		for (j = 0; j < model->n_unique_pts; j++) {
+		for (unsigned int j = 0; j < npts; j++) {
 			tmp = 0.;
-			for (k = 0; k < tree->n_br; k++) {
-				node = tree->branches[k];
+			for (unsigned int k = 0; k < tree->n_br; k++) {
+				NODE * node = tree->branches[k];
 				sum = 0.;
 				if (!ISLEAF(node)) {
 					//warn("%s:%d\tThis function is not properly debugged\n",__FILE__,__LINE__);
-					for ( int base=0 ; base<n ; base++){
-						for (l = 0; l < n; l++){
+					for ( unsigned int base=0 ; base<n ; base++){
+						for (unsigned int l = 0; l < n; l++){
 							tmp +=
 								model->pi[l] * node->bmat[l*n+base] * node->back[j * n + l] * node->plik[j * n + base]
 								* node->bscalefactor;
@@ -818,9 +823,9 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 						}*/
 					}
 				} else {
-					base = node->seq[j];
+					unsigned int base = node->seq[j];
 					if (GapChar(model->seqtype) != base) {
-						for ( int l=0 ; l<n ; l++){
+						for ( unsigned int l=0 ; l<n ; l++){
 							tmp += model->pi[l] * node->bmat[l*n+base] * node->back[j * n + l] * node->bscalefactor;
 							/*sum += model->pi[l] * node->mat[l*n+base] * node->back[j * n + l] * node->bscalefactor;*/
 						}
@@ -835,8 +840,8 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 						 * Needs checking! Derived from \sum_i \pi_i P_{ia} = \pi_a 
 						 * -- for non-pi's, this sum is zero
 						 */
-						for (int base = 0; base < n; base++){
-							for ( int l=0 ; l<n ; l++){
+						for (unsigned int base = 0; base < n; base++){
+							for ( unsigned int l=0 ; l<n ; l++){
 								tmp += model->pi[l] * node->bmat[l*n+base] * node->back[j * n + l] * node->bscalefactor;
 								/*sum += model->pi[l] * node->mat[l*n+base] * node->back[j * n + l] * node->bscalefactor;*/
 							}
@@ -851,7 +856,7 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 			}
 			
 			if ( model->optimize_pi && i>=pioffset){ 
-				base = i - pioffset; 
+				unsigned int base = i - pioffset; 
 				tmp += tree->tree->plik[j*n+base] * expscale;
 			}
 			tmp /= lvec[j];
@@ -863,16 +868,16 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 		int             pioffset = nparam - model->nbase;
 		dpidparam = calloc((n - 1) * n, sizeof(double));
 		dPidParam_pi(model->pi, dpidparam, n);
-		for (int i = 0; i < pioffset; i++) {
-			for (int j = 0; j < npts; j++) {
+		for (unsigned int i = 0; i < pioffset; i++) {
+			for (unsigned int j = 0; j < npts; j++) {
 				grad[i * npts + j] = gradpi[i * npts + j];
 			}
 		}
-		for (int p = 0; p < n - 1; p++) {
-			int             paramn = p + pioffset;
-			for (int j = 0; j < npts; j++) {
+		for (unsigned int p = 0; p < n - 1; p++) {
+			unsigned int             paramn = p + pioffset;
+			for (unsigned int j = 0; j < npts; j++) {
 				grad[paramn * npts + j] = 0.;
-				for (int pi = 0; pi < n; pi++) {
+				for (unsigned int pi = 0; pi < n; pi++) {
 					grad[paramn * npts + j] += dpidparam[p * n + pi] * gradpi[(pi + pioffset) * npts + j];
 				}
 			}

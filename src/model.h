@@ -85,6 +85,7 @@ double * GetQ ( MODEL * model);
 double * GetP ( MODEL * model, const double length, double * mat);
 void FreeModel ( MODEL * model);
 void MakeDerivFromP ( MODEL * model, const double blen, double * bmat);
+void MakeRateDerivFromP ( MODEL * model, const double blen, double * dp);
 void MakeSdQS ( MODEL * model, const int param);
 void GetQP ( const double * Q, const double * P, double * QP, const int n);
 

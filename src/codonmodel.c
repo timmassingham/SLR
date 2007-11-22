@@ -418,14 +418,14 @@ GetS_Codon(double *mat, double kappa, double omega, int gencode)
 void
 GetQ_Codon(MODEL * model)
 {
-	double         *mat, kappa, omega;
+	double         *mat;
 	int             n;
 
 	n = model->nbase;
 	mat = model->q;
-	const unsigned int offset = (Branches_Proportional!=model->has_branches)?0:1;
-	kappa = model->param[0+offset];
-	omega = model->param[1+offset];
+	const unsigned int paramoffset = (Branches_Proportional==model->has_branches)?1:0;
+	const double kappa = model->param[0+paramoffset];
+	const double omega = model->param[1+paramoffset];
 
 	mat = GetS_Codon(mat, kappa, omega, model->gencode);
 	if (NULL == mat)
@@ -518,12 +518,13 @@ NewCodonModel(const int gencode, const double kappa, const double omega, const d
 		model->seqtype = SEQTYPE_CODON;
 		model->nparam = nparam;
 
+		model->has_branches = branopt;
+
 		model->pi = GetEquilibriumDistCodon(pi, codonf, gencode);
 		model->freq_type = freq_type;
 		if (freq_type == 2) {
 			model->mgfreq = CreateMGFreqs(pi, codonf, gencode);
 		}
-		model->has_branches = branopt;
 	}
 	return model;
 }
@@ -692,33 +693,38 @@ GetdQ_Codon_singleDnDs(MODEL * model, int n, double *q)
 void
 GetdQ_Codon(MODEL * model, int param, double *q)
 {
-	int             nbase, gencode;
 	int             tran, nonsyn;
-	double         *mat, omega, kappa;
+	double         *mat;
 	double          ds, s;
 	int             diff, pos, nuc;
 
-	nbase = model->nbase;
-	gencode = model->gencode;
+	const unsigned int nbase = model->nbase;
+	const unsigned int nparam = model->nparam;
+	const unsigned int gencode = model->gencode;
 	mat = model->dq;
 	s = Scale(model);
-	kappa = model->param[0];
-	omega = model->param[1];
 
-	if ( Branches_Proportional == model->has_branches){
-		if (0==param){
+	const unsigned int paramoffset = (Branches_Proportional==model->has_branches)?1:0;
+	const double kappa = model->param[0+paramoffset];
+	const double omega = model->param[1+paramoffset];
+
+	if (param<0 || param>=nparam)
+		return;
+
+	double scalefact = 1.;
+	if ( Branches_Proportional==model->has_branches){
+		model->Getq(model);
+		if ( 0 == param){
 			CopyMatrix(model->q,mat,nbase);
 			for ( unsigned int i=0 ; i<nbase*nbase ; i++){
 				mat[i] *= s;
 			}
 			return;
 		} else {
-			assert(param>0);
 			param--;
 		}
+		scalefact = model->param[0];
 	}
-	if (param<0 || param>=model->nparam)
-		return;
 	for (int i = 0; i < nbase * nbase; i++)
 		mat[i] = 0.;
 	for (int i = 0; i < 64; i++) {
@@ -821,7 +827,7 @@ GetdQ_Codon(MODEL * model, int param, double *q)
 
 	for (int i = 0; i < nbase; i++)
 		for (int j = 0; j < nbase; j++)
-			mat[i * nbase + j] = (mat[i * nbase + j] + ds * q[i * nbase + j]);
+			mat[i * nbase + j] = scalefact * (mat[i * nbase + j] + ds * q[i * nbase + j]);
 
 }
 
@@ -866,7 +872,7 @@ void
 Update_Codon_full(MODEL * model, double p, int i)
 {
 
-	if (i < 0 || i > 2) {
+	if (i < 0 || i >=model->nparam) {
 		return;
 	}
 	model->param[i] = p;

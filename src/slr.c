@@ -421,25 +421,19 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
   OOM(info->p);
   info->model = model;
 
-  
   add_data_to_tree (data, tree, model);
   //x[nbr-1] = 1.;
   //CheckModelDerivatives(model,0.5,x+nbr,1e-5);
   fx = CalcLike_Single ( x, info);
 
-printf ("Initial Kappa = %e omega = %e\tloglike = %e\n",x[nbr],x[nbr+1],fx);
   Optimize (x, nbr+model->nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2);
-  //bd[0] = 1e-5; bd[1] = 1e-5; bd[2] = 1e-5; bd[3] = 50.; bd[4] = 50.; bd[5] = 50.;
-  //Optimize (x+nbr-1, model->nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2);
-  
+
   FreeModel (model);
   free(bd);
   free(info->p);
   free(info);
 
   return fx;
-
-
 }
 
 
