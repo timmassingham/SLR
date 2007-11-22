@@ -222,7 +222,7 @@ int main (int argc, char *argv[])
 
   for ( bran=0 ; bran<trees[0]->n_br ; bran++){
     NODE * node = trees[0]->branches[bran];
-    if ( node->blength[0] < 0.){
+    if ( node->blength[0] < 0. || 2==reoptimise){
       node->blength[0] = RandomExp(0.1);
       a = find_connection(node->branch[0],node);
       assert(-1!=a);
@@ -254,19 +254,9 @@ int main (int argc, char *argv[])
 
     unsigned int offset = 0;
     if ( Branches_Variable==branopt){
-      switch(reoptimise){
-      case 1: 
-        for ( unsigned int bran=0 ; bran<nbr ; bran++){
-          x[bran] = (trees[0]->branches[bran])->blength[0];
-        }
-        break;
-      case 2:
-        for ( unsigned int bran=0 ; bran<nbr ; bran++){
-          x[bran] = RandomExp(0.1);
-        }
-        break;
-      default:
-        err(EXIT_FAILURE,"Unrecognised option for reoptimise at %s:%d\n",__FILE__,__LINE__);
+      for ( unsigned int bran=0 ; bran<nbr ; bran++){
+        /* Branch lengths already randomised if necessary */
+        x[bran] = (trees[0]->branches[bran])->blength[0];
       }
       offset += nbr;
     } else if ( Branches_Proportional==branopt){
