@@ -70,16 +70,26 @@ outfile	[slr.res]
 
 reoptimize [1]
   Should the branch lengths, omega and kappa be reoptimized?
-  0 - no
+  0 - no.
   1 - yes.
+  2 - yes; set initial branch lengths to random values.
 
 kappa [2.0]
   Value for kappa. If 'reoptimize' is specified, the value
-  given will be used as am initial estimate,
+  given will be used as an initial estimate. If less than zero, a
+  random value will be used as an initial estimate.
 
 omega [0.1]
   Value for omega (dN/dS). If 'reoptimize' is specified, the value
-  given will be used as an initial estimate.
+  given will be used as an initial estimate. If less than zero, a
+  random value will be used as an initial estimate.
+
+branopt [1]
+  Whether and how to optimise branches.
+  0 - hold branches fixed
+  1 - optimise branch lengths (if reoptimise specified)
+  2 - hold branch lengths proportional to initial in optimisation
+(if done).
 
 codonf [0]
   How codon frequencies are estimated:

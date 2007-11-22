@@ -32,6 +32,8 @@
 #include "matrix.h"
 #include "gencode.h"
 
+const char * model_branches_string[] = { "fixed", "variable", "proportional"};
+
 void            CalculateF(double *F, const double *d, double *space, const double factor, const int n);
 void            GetdQ(MODEL * model, const int param, double *dq);
 

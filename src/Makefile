@@ -1,7 +1,7 @@
 CC = gcc
 # For universal binaries on Mac
 #CFLAGS = -O4 -fomit-frame-pointer -funroll-loops -DNDEBUG -std=gnu99 -arch i386 -arch ppc
-LDFLAGS =  -lm -framework vecLib
+LDFLAGS =  -g -lm -framework vecLib
 INCFLAGS = -I/System/Library/Frameworks/vecLib.framework/Headers/
 
 # For Linux, etc.

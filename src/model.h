@@ -24,6 +24,7 @@
 
 
 enum model_branches { Branches_Fixed, Branches_Variable, Branches_Proportional };
+extern const char * model_branches_string[];
 
 typedef struct md {
         double * q;

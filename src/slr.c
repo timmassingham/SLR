@@ -83,7 +83,7 @@ void GradLike_Full (const double *param, double *grad, void *data);
 VEC create_grid ( const unsigned int len, const int positive);
 int FindBestX (const double *grid, const int site, const int n);
 DATA_SET *ReadData (const char *name, const int gencode);
-double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf);
+double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt);
 struct selectioninfo *  CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf);
 void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double *entropy, const double * pval, const double * pval_adj, const int nsites);
 double * CalculatePvals ( const double * lmax, const double * lneu, const int n, const int positive_only);
@@ -107,19 +107,19 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 
 
 /*   Strings describing options and defaults */
-int n_options = 22;
+int n_options = 23;
 char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
 "nucleof", "aminof", "reoptimise", "nucfile", "aminofile", "positive_only",
 "gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed",
-"saveseed", "freqtype", "cleandata" };
+"saveseed", "freqtype", "cleandata", "branopt" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", "0", "1", "0", "0" };
+"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", "0", "1", "0", "0","1" };
 char optiontype[] =
   { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 
-'s', 's', 'd', 'd', 'd', 'd','d'};
-int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+'s', 's', 'd', 'd', 'd', 'd','d','d'};
+int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1 };
 char *default_optionfile = "slr.ctl";
 
 int main (int argc, char *argv[])
@@ -139,7 +139,7 @@ int main (int argc, char *argv[])
   time_t slr_clock[4];
   struct slr_params * paramin_str;
 	unsigned int seed, saveseed, cleandata;
-  
+  enum model_branches branopt;
   /*  Option variables
    */
   ReadOptions (argc, argv);
@@ -165,6 +165,7 @@ int main (int argc, char *argv[])
   saveseed = *(unsigned int *) GetOption("saveseed");
   freqtype = *(unsigned int *) GetOption("freqtype");
   cleandata = *(unsigned int *) GetOption("cleandata");
+  branopt = *(enum model_branches *) GetOption("branopt");
 
   PrintOptions ();
 
@@ -228,7 +229,7 @@ int main (int argc, char *argv[])
       (node->branch[0])->blength[a] = node->blength[0];
 
       if ( reoptimise == 0){
-	puts ("# Found branch of undetermined length. Will optimise tree");
+	puts ("# Found branch of undetermined or invalid length. Set to random value and Will optimise tree");
       }
       reoptimise = 1;
     }
@@ -242,26 +243,51 @@ int main (int argc, char *argv[])
   OOM(info->p);
 
 
-  if (1 == reoptimise) {
+  if (0 != reoptimise) {
     /* Set initials
      */
-    x = calloc(trees[0]->n_br+2,sizeof(double));
-    {
-      int bran = 0;
-      for ( bran=0 ; bran<trees[0]->n_br ; bran++){
-	x[bran] = (trees[0]->branches[bran])->blength[0];
+    const unsigned int nbr = trees[0]->n_br;
+    unsigned int nparam = 2;
+    if ( Branches_Variable==branopt) nparam += nbr;
+    if ( Branches_Proportional==branopt) nparam += 1;
+    x = calloc(nparam,sizeof(double));
+
+    unsigned int offset = 0;
+    if ( Branches_Variable==branopt){
+      switch(reoptimise){
+      case 1: 
+        for ( unsigned int bran=0 ; bran<nbr ; bran++){
+          x[bran] = (trees[0]->branches[bran])->blength[0];
+        }
+        break;
+      case 2:
+        for ( unsigned int bran=0 ; bran<nbr ; bran++){
+          x[bran] = RandomExp(0.1);
+        }
+        break;
+      default:
+        err(EXIT_FAILURE,"Unrecognised option for reoptimise at %s:%d\n",__FILE__,__LINE__);
       }
-      x[bran] = kappa;
-      x[bran+1] = omega;
+      offset += nbr;
+    } else if ( Branches_Proportional==branopt){
+       x[0] = 1.;
+       offset++;
     }
+        
+    x[offset+0] = (kappa>=0.)?kappa:RandomExp(2.0);
+    x[offset+1] = (omega>=0.)?omega:RandomExp(0.1);
 
     if ( timemem ){ time(slr_clock+1);}
 
-    loglike = OptimizeTree (data,trees[0],freqs,x,freqtype,codonf);
-    kappa = x[trees[0]->n_br];
-    omega = x[trees[0]->n_br+1];
+    loglike = OptimizeTree (data,trees[0],freqs,x,freqtype,codonf,branopt);
+    kappa = x[offset+0];
+    omega = x[offset+1];
     printf ("# lnL = %e\n",loglike);
     free(x);
+
+    if ( Branches_Proportional==branopt){
+      ScaleTree (trees[0],x[0]);
+    }
 
     if ( timemem ){ time(slr_clock+2);}
   }
@@ -379,7 +405,7 @@ DATA_SET *ReadData (const char *name, const int gencode)
   return data;
 }
 
-double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf){
+double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt){
   struct single_fun *info;
   double *bd,fx;
   int i;
@@ -389,30 +415,31 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
   CheckIsTree (tree);
   assert(NULL!=x);
 
+  printf("# Reoptimising parameters, branches %s\n",model_branches_string[branopt]);
+
   const unsigned int nbr = tree->n_br;
-  bd = calloc ( 2*(nbr+2),sizeof(double)); OOM(bd);
+  model = NewCodonModel_full ( data->gencode, x[nbr+0], x[nbr+1], freqs, codonf ,freqtype, branopt);
+  OOM(model);
+  model->exact_obs = 1;
+
+  const unsigned int nparam = model->nparam + ((Branches_Variable==branopt)?nbr:0);
+  bd = calloc ( 2*nparam,sizeof(double)); OOM(bd);
 
   /* Set boundaries
    */
-  for ( i=0 ; i<nbr ; i++){
+  for ( i=0 ; i<nparam; i++){
     bd[i] = 1e-8;
-    bd[i+(nbr+2)] = 50.;
+    bd[i+nparam] = 50.;
   }
-  bd[nbr] = 1e-5;	bd[nbr+nbr+2] = 50.;
-  bd[nbr+1] = 1e-5;	bd[nbr+nbr+3] = 50.;
 
   /*  Check that initial estimates are within boundaries
    */
-  for ( i=0 ; i<nbr+2 ; i++){
+  for ( i=0 ; i<nparam ; i++){
     if (x[i]<=bd[i]) 
       x[i] = bd[i]+1e-5;
-    if (x[i]>=bd[nbr+2+i])
-      x[i] = bd[nbr+2+i]-1e-5;
+    if (x[i]>=bd[nparam+i])
+      x[i] = bd[nparam+i]-1e-5;
   }
-
-  model = NewCodonModel_full ( data->gencode, x[nbr+0], x[nbr+1], freqs, codonf ,freqtype, Branches_Variable);
-  OOM(model);
-  model->exact_obs = 1;
 
   info = calloc (1,sizeof (struct single_fun));
   OOM(info);
@@ -426,7 +453,7 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
   //CheckModelDerivatives(model,0.5,x+nbr,1e-5);
   fx = CalcLike_Single ( x, info);
 
-  Optimize (x, nbr+model->nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2);
+  Optimize (x, nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2);
 
   FreeModel (model);
   free(bd);
