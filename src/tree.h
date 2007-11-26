@@ -75,7 +75,7 @@ typedef struct {
         char * tstring;
         NODE * tree;
         NODE * branches[MAX_BR];
-        NODE * leaves[MAX_SP];
+        RBTREE leaves;
 	RBTREE leaf_names;
 } TREE;
 
@@ -85,7 +85,6 @@ void Recurse_backward ( const TREE * tree, void (*fun)(void *, int,int), void *i
 void CheckIsTree ( const TREE * tree);
 void create_tree (TREE * tree);
 void print_tree ( FILE * out, const NODE * node, const NODE * parent, const TREE * tree);
-int find_leaf_number ( const NODE * leaf, const TREE * tree);
 int find_branch_number ( const NODE * branch, const TREE * tree);
 int find_connection ( const NODE * from, const NODE * to);
 int add_lengths_to_tree ( TREE * tree, double *lengths);
@@ -101,7 +100,7 @@ TREE * copy_tree_strings ( const TREE * tree );
 int save_tree_strings ( char * filename, TREE ** trees);
 int add_lengths_to_tree ( TREE * tree, double *lengths);
 
-int find_leaf_by_name ( const char * name, const TREE * tree);
+NODE *  find_leaf_by_name ( const char * name, const TREE * tree);
 VEC branchlengths_from_tree ( const TREE * tree);
 
 #endif

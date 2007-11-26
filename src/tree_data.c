@@ -37,26 +37,25 @@ static int memfree_seq_tree ( TREE * tree);
 
 
 void add_single_site_to_tree ( TREE * tree, const DATA_SET * data, const MODEL * model, const int a){
-        int i,j,leaf;
         double b;
 
         CheckIsTree(tree);
 
-        for ( i=0 ; i<data->n_sp ; i++){
-	    leaf = find_leaf(i,tree,data);
-	    (tree->leaves[leaf])->seq[a] = data->seq[i][a];
+        for ( unsigned int i=0 ; i<data->n_sp ; i++){
+	    NODE * leaf = find_leaf(i,tree,data);
+	    leaf->seq[a] = data->seq[i][a];
 	}
         if ( model->exact_obs != 1)
-                for ( i=0 ; i<data->n_sp ; i++){
-			leaf = find_leaf(i,tree,data);
+                for ( unsigned int i=0 ; i<data->n_sp ; i++){
+			NODE * leaf = find_leaf(i,tree,data);
                         if(data->seq[i][a] != GapChar(model->seqtype))
                                 b = 0.;
                         else
                                 b = 1.;
-                        for ( j=0 ; j<model->nbase ; j++)
-                                (tree->leaves)[leaf]->plik[j] = b;
+                        for ( unsigned int j=0 ; j<model->nbase ; j++)
+                                leaf->plik[j] = b;
                         if (data->seq[i][a] != GapChar(model->seqtype))
-                                (tree->leaves)[leaf]->plik[a] = 1.;
+                                leaf->plik[a] = 1.;
                 }
 
         CheckIsTree(tree);
@@ -64,7 +63,6 @@ void add_single_site_to_tree ( TREE * tree, const DATA_SET * data, const MODEL *
 
 int add_data_to_tree (const DATA_SET * data_old, TREE * tree, MODEL * model)
 {
-  int a, b, c,leaf;
   double *tmp, *param;
   const DATA_SET *data;
 
@@ -79,7 +77,7 @@ int add_data_to_tree (const DATA_SET * data_old, TREE * tree, MODEL * model)
     free (model->pt_freq);
   model->pt_freq = calloc ((size_t) model->n_unique_pts, sizeof (double));
   OOM (model->pt_freq);
-  for (b = 0; b < model->n_unique_pts; b++)
+  for (unsigned int b = 0; b < model->n_unique_pts; b++)
     model->pt_freq[b] = data->freq[b];
   if (model->tmp_plik != NULL)
     free (model->tmp_plik);
@@ -89,7 +87,7 @@ int add_data_to_tree (const DATA_SET * data_old, TREE * tree, MODEL * model)
     free (model->index);
   model->index = malloc (model->n_pts * sizeof (int));
   OOM (model->index);
-  for (b = 0; b < model->n_pts; b++)
+  for (unsigned int b = 0; b < model->n_pts; b++)
     model->index[b] = data->index[b];
 
 
@@ -104,22 +102,23 @@ int add_data_to_tree (const DATA_SET * data_old, TREE * tree, MODEL * model)
   (void) memadd_seq_tree (tree, data->n_unique_pts);
 
   param = model->param;
-  for (a = 0; a < data->n_sp; a++) {
-    leaf = find_leaf(a,tree,data);
-    for (b = 0; b < data->n_unique_pts; b++)
-      (tree->leaves[leaf])->seq[b] = data->seq[a][b];
+  for (unsigned int a = 0; a < data->n_sp; a++) {
+    NODE * leaf = find_leaf(a,tree,data);
+    for (unsigned int b = 0; b < data->n_unique_pts; b++)
+      leaf->seq[b] = data->seq[a][b];
 
     if (model->exact_obs != 1) {
-      for (b = 0, tmp = (tree->leaves[leaf])->plik;
+      unsigned int b;
+      for (b = 0, tmp = leaf->plik;
 	   b < data->n_unique_pts * model->nbase; b++, tmp++)
 	*tmp = 0.;
-      tmp = (tree->leaves[leaf])->plik;
-      for (b = 0; b < data->n_unique_pts; b++) {
+      tmp = leaf->plik;
+      for (unsigned int b = 0; b < data->n_unique_pts; b++) {
 	/*  Deal with non-gap */
-	if ((tree->leaves[leaf])->seq[b] != GapChar (model->seqtype))
-	  tmp[b * model->nbase + (tree->leaves[leaf])->seq[b]] = 1.0;
+	if (leaf->seq[b] != GapChar (model->seqtype))
+	  tmp[b * model->nbase + leaf->seq[b]] = 1.0;
 	else
-	  for (c = 0; c < model->nbase; c++)
+	  for (unsigned int c = 0; c < model->nbase; c++)
 	    tmp[b * model->nbase + c] = 1.0;
       }
     }
@@ -242,26 +241,25 @@ static int memfree_seq_tree ( TREE * tree){
 
 
 
-int find_leaf ( const int i, const TREE * tree, const DATA_SET * data){
-   int a;
+NODE * find_leaf ( const int i, const TREE * tree, const DATA_SET * data){
+   NODE *  a;
    char * num;
    CheckIsTree(tree);
    CheckIsDataSet(data);
    assert(tree->n_sp == data->n_sp);
    assert(i>=0 && i<tree->n_sp);
-   
+
    a = find_leaf_by_name(data->sp_name[i],tree);
-   if ( -1 == a){ /*  Name does not exist -- leaves may be numbered instead */
+   if ( NULL == a){ /*  Name does not exist -- leaves may be numbered instead */
       num = itoa((i+1));
       a = find_leaf_by_name(num,tree);
-      if( -1 == a){
+      if( NULL == a){
 	 fprintf(stderr,"Cannot find species %s in tree (also tried %s for species num %d).\n",data->sp_name[i],num,i+1);
 	 exit(EXIT_FAILURE);
       }
       free(num);
    }
 
-   assert(a>=0 && a<tree->n_sp);
    return a;
 }
 

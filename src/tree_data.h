@@ -41,6 +41,6 @@ struct single_fun {
 
 int add_data_to_tree ( const DATA_SET * data, TREE * tree, MODEL * model);
 void add_single_site_to_tree ( TREE * tree, const DATA_SET * data, const MODEL * model, const int a);
-int find_leaf ( const int i, const TREE * tree, const DATA_SET * data);
+NODE * find_leaf ( const int i, const TREE * tree, const DATA_SET * data);
 #endif
 

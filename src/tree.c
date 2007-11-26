@@ -58,9 +58,16 @@ static void Recurse_forward_sub (const NODE * node, const NODE * parent,
 static void Recurse_backward_sub (const NODE * node, const NODE * parent,
 				  void (*fun) (void *, int, int), void *info);
 
+void * isleaf_rbmap(const void * key, void * value){
+	const NODE * leaf = (NODE *) value;
+	assert(NULL!=leaf);
+	assert(ISLEAF(leaf));
+	return value;
+}
+
 void CheckIsTree (const TREE * tree)
 {
-	int leaf,branch;
+	int branch;
 #ifdef NDEBUG
   return;
 #endif
@@ -74,18 +81,9 @@ void CheckIsTree (const TREE * tree)
   assert (NULL != tree->tree);
   assert (NULL != tree->branches);
   assert (NULL != tree->leaves);
-  assert (NULL != tree->leaf_names);
 
-  for ( leaf = 0; leaf < tree->n_sp; leaf++) {
-    assert (NULL != tree->leaves[leaf]);
-    assert (ISLEAF (tree->leaves[leaf]));
-  }
-  
-  /*  Check that all leaves have exactly one name. No name is repeated
-    * twice by uniqueness of keys in tree*/
-  unsigned int nuleaves = nmemb_rbtree(tree->leaf_names);
-  assert(nuleaves==tree->n_sp);
-  
+  assert(nmemb_rbtree(tree->leaves)==tree->n_sp);
+  map_rbtree(tree->leaves,isleaf_rbmap);
   
   for ( branch = 0; branch < tree->n_br; branch++) {
     assert (NULL != tree->branches[branch]);
@@ -114,7 +112,7 @@ static void CheckIsConnected (const NODE * node1, const NODE * node2)
 static void CheckIsTree_sub (const NODE * node, const NODE * parent,
 			     const TREE * tree)
 {
-	int child, bran_num,leaf_num;
+	int child, bran_num;
 #ifdef NDEBUG
   return;
 #endif
@@ -126,12 +124,6 @@ static void CheckIsTree_sub (const NODE * node, const NODE * parent,
       CheckIsTree_sub (node->branch[child], node, tree);
     }
     child++;
-  }
-
-  if (ISLEAF (node)) {
-    leaf_num = find_leaf_number (node, tree);
-    assert (leaf_num >= 0 && leaf_num < tree->n_sp);
-    assert (NULL!=node->name);
   }
 
   assert ((node->bnumber >= 0 && node->bnumber < tree->n_br)
@@ -152,7 +144,7 @@ void create_tree (TREE * tree)
 
   tmp = tree->tstring;
   old_sp = tree->n_sp;
-  tree->leaf_names = create_rbtree(lexo,strcopykey,strfreekey);
+  tree->leaves = create_rbtree(lexo,strcopykey,strfreekey);
   tree->n_sp = 0;
   tree->tree = create_tree_sub (&tmp, NULL, tree);
   tree->tree->bnumber = tree->n_br;
@@ -271,7 +263,6 @@ NODE *create_tree_sub (const char **tree_str, NODE * parent, TREE * tree)
   int bufflen;
   double l;
   char * name;
-  int * value;
 
   node = CreateNode ();
   if (parent != NULL) {
@@ -304,17 +295,15 @@ NODE *create_tree_sub (const char **tree_str, NODE * parent, TREE * tree)
       CHILD (node, node->nbran)->nbran = 1;
 
       name = GetLeafName(tree_str);
-      value = malloc(sizeof(int));
-      value[0] = tree->n_sp;
-      if (insertelt_rbtree(tree->leaf_names,name,value)){
-	 fprintf(stderr,"Species name %s already used in tree. Please make unique and rerun program.\n",name);
-	 exit(EXIT_FAILURE);
-      }
       bufflen = 1+strlen(name);
       node_new->name = malloc (bufflen*sizeof(char));
       strncpy(node_new->name,name,bufflen);
+      if ( insertelt_rbtree(tree->leaves,name,node_new) ){
+         fprintf(stderr,"Species name %s already used in tree. Please make unique and rerun program.\n",name);
+         exit(EXIT_FAILURE);
+      }
 
-      tree->leaves[tree->n_sp++] = node->branch[node->nbran++];
+      tree->n_sp++; node->nbran++;
       if ( node->nbran >= node->maxbran - 1){ ExtendNode(node); }
     }
     else if (c == ':') {
@@ -435,20 +424,6 @@ double GetLength (const char **tree_str)
   return l;
 }
 
-int find_leaf_number (const NODE * leaf, const TREE * tree)
-{
-  int a = 0;
-
-  while (a < tree->n_sp && tree->leaves[a] != leaf)
-    a++;
-
-  if (a != tree->n_sp)
-    return a;
-
-  return -1;
-}
-
-
 int add_lengths_to_tree (TREE * tree, double *lengths)
 {
   int a, b;
@@ -566,7 +541,7 @@ TREE *CloneTree (TREE * tree)
   tree_new->n_br = tree->n_br;
   tree_new->tstring = malloc ((1 + strlen (tree->tstring)) * sizeof (char));
   strcpy (tree_new->tstring, tree->tstring);
-  tree_new->leaf_names = copy_rbtree(tree->leaf_names,intpcopy);
+  tree_new->leaves = create_rbtree(lexo,strcopykey,strfreekey);
   tree_new->tree = CloneTree_sub (tree->tree, NULL, tree, tree_new);
 
   CheckIsTree (tree_new);
@@ -600,12 +575,10 @@ static NODE *CloneTree_sub (const NODE * node, const NODE * parent,
 
   // If on a leaf, then update leaves index
   if (ISLEAF (node)) {
-    ln = find_leaf_number (node, tree);
-    assert (-1 != ln);
-    tree_new->leaves[ln] = node_new;
     bufflen = 1 + strlen(node->name);
     node_new->name = malloc(bufflen*sizeof(char));
     strncpy(node_new->name,node->name,bufflen);
+    insertelt_rbtree(tree_new->leaves,node_new->name,node_new);
   }
   // If not at root node, then in branch index
   if (NULL != parent) {
@@ -625,7 +598,7 @@ void FreeTree (TREE * tree)
 
   FreeNode (tree->tree, NULL);
   Free (&tree->tstring);
-  free_rbtree(tree->leaf_names,free);
+  free_rbtree(tree->leaves,free);
   Free (&tree);
 }
 
@@ -814,17 +787,12 @@ int save_tree_strings (char *filename, TREE ** trees)
 }
 
 
-int find_leaf_by_name ( const char * name, const TREE * tree){
-   int * leafno;
-
+NODE * find_leaf_by_name ( const char * name, const TREE * tree){
    CheckIsTree(tree);
    assert(NULL!=name);
 
-   leafno = (int *) getelt_rbtree ( tree->leaf_names, name);
-   if ( NULL==leafno){ return -1;}
-
-   assert(*leafno>=0 && *leafno<tree->n_sp);
-   return *leafno;
+   NODE * leaf = (NODE *) getelt_rbtree(tree->leaves,name);
+   return leaf;
 }
 
 
