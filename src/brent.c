@@ -49,6 +49,10 @@ double brentmin ( double lb, const double * flbp, double ub, const double * fubp
 	if (NULL==fxp) *neval++;
 
 	/*  Ensure that points given actually bracket a minimum */
+	if ( fx>flb || fx>fub){
+		if ( flb>fub){ fx=fub; x=ub;}
+		else { fx=flb; x=lb;}
+	}
 	assert(fx<=flb && fx<=fub);
 
 	double diff_old2 = 0., diff_old = 0.;
