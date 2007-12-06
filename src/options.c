@@ -248,16 +248,16 @@ char GetString (int maxsize, char *string, FILE * fp)
   int i = 0;
   char c;
 
-  while (isspace (c = getc (fp)) && c != EOF);
+  while (isspace (c = getc (fp)) && c != '\n' && c != EOF);
 
-  while (c == '#' && c != EOF) {
+  while (c == '#' && c!='\n' && c != EOF) {
     while ((c = getc (fp)) != EOF && c != '\n');
     while (isspace (c = getc (fp)) && c != EOF);
   }
   if (c != '\n')
     ungetc (c, fp);
 
-  while (i < (maxsize - 1) && (c = getc (fp)) != EOF && !isspace (c)
+  while (i < (maxsize - 1) && c!='\n' && (c = getc (fp)) != EOF && !isspace (c)
 	 && c != '#') {
     if (c == '#')
       while ((c = getc (fp)) != EOF && c != '\n');
