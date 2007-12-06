@@ -68,7 +68,7 @@ outfile	[slr.res]
   File to which results are written. If the file already exists, it will
   be overwritten.
 
-reoptimize [1]
+reoptimise [1]
   Should the branch lengths, omega and kappa be reoptimized?
   0 - no.
   1 - yes.
