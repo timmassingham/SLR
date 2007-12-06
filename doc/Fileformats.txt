@@ -32,7 +32,7 @@ E.g.
 
 Results file (default: slr.res)
 ------------
-Results are presented in nine columns
+Results are presented in eleven columns (nine if ldiff is zero)
 
 Site
   Number of sites in alignment
@@ -47,6 +47,16 @@ Optimal
 
 Omega
   The value of omega which maximizes the log-probability of observing 
+
+lower
+  Lower bound of support interval ("confidence interval") for omega.
+  Taken by thresholding likelihood surface at distance below maximum
+  defined by ldiff. This column is not present if ldiff is zero.
+
+upper
+  Upper bound of support interval ("confidence interval") for omega.
+  Taken by thresholding likelihood surface at distance below maximum
+  defined by ldiff. This column is not present if ldiff is zero.
 
 LRT_Stat
   Log-likelihood ratio statistic for non-neutral selection (or
