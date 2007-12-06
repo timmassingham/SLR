@@ -189,6 +189,8 @@ void ReadOptionsFromFile (char *filename)
   }
 
   while ((c = GetString (MAXSTRING, str, fp)) != EOF) {
+    // Was string blank? A newline in file
+    if(strcmp(str,"")==0) continue;
     // Find option key
     key = 0;
     while (key < n_options && strcmp (str, options[key]) != 0) {
