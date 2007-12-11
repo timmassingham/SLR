@@ -220,6 +220,7 @@ int main (int argc, char *argv[])
   printf ("# Read tree from %s.\n", treefile);
   print_tree (stdout, trees[0]->tree, NULL, trees[0]);
 
+  bool reoptmess = false;
   for ( bran=0 ; bran<trees[0]->n_br ; bran++){
     NODE * node = trees[0]->branches[bran];
     if ( node->blength[0] < 0. || 2==reoptimise){
@@ -228,10 +229,15 @@ int main (int argc, char *argv[])
       assert(-1!=a);
       (node->branch[0])->blength[a] = node->blength[0];
 
-      if ( reoptimise == 0){
-	puts ("# Found branch of undetermined or invalid length. Set to random value and Will optimise tree");
+      if ( reoptimise == 0 && ! reoptmess){
+	puts ("# Found branch of undetermined or invalid length. Set to random value and will optimise tree");
+        reoptmess = true;
+      } else if ( (0==branopt || 2==branopt) && ! reoptmess){
+        puts ("# Found branch of undetermined or invalid length. Set to random value and will optimise branch lengths");
+        reoptmess = true;
       }
       reoptimise = 1;
+      branopt = 1;
     }
   }
 
