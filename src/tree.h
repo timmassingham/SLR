@@ -26,7 +26,6 @@
 #include <stdio.h>
 #endif
 
-#define MAX_SP          1000
 #define MAX_BR          2010
 
 #define ISLEAF(A)       ( A->branch[1] == NULL )
@@ -76,7 +75,6 @@ typedef struct {
         NODE * tree;
         NODE * branches[MAX_BR];
         RBTREE leaves;
-	RBTREE leaf_names;
 } TREE;
 
 
