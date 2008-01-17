@@ -134,8 +134,8 @@ int             errn=0;
 
 
 double calcerr ( const double x, const double y){
-	return x-y;
-	return 2.*(x-y)/(fabs(x)+fabs(y));
+	return x-y; /* For absolute errors */
+	return 2.*(x-y)/(1.e-10+fabs(x)+fabs(y)); /* For relative errors */
 }
 
 
