@@ -386,10 +386,10 @@ GetS_Codon(double *mat, double kappa, double omega, int gencode)
 	 * require more than one mutation.
 	 */
 	for (i = 0; i < 64; i++) {
-		ib = CodonToQcoord(i, gencode);
+		ib = CodonToQcoord(i, SEQTYPE_CODON, gencode);
 		if (!IsStop(i, gencode)) {
 			for (j = 0; j < i; j++) {
-				jb = CodonToQcoord(j, gencode);
+				jb = CodonToQcoord(j, SEQTYPE_CODON, gencode);
 				if (i != j && !IsStop(j, gencode)) {
 					if (NumberNucChanges(i, j) > 1) {
 						mat[ib * nbase + jb] = 0.;
@@ -728,10 +728,10 @@ GetdQ_Codon(MODEL * model, int param, double *q)
 	for (int i = 0; i < nbase * nbase; i++)
 		mat[i] = 0.;
 	for (int i = 0; i < 64; i++) {
-		int ai = CodonToQcoord(i, gencode);
+		int ai = CodonToQcoord(i, SEQTYPE_CODON, gencode);
 		if (!IsStop(i, gencode)) {
 			for (int j = 0; j < i; j++) {
-				int aj = CodonToQcoord(j, gencode);
+				int aj = CodonToQcoord(j, SEQTYPE_CODON, gencode);
 				if (i != j && !IsStop(j, gencode) && NumberNucChanges(i, j) < 2) {
 					tran = 0;
 					nonsyn = 0;
@@ -936,7 +936,7 @@ GetEquilibriumDistCodon(const double *pi, const int codonf, const int gencode)
 	}
 	for (cdn = 0; cdn < 64; cdn++) {
 		if (!IsStop(cdn, gencode)) {
-			eq[CodonToQcoord(cdn, gencode)] = tpi[cdn];
+			eq[CodonToQcoord(cdn, SEQTYPE_CODON, gencode)] = tpi[cdn];
 		}
 	}
 	free(tpi);

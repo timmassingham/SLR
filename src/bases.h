@@ -22,23 +22,42 @@
 #ifndef _BASES_H_
 #define _BASES_H_
 
-int NumberPossibleBases ( const int seq_type, const int gencode);
-int CodonAsQcoord (int base, int seqtype, int gencode);
-int GapChar(int seqtype);
-char NucleoAsChar ( int a);
-char AminoAsChar ( int a);
-int ToAmino ( char c);
-int ToNucleo ( char c);
-int IsSeqtype ( const int seqtype);
-int IsValidBase ( const int base, const int seqtype, const int gencode);
+#ifndef _STDBOOL_H_
+#include <stdbool.h>
+#endif
+
+enum SEQTYPE { SEQTYPE_NULL, SEQTYPE_NUCLEO, SEQTYPE_NUCLEOAMBIG, SEQTYPE_AMINO, SEQTYPE_AMINOAMBIG, SEQTYPE_CODON, SEQTYPE_CODONAMBIG, SEQTYPE_CODONQ};
+struct triple_nuc { int fst,snd,trd;};
+
+int NumberPossibleBases ( const enum SEQTYPE seqtype, const int gencode);
+int GapChar(const enum SEQTYPE seqtype);
+char char_from_base (const int base, const enum SEQTYPE seqtype);
+int base_from_char (const char c, const enum SEQTYPE seqtype);
+int aminoambig_from_char ( char c);
+int amino_from_char( char c);
+int nucleo_from_char( char c);
+int nucleoambig_from_char ( char c);
+bool IsSeqtype ( const enum SEQTYPE seqtype);
+bool IsValidBase ( const int base, const enum SEQTYPE seqtype, const int gencode);
+bool is_ambiguous ( const int base, const enum SEQTYPE seqtype );
+bool is_ambiguous_seqtype (const enum SEQTYPE seqtype);
+unsigned int ambiguity_char (const enum SEQTYPE seqtype);
+unsigned int nonambig_codon_from_codon (const unsigned int codon);
+enum SEQTYPE ambig_seqtype_from_seqtype(const enum SEQTYPE seqtype);
+enum SEQTYPE nonambig_seqtype_from_seqtype(const enum SEQTYPE seqtype);
+int codon_from_nucs ( const int base1, const int base2, const int base3);
+int codon_from_triplenuc (struct triple_nuc nucs);
+struct triple_nuc triplenuc_from_codon ( const int codon );
+struct triple_nuc triplenuc_from_codonambig ( const int codon);
+unsigned int codon_from_codonambig ( const unsigned int codon);
+int nonambig_base_from_base (const int base, const enum SEQTYPE seqtype);
 
 
 double *  ConvertCodonFreqsToQcoord ( const double * freqs, const int gencode);
 
-
-#define	SEQTYPE_NUCLEO		0
-#define SEQTYPE_AMINO		1
-#define SEQTYPE_CODON		2
-#define SEQTYPE_CODONQ		3
+void (*pp_base(const enum SEQTYPE seqtype))(FILE *, const unsigned int, const enum SEQTYPE);
+void fprint_base ( FILE * fp, const unsigned int base, const enum SEQTYPE seqtype);
+void fprint_codon ( FILE * fp, const unsigned int codon, const enum SEQTYPE seqtype);
+void fprint_codonq (FILE * fp, const unsigned int codonq, const enum SEQTYPE seqtype);
 
 #endif

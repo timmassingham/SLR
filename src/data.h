@@ -22,12 +22,16 @@
 #ifndef _DATA_H_
 #define _DATA_H_
 
+#ifndef _BASES_H_
+#include "bases.h"
+#endif
+
 #define MAX_SP	1000
 #define MAX_SP_NAME 80
 
 
 typedef struct {
-        char    seq_type;
+        enum SEQTYPE    seqtype;
         int     n_pts;
         int     n_unique_pts;
         int     n_sp;
@@ -60,7 +64,8 @@ DATA_SET * SelectFromData ( const DATA_SET * data, const int * idx, const int n)
 DATA_SET * ExtractSequences ( int * seqs, int n_seq, DATA_SET * data);
 
 DATA_SET * ConvertNucToCodon ( const DATA_SET * data, const int gencode);
-void ConvertCodonToQcoord (DATA_SET * data);
+DATA_SET * ConvertCodonToQcoord (DATA_SET * data);
+DATA_SET * nonambiguous_dataset_from_ambiguous ( DATA_SET * data);
 
 
 double * CodonBaseFreqs ( const DATA_SET * data, const int method, const int species, double * bf);
@@ -70,7 +75,7 @@ double * AminoFreqs ( const DATA_SET * data, const int species);
 double SiteEntropy ( const DATA_SET * data, const int site, const double *pi);
 
 
-DATA_SET * read_data ( const char * filename, const int seqtype);
+DATA_SET * read_data ( const char * filename, const enum SEQTYPE seqtype);
 int save_data ( char * filename, DATA_SET * data);
 void PrintData ( const DATA_SET * data);
 void PrintSite ( const DATA_SET * data, const int i);
