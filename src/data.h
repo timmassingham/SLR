@@ -47,7 +47,7 @@ DATA_SET * CreateDataSet ( int n_size, int n_sp);
 void FreeDataSet ( DATA_SET * data);
 
 
-void sort_data ( DATA_SET * data);
+DATA_SET * sort_data ( DATA_SET * data);
 DATA_SET * compress_data ( const DATA_SET * data);
 DATA_SET * RemoveTrivialObs ( const DATA_SET * data);
 
@@ -60,7 +60,7 @@ DATA_SET * SelectFromData ( const DATA_SET * data, const int * idx, const int n)
 DATA_SET * ExtractSequences ( int * seqs, int n_seq, DATA_SET * data);
 
 DATA_SET * ConvertNucToCodon ( const DATA_SET * data, const int gencode);
-void ConvertCodonToQcoord (DATA_SET * data);
+DATA_SET * ConvertCodonToQcoord (DATA_SET * data);
 
 
 double * CodonBaseFreqs ( const DATA_SET * data, const int method, const int species, double * bf);

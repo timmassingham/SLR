@@ -175,11 +175,12 @@ ConvertNucToCodon(const DATA_SET * data, const int gencode)
 	return data_new;
 }
 
-void 
+DATA_SET *
 ConvertCodonToQcoord(DATA_SET * data)
 {
 	int             seqtype;
 
+	if (NULL==data){return NULL;}
 	CheckIsDataSet(data);
 	assert(data->seq_type == SEQTYPE_CODON);
 
@@ -197,6 +198,7 @@ ConvertCodonToQcoord(DATA_SET * data)
 	data->n_bases = NumberPossibleBases(data->seq_type, data->gencode);
 
 	CheckIsDataSet(data);
+	return data;
 }
 
 
@@ -631,7 +633,7 @@ CreateDataSet(int n_size, int n_sp)
 	return data;
 }
 
-void 
+DATA_SET *
 sort_data(DATA_SET * data)
 {
 	int             n_pts, l, ir, a, i, j;
@@ -639,11 +641,12 @@ sort_data(DATA_SET * data)
 	int            *seq1;
 	int            *seq[MAX_SP];
 
+	if (NULL==data){return NULL;}
 	CheckIsDataSet(data);
 
 	n_pts = data->n_unique_pts;
 	if (n_pts < 2)
-		return;
+		return data;
 	seq1 = calloc((size_t) data->n_sp, sizeof(int));
 	OOM(seq1);
 	for (a = 0; a < data->n_sp; a++)
@@ -710,6 +713,7 @@ sort_data(DATA_SET * data)
 
 	CheckIsDataSet(data);
 	CheckIsSorted_DS(data);
+	return data;
 }
 
 static int 
