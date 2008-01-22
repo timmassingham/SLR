@@ -175,7 +175,7 @@ ConvertNucToCodon(const DATA_SET * data, const int gencode)
 	return data_new;
 }
 
-void 
+DATA_SET *
 ConvertCodonToQcoord(DATA_SET * data)
 {
 	int             seqtype;
@@ -631,7 +631,7 @@ CreateDataSet(int n_size, int n_sp)
 	return data;
 }
 
-void 
+DATA_SET *
 sort_data(DATA_SET * data)
 {
 	int             n_pts, l, ir, a, i, j;
