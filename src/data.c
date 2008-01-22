@@ -45,8 +45,10 @@
 static int      lexo(const int **seq, const int i, const int j, const int n);
 static int      lexo2(const int *seq1, const int **seq, const int i, const int n);
 static void     UpdateIndex(DATA_SET * data, const int a, const int b);
-static int     * read_sequence (FILE * fp, const enum SEQTYPE seqtype, const unsigned int n_pts);
-void fprint_sequence (FILE * fp, const int * seq, const int n, const enum SEQTYPE seqtype);
+static int     *ReadNucleo(FILE * fp, int n_pts);
+static int     *ReadAmino(FILE * fp, int n_pts);
+static void     SaveNucleoSeq(FILE * fp, int *seq, int length);
+static void     save_amino_seq(FILE * fp, int *seq, int length);
 
 
 
@@ -59,8 +61,8 @@ CheckIsDataSet(const DATA_SET * data)
 	return;
 #endif
 
-	assert(IsSeqtype(data->seqtype));
-	assert(data->seqtype != SEQTYPE_CODON || IsValidGencode(data->gencode));
+	assert(IsSeqtype(data->seq_type));
+	assert(data->seq_type != SEQTYPE_CODON || IsValidGencode(data->gencode));
 
 	//Check that number of data points in correct
 		assert(data->n_pts > 0);
@@ -73,12 +75,12 @@ CheckIsDataSet(const DATA_SET * data)
 	assert(data->n_sp > 0 && data->n_sp < MAX_SP);
 
 	assert(data->n_bases ==
-	       NumberPossibleBases(data->seqtype, data->gencode));
+	       NumberPossibleBases(data->seq_type, data->gencode));
 
-	Nbases = NumberPossibleBases(data->seqtype, data->gencode);
+	Nbases = NumberPossibleBases(data->seq_type, data->gencode);
 	/*Check that sequence information is valid*/
 	for (int i = 0; i < data->n_sp; i++) {
-		int gapchar = GapChar(data->seqtype);
+		int gapchar = GapChar(data->seq_type);
 		assert(NULL != data->seq[i]);
 		for (int j = 0; j < data->n_unique_pts; j++) {
 			assert((0 <= data->seq[i][j] && data->seq[i][j] < Nbases )
@@ -124,7 +126,7 @@ DATA_SET       *
 ConvertNucToCodon(const DATA_SET * data, const int gencode)
 {
 	DATA_SET       *data_new;
-	int             i, j;
+	int             i, j, base, tmp, ngaps;
 
 	CheckIsDataSet(data);
 
@@ -133,42 +135,68 @@ ConvertNucToCodon(const DATA_SET * data, const int gencode)
 	data_new = CreateDataSet(data->n_pts / 3, data->n_sp);
 	for (i = 0; i < data->n_sp; i++) {
 		for (j = 0; j < data_new->n_pts; j++) {
-			data_new->seq[i][j] = codon_from_nucs (data->seq[i][3*j],data->seq[i][3*j+1],data->seq[i][3*j+2]);
+			ngaps = 0;
+			tmp = data->seq[i][3 * j] * 16;
+			if (tmp == 64)
+				ngaps++;
+			base = tmp;
+			tmp = data->seq[i][3 * j + 1] * 4;
+			if (tmp == 16)
+				ngaps++;
+			base += tmp;
+			tmp = data->seq[i][3 * j + 2];
+			if (tmp == 4)
+				ngaps++;
+			base += tmp;
+			switch (ngaps) {
+			case 0:
+				break;
+			default:
+				printf
+					("Odd gapping in data. Sequence %s, Site %d: %c%c%c. Treating as gap.\nNote: this may be as the result of ambiguous nucleotides being translated into gaps.\n",
+				    data->sp_name[i], j, NucleoAsChar(data->seq[i][3 * j]),
+				      NucleoAsChar(data->seq[i][3 * j + 1]),
+				     NucleoAsChar(data->seq[i][3 * j + 2]));
+			case 3:
+				base = GapChar(SEQTYPE_CODON);
+			}
+			data_new->seq[i][j] = base;
+			if (-1 == data_new->seq[i][j])
+				printf("Got -1 on %d\n", base);
 		}
 		data_new->sp_name[i] = calloc((size_t) (MAX_SP_NAME + 1), sizeof(char));
 		sscanf(data->sp_name[i], "%s", data_new->sp_name[i]);
 	}
-	data_new->n_bases = NumberPossibleBases(SEQTYPE_CODON,gencode);
-	data_new->seqtype = SEQTYPE_CODON;
+	data_new->n_bases = 64;
+	data_new->seq_type = SEQTYPE_CODON;
 	data_new->gencode = gencode;
 
 	CheckIsDataSet(data_new);
 	return data_new;
 }
 
-DATA_SET *
+void 
 ConvertCodonToQcoord(DATA_SET * data)
 {
 	int             seqtype;
 
 	CheckIsDataSet(data);
-	assert(data->seqtype == SEQTYPE_CODON);
+	assert(data->seq_type == SEQTYPE_CODON);
 
-	seqtype = data->seqtype;
+	seqtype = data->seq_type;
 	for (int i = 0; i < data->n_sp; i++)
 		for (int j = 0 ; j < data->n_unique_pts; j++)
 			data->seq[i][j] =
-				CodonToQcoord(data->seq[i][j], seqtype, data->gencode);
+				CodonAsQcoord(data->seq[i][j], seqtype, data->gencode);
 	for (int i = 0 ; i < data->n_pts; i++)
 		if (data->index[i] < 0 && data->index[i] != -INT_MAX) {
 			int j = -data->index[i] - 1;
-			data->index[i] = -CodonToQcoord(j, seqtype, data->gencode) - 1;
+			data->index[i] = -CodonAsQcoord(j, seqtype, data->gencode) - 1;
 		}
-	data->seqtype = SEQTYPE_CODONQ;
-	data->n_bases = NumberPossibleBases(data->seqtype, data->gencode);
+	data->seq_type = SEQTYPE_CODONQ;
+	data->n_bases = NumberPossibleBases(data->seq_type, data->gencode);
 
 	CheckIsDataSet(data);
-	return data;
 }
 
 
@@ -184,7 +212,7 @@ GetBaseFreqs(const DATA_SET * data, const int perspecies)
 		fputs("Warning: perspecies frequencies not implemented\n", stderr);
 		exit(EXIT_FAILURE);
 	}
-	gapchar = GapChar(data->seqtype);
+	gapchar = GapChar(data->seq_type);
 
 	freq = calloc(data->n_bases, sizeof(double));
 	OOM(freq);
@@ -413,13 +441,13 @@ CombineDatasets(const DATA_SET * data1, const DATA_SET * data2)
 	CheckIsDataSet(data2);
 
 	assert(data1->n_sp == data2->n_sp);
-	assert(data1->seqtype == data2->seqtype);
+	assert(data1->seq_type == data2->seq_type);
 	assert(data1->n_bases == data2->n_bases);
 
 	data =
 		CreateDataSet(data1->n_unique_pts + data2->n_unique_pts, data1->n_sp);
 	data->n_pts = data1->n_pts + data2->n_pts;
-	data->seqtype = data1->seqtype;
+	data->seq_type = data1->seq_type;
 	data->n_bases = data1->n_bases;
 	free(data->index);
 	data->index = malloc(data->n_pts * sizeof(int));
@@ -559,7 +587,7 @@ ExtractSequences(int *seqs, int n_seq, DATA_SET * data)
 		data->sp_name[i] = calloc((size_t) (17), sizeof(char));
 		sscanf(data->sp_name[seqs[i]], "%s", data->sp_name[i]);
 	}
-	data_new->seqtype = data->seqtype;
+	data_new->seq_type = data->seq_type;
 	data_new->n_bases = data->n_bases;
 	data_new->compressed = data->compressed;
 
@@ -581,7 +609,7 @@ CreateDataSet(int n_size, int n_sp)
 	data->n_sp = n_sp;
 	data->compressed = 0;
 
-	data->seqtype = -1;
+	data->seq_type = -1;
 	data->n_bases = -1;
 
 	for (a = 0; a < n_sp; a++) {
@@ -745,7 +773,7 @@ compress_data(const DATA_SET * data)
 
 	new = CreateDataSet(total, data->n_sp);
 	new->n_pts = data->n_pts;
-	new->seqtype = data->seqtype;
+	new->seq_type = data->seq_type;
 	new->n_pts = data->n_pts;
 	new->n_unique_pts = total;
 	new->n_sp = data->n_sp;
@@ -820,7 +848,7 @@ RemoveTrivialObs(const DATA_SET * data)
 	for (a = 0; a < data->n_pts; a++)
 		new->index[a] = data->index[a];
 	new->n_pts = data->n_pts;
-	new->seqtype = data->seqtype;
+	new->seq_type = data->seq_type;
 	new->n_unique_pts = total;
 	new->n_sp = data->n_sp;
 	new->n_bases = data->n_bases;
@@ -836,7 +864,7 @@ RemoveTrivialObs(const DATA_SET * data)
 
 
 	total = 0;
-	gapchar = GapChar(data->seqtype);
+	gapchar = GapChar(data->seq_type);
 	for (a = 0; a < n_upts; a++)
 		switch (NumNongaps(data, a)) {
 		case 0:
@@ -875,8 +903,8 @@ CopySiteByIndex(const DATA_SET * old, const int old_idx, DATA_SET * new, const i
 	assert(old->n_sp == new->n_sp);
 	assert(old_idx >= 0 && old_idx < old->n_unique_pts);
 	assert(new_idx >= 0 && new_idx < new->n_unique_pts);
-	assert(old->seqtype == new->seqtype);
-	if (SEQTYPE_CODON == old->seqtype) {
+	assert(old->seq_type == new->seq_type);
+	if (SEQTYPE_CODON == old->seq_type) {
 		/*
 		 * If seqtype is not codon, should these be equal in anycase
 		 * (by definition)?)
@@ -914,7 +942,7 @@ NumNongaps(const DATA_SET * data, const int site)
 
 	CheckIsDataSet(data);
 
-	gapchar = GapChar(data->seqtype);
+	gapchar = GapChar(data->seq_type);
 	Nchar = 0;
 	for (i = 0; i < data->n_sp; i++)
 		if (data->seq[i][site] < gapchar)
@@ -943,18 +971,30 @@ FreeDataSet(DATA_SET * data)
 	free(data);
 }
 
+
 void 
 PrintData(const DATA_SET * data)
 {
 	int             a, b;
-	void (*printfun) (FILE * fp, const unsigned int, const enum SEQTYPE);
+	char (*printfun) (int);
 
 	CheckIsDataSet(data);
-	printfun = pp_base (data->seqtype);
-
+	
+	switch (data->seq_type){
+		case SEQTYPE_NUCLEO:
+			printfun = NucleoAsChar;
+			break;
+		case SEQTYPE_AMINO:
+			printfun = AminoAsChar;
+			break;
+		case SEQTYPE_CODON:
+		    /* Codons requiring encoding as character or printing as a string */
+			err(EXIT_FAILURE,"%s:%d, PrintData. Seqtype codon not handled\n",__FILE__,__LINE__);
+			break;
+	}
 	for (a = 0; a < data->n_sp; a++) {
 		for (b = 0; b < data->n_unique_pts; b++)
-			printfun (stdout,data->seq[a][b],data->seqtype);
+			printf("%c", (*printfun) (data->seq[a][b]));
 		printf("\n");
 	}
 }
@@ -985,7 +1025,7 @@ CopyDataSet(const DATA_SET * data)
 	if (NULL == data_new)
 		return NULL;
 
-	data_new->seqtype = data->seqtype;
+	data_new->seq_type = data->seq_type;
 	data_new->n_pts = data->n_pts;
 	data_new->n_unique_pts = data->n_unique_pts;
 	data_new->n_bases = data->n_bases;
@@ -1021,7 +1061,7 @@ CopySiteToDataSet(const DATA_SET * data, DATA_SET * data_single,
 {
 	CheckIsDataSet(data);
 
-	data_single->seqtype = data->seqtype;
+	data_single->seq_type = data->seq_type;
 	data_single->gencode = data->gencode;
 	data_single->n_pts = 1;
 	data_single->n_unique_pts = 1;
@@ -1048,7 +1088,7 @@ CountGapsAtSite(const DATA_SET * data, const int i)
 		return data->n_sp;
 	else if (idx < 0)
 		return (data->n_sp - 1);
-	gapchar = GapChar(data->seqtype);
+	gapchar = GapChar(data->seq_type);
 	for (a = 0; a < data->n_sp; a++)
 		if (data->seq[a][idx] == gapchar)
 			gaps++;
@@ -1065,7 +1105,7 @@ IsSiteSynonymous(const DATA_SET * data, const int i, const int gencode)
 
 	CheckIsDataSet(data);
 
-	gapchar = GapChar(data->seqtype);
+	gapchar = GapChar(data->seq_type);
 	idx = data->index[i];
 	if (idx < 0)
 		//Case of all gaps or single character
@@ -1110,7 +1150,7 @@ SiteEntropy(const DATA_SET * data, const int site, const double *pi)
 		//single character
 			return (-log(pi[-siteidx - 1]));
 
-	gapchar = GapChar(data->seqtype);
+	gapchar = GapChar(data->seq_type);
 	for (i = 0; i < data->n_sp; i++)
 		if (data->seq[i][siteidx] != gapchar)
 			e -= log(pi[data->seq[i][siteidx]]);
@@ -1127,7 +1167,7 @@ IsConserved(const DATA_SET * data, const int i)
 
 	CheckIsDataSet(data);
 
-	gapchar = GapChar(data->seqtype);
+	gapchar = GapChar(data->seq_type);
 	idx = data->index[i];
 	if (idx < 0)
 		//Case of all gaps or single character
@@ -1165,7 +1205,7 @@ SelectFromData(const DATA_SET * data, const int *idx, const int n)
 	}
 
 	data_new = CreateDataSet(data->n_unique_pts, n);
-	data_new->seqtype = data->seqtype;
+	data_new->seq_type = data->seq_type;
 	data_new->n_pts = data->n_pts;
 	data_new->n_bases = data->n_bases;
 
@@ -1208,7 +1248,7 @@ SelectFromData(const DATA_SET * data, const int *idx, const int n)
  * returns NULL is io error
  */
 DATA_SET       *
-read_data(const char *filename, const enum SEQTYPE seqtype)
+read_data(const char *filename, const int seqtype)
 {
 	FILE           *fp;
 	DATA_SET       *data;
@@ -1223,8 +1263,19 @@ read_data(const char *filename, const enum SEQTYPE seqtype)
 	data = malloc(sizeof(DATA_SET));
 	OOM(data);
 
-	data->seqtype = seqtype;
-	data->n_bases = NumberPossibleBases(seqtype,0);
+	data->seq_type = seqtype;
+	switch (data->seq_type) {
+	case SEQTYPE_NUCLEO:
+		data->n_bases = 4;
+		break;
+	case SEQTYPE_AMINO:
+		data->n_bases = 20;
+		break;
+	default:
+		printf("Unrecognised sequence type: %d\n", data->seq_type);
+		free(data);
+		return NULL;
+	}
 
 	data->compressed = 0;
 
@@ -1248,7 +1299,10 @@ read_data(const char *filename, const enum SEQTYPE seqtype)
 		data->sp_name[i] = calloc((size_t) (MAX_SP_NAME + 1), sizeof(char));
 		OOM(data->sp_name[i]);
 		(void) fscanf(fp, "%s", data->sp_name[i]);
-		data->seq[i] = read_sequence(fp,seqtype,data->n_pts);
+		if (data->seq_type == SEQTYPE_NUCLEO)
+			data->seq[i] = ReadNucleo(fp, data->n_pts);
+		else if (data->seq_type == SEQTYPE_AMINO)
+			data->seq[i] = ReadAmino(fp, data->n_pts);
 
 		if (data->seq[i] == NULL) {
 			printf("Problems reading data, aborting\n");
@@ -1285,9 +1339,9 @@ save_data(char *filename, DATA_SET * data)
 		printf("Can't open file for export.\n");
 		return -1;
 	}
-	if (data->seqtype == SEQTYPE_NUCLEO)
+	if (data->seq_type == SEQTYPE_NUCLEO)
 		fprintf(fp, "Nucleo\n");
-	else if (data->seqtype == SEQTYPE_AMINO)
+	else if (data->seq_type == SEQTYPE_AMINO)
 		fprintf(fp, "Animo\n");
 	else {
 		printf(" Don't recognise sequence type in save_data.\n");
@@ -1302,7 +1356,12 @@ save_data(char *filename, DATA_SET * data)
 			fprintf(fp, "Sp%d\n", i);
 		else
 			fprintf(fp, "%s\n", data->sp_name[i]);
-		fprint_sequence(fp,data->seq[i],data->n_pts,data->seqtype);
+
+		if (data->seq_type == SEQTYPE_NUCLEO)
+			(void) SaveNucleoSeq(fp, data->seq[i], data->n_pts);
+		else if (data->seq_type == SEQTYPE_AMINO)
+			(void) save_amino_seq(fp, data->seq[i], data->n_pts);
+
 		fprintf(fp, "\n");
 	}
 
@@ -1311,18 +1370,15 @@ save_data(char *filename, DATA_SET * data)
 }
 
 
-void fprint_sequence (FILE * fp, const int * seq, const int n, const enum SEQTYPE seqtype){
-	void (*printfun) (FILE * fp, const unsigned int, const enum SEQTYPE) = pp_base (seqtype);
 
-	for ( int i=0 ; i<n ; i++){
-		printfun(fp,seq[i],seqtype);
-		if((i%60)==59) fputc('\n',fp);
-	}
-}
-		
 
+/*
+ * Reads in sequence if nucleotides and returns array 'W' weak A,T     'S'
+ * strong C,G 'R' purine A,G   'Y' pyrimidines C,T 'K' keto T,G     'M' amino
+ * A,C
+ */
 static int     *
-read_sequence(FILE * fp, const enum SEQTYPE seqtype, const unsigned int n_pts)
+ReadNucleo(FILE * fp, int n_pts)
 {
 	int            *seq;
 	char            c;
@@ -1333,16 +1389,67 @@ read_sequence(FILE * fp, const enum SEQTYPE seqtype, const unsigned int n_pts)
 
 	for (i = 0; i < n_pts; i++) {
 		c = gchar(fp);
-		j = base_from_char(c,seqtype);
+		j = ToNucleo(c);
+
 
 		if (-1 == j) {
 			printf("Unrecognised nucleotide in ReadNucleo! %c. Treating as gap.\n", c);
-			j = GapChar(seqtype);
+			j = GapChar(SEQTYPE_NUCLEO);
 		}
 		seq[i] = j;
 	}
 
 	return seq;
+}
+
+/* Reads in sequence of animo acids and returns array */
+static int     *
+ReadAmino(FILE * fp, int n_pts)
+{
+	int            *seq;
+	char            c;
+	int             i, j;
+
+	seq = calloc((size_t) n_pts, sizeof(int));
+	OOM(seq);
+
+	for (i = 0; i < n_pts; i++) {
+		c = gchar(fp);
+		j = ToAmino(c);
+
+		if (-1 == j) {
+			printf("Unrecognised animo acid in read_animo! Treating as gap.\n");
+			j = GapChar(SEQTYPE_AMINO);
+		}
+		seq[i] = j;
+	}
+
+	return seq;
+}
+
+
+static void 
+SaveNucleoSeq(FILE * fp, int *seq, int length)
+{
+	int             i;
+
+	for (i = 0; i < length; i++) {
+		fprintf(fp, "%c", NucleoAsChar(seq[i]));
+		if (i % 60 == 59)
+			fprintf(fp, "\n");
+	}
+}
+
+static void 
+save_amino_seq(FILE * fp, int *seq, int length)
+{
+	int             i;
+
+	for (i = 0; i < length; i++) {
+		fprintf(fp, "%c", AminoAsChar(seq[i]));
+		if (i % 60 == 59)
+			fprintf(fp, "\n");
+	}
 }
 
 int count_sequence_stops ( const int * seq, const int n, const int gencode){
@@ -1367,19 +1474,5 @@ int count_alignment_stops ( const DATA_SET * data){
 		nstop += count_sequence_stops (data->seq[sp],data->n_unique_pts,data->gencode);
 	}
 	return nstop;
-}
-
-DATA_SET * nonambiguous_dataset_from_ambiguous ( DATA_SET * data){
-	/*  Easy case, data already nonambiguous */
-	if ( ! is_ambiguous_seqtype(data->seqtype) ){ return data;}
-	enum SEQTYPE nonambig_seqtype = nonambig_seqtype_from_seqtype(data->seqtype);
-	data->seqtype = nonambig_seqtype;
-	data->n_bases = NumberPossibleBases(data->seqtype,data->gencode);
-	for ( int sp=0 ; sp<data->n_sp ; sp++){
-		for ( int pt=0 ; pt<data->n_unique_pts ; pt++){
-			data->seq[sp][pt] = nonambig_base_from_base ( data->seq[sp][pt],data->seqtype);
-		}
-	}
-	return data;
 }
 

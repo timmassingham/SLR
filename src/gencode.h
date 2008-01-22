@@ -21,15 +21,10 @@
 
 #ifndef _GENCODE_H_
 #define _GENCODE_H_
-
-#ifndef _BASES_H_
-#include "bases.h"
-#endif
-
 int IsValidGencode ( const int gencode);
 int CodonToAmino (const int codon, const int gencode);
 int IsStop (const int codon, const int gencode);
-int CodonToQcoord ( const int codon, const enum SEQTYPE seqtype, const int gencode);
+int CodonToQcoord ( const int codon, const int gencode);
 int NumberSenseCodonsInGenCode ( const int gencode);
 int IsNonSynonymous ( const int codon1, const int codon2, const int gencode);
 int HasTransition ( const int codon1, const int codon2);

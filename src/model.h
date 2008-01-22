@@ -22,10 +22,6 @@
 #ifndef _MODEL_H_
 #define _MODEL_H_
 
-#ifndef _BASES_H_
-#include "bases.h"
-#endif
-
 
 enum model_branches { Branches_Fixed, Branches_Variable, Branches_Proportional };
 extern const char * model_branches_string[];
@@ -50,8 +46,7 @@ typedef struct md {
         int nparam;
         int updated, factorized;
         double * tmp_plik;
-        int freq_type;
-	enum SEQTYPE seqtype;
+        int seqtype,freq_type;
 	const int * desc;
 
         int exact_obs;

@@ -67,15 +67,11 @@ struct slr_params {
   int nbr;
 };
 
-enum CLEANDATAOPT {AMBIGUITY_AS_GAP, REMOVE_COLUMN, REMOVE_SPECIES};
+
 int AnimoParam[400];
 int nseq = 0;
 
 char *FrequencyOptString[3] = { "Empirical (F6?)", "F3x4", "F1x4" };
-
-DATA_SET * clean_data_remove_column ( DATA_SET  * data );
-DATA_SET * clean_data_ambiguity_as_gap ( DATA_SET * data );
-DATA_SET * clean_data ( DATA_SET * data, const enum CLEANDATAOPT cleandata);
 
 
 int PowellOpt (double p[], int dim, double (*fun) (double[]), double *fmax);
@@ -86,7 +82,7 @@ void GradLike_Full (const double *param, double *grad, void *data);
 
 VEC create_grid ( const unsigned int len, const int positive);
 int FindBestX (const double *grid, const int site, const int n);
-DATA_SET *ReadData (const char *name, const int gencode, const unsigned int cleandata);
+DATA_SET *ReadData (const char *name, const int gencode);
 double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt);
 struct selectioninfo *  CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf);
 void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double *entropy, const double * pval, const double * pval_adj, const int nsites);
@@ -142,9 +138,8 @@ int main (int argc, char *argv[])
   double * entropy, *pval, *pval_adj;
   time_t slr_clock[4];
   struct slr_params * paramin_str;
-  unsigned int seed, saveseed;
+	unsigned int seed, saveseed, cleandata;
   enum model_branches branopt;
-  enum CLEANDATAOPT cleandata;
   /*  Option variables
    */
   ReadOptions (argc, argv);
@@ -169,7 +164,7 @@ int main (int argc, char *argv[])
   seed = *(unsigned int *) GetOption("seed");
   saveseed = *(unsigned int *) GetOption("saveseed");
   freqtype = *(unsigned int *) GetOption("freqtype");
-  cleandata = *(enum CLEANDATAOPT *) GetOption("cleandata");
+  cleandata = *(unsigned int *) GetOption("cleandata");
   branopt = *(enum model_branches *) GetOption("branopt");
 
   PrintOptions ();
@@ -181,14 +176,15 @@ int main (int argc, char *argv[])
 	/*  Initialise random number generator */
   RL_Init (seed);	
 
-  fputs("# SLR \"Sitewise Likelihood Ratio\" selection detection program. Version \"",stdout);
+  fputs("# SLR \"Sitewise Likelihood Ratio\" selection detection program. Version ",stdout);
   fputs(VERSIONSTRING,stdout);
-  fputs("\"\n",stdout);
+  fputc('\n',stdout);
 
   SetAminoAndCodonFuncs (nucleof, aminof, nucfile, aminofile);
   gencode = GetGeneticCode (gencode_str);
 
-  data = ReadData (seqfile,gencode, cleandata);
+  if ( 0!=cleandata ){ warn("cleandata options not implemented yet. Defaulting to 0 (treat ambiguous characters as gaps).\n"); }
+  data = ReadData (seqfile,gencode);
   if ( NULL==data){
     puts ("Problem reading data file. Aborting\n");
     exit(EXIT_FAILURE);
@@ -207,7 +203,6 @@ int main (int argc, char *argv[])
     kappa = paramin_str->params[0];
     omega = paramin_str->params[1];
     for ( i=0 ; i<64 ; i++){
-      err(EXIT_FAILURE,"Incorrect code here\n");
       freqs[i] = paramin_str->cfreqs[i];
     }
     if ( paramin_str->gencode != gencode){
@@ -354,7 +349,7 @@ int FindBestX (const double *grid, const int site, const int n)
 
 
 
-DATA_SET *ReadData (const char *name, const int gencode, const enum CLEANDATAOPT cleandata)
+DATA_SET *ReadData (const char *name, const int gencode)
 {
   DATA_SET *tmp, *data;
 
@@ -362,18 +357,16 @@ DATA_SET *ReadData (const char *name, const int gencode, const enum CLEANDATAOPT
 
   /* Read nucleotides and convert into codons
    */
-  tmp = read_data (name, SEQTYPE_NUCLEOAMBIG);
+  tmp = read_data (name, SEQTYPE_NUCLEO);
   if (NULL == tmp)
     return NULL;
   data = ConvertNucToCodon (tmp,gencode);
   if (NULL == data) {
     puts
-      ("Error converting nucleotides to codons. Returning nucleotide sequence.");
+      ("Error converting nucleotides to codons. Returning uncompressed sequence.");
     return tmp;
   }
   FreeDataSet (tmp);
- 
-  clean_data ( data, cleandata); 
 
 	/*  Check if sequence contains stop codons  */
 	int nstop = count_alignment_stops(data);
@@ -407,59 +400,6 @@ DATA_SET *ReadData (const char *name, const int gencode, const enum CLEANDATAOPT
 
   return data;
 }
-
-DATA_SET * clean_data ( DATA_SET * data, const enum CLEANDATAOPT cleandata){
-	CheckIsDataSet(data);
-	switch(cleandata){
-	case AMBIGUITY_AS_GAP: clean_data_ambiguity_as_gap (data); break;
-	case REMOVE_COLUMN: clean_data_remove_column (data); break;
-	case REMOVE_SPECIES: err(EXIT_FAILURE,"Correcting ambiguities by removing species not implemented yet.");
-	default: err(EXIT_FAILURE,"Unrecognised cleandata option %u\n",cleandata);
-	}
-
-	CheckIsDataSet(data);
-	nonambiguous_dataset_from_ambiguous (data);
-	CheckIsDataSet(data);
-	
-	assert(!is_ambiguous_seqtype(data->seqtype));
-	return data;
-}
-
-DATA_SET * clean_data_ambiguity_as_gap ( DATA_SET * data ){
-	CheckIsDataSet(data);
-	const int gapchar = GapChar(data->seqtype);
-	/* Iterate through all species and sequences. If ambiguous character is found,
-         * then replace with gap.
-         */
-	for ( unsigned int sp=0 ; sp<data->n_sp ; sp++){
-		for ( unsigned int pt=0 ; pt<data->n_unique_pts ; pt++){
-			if ( is_ambiguous(data->seq[sp][pt],data->seqtype) ){ data->seq[sp][pt] = gapchar;}
-		}
-	}
-	CheckIsDataSet(data);
-	return data;
-}
-
-DATA_SET * clean_data_remove_column ( DATA_SET  * data ){
-	CheckIsDataSet(data);
-	const int gapchar = GapChar(data->seqtype);
-	/* Iterate through all species and sequences. If ambiguous character is found,
-	 * then replace with entire column with gaps.
-	*/
-	for ( unsigned int sp=0 ; sp<data->n_sp ; sp++){
-                for ( unsigned int pt=0 ; pt<data->n_unique_pts ; pt++){
-                        if ( is_ambiguous(data->seq[sp][pt],data->seqtype) ){
-				for ( unsigned int gsp=0 ; gsp<data->n_sp ; gsp++){
-					data->seq[gsp][pt] = gapchar;
-				}
-			}
-                }
-        }
-	CheckIsDataSet(data);
-	return data;
-}
-
-
 
 double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt){
   struct single_fun *info;
@@ -1003,7 +943,7 @@ void PrintParams ( FILE * output, const double * params, const int nparams, cons
   // Codon frequencies
   fprintf(output,"%d ",gencode);
   for ( codon=0 ; codon<64 ; codon++){
-    qcodon = CodonToQcoord ( codon, SEQTYPE_CODON, gencode);
+    qcodon = CodonToQcoord ( codon, gencode);
     (qcodon!=-1)? fprintf(output,"%16.15e ",cfreqs[qcodon]) : fprintf(output,"0.0 ");
   }
   fputc('\n',output);
