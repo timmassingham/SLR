@@ -39,7 +39,7 @@ static int CheckLinemin1D (void);
 
 
 
-double linemin_backtrack ( double (*fun)(const double *, void *), int dim, double * x, double *xnew, double * direct, void * info, const double min, const double max, const double tol, const int noisy, int * neval ){
+double linemin_backtrack ( double (*fun)(const double *, void *), const int dim, double * x, double *xnew, double * direct, void * info, const double min, const double max, const double tol, const int noisy, int * neval ){
   assert(NULL!=fun);
   assert(dim>1);
   assert(NULL!=x);
