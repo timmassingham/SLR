@@ -482,7 +482,7 @@ optexit:
 OPTMESS(printf("Failed to find improved point.\nf(x) = %e\n",opt->f(opt->x, opt->state)););
 		return sqrt(norm);
 	}
-	opt->f(opt->x,opt->state); opt->neval++;
+	opt->f(opt->xn,opt->state); opt->neval++;
 	opt->df(opt->xn, opt->dxn, opt->state); opt->neval++;
 	for ( int i=0 ; i<opt->n ; i++){direct[i] = -opt->dxn[i];}
 	UpdateActiveSet (opt->xn, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
@@ -898,7 +898,6 @@ AnalyseOptima(double *x, double *dx, int n, int *onbound, double *lb,
 }
 
 void check_grad ( const char * str, OPTOBJ * opt ){
-        return;
         assert(NULL!=opt);
         puts(str);
         for ( int i=0 ; i<opt->n ; i++){
