@@ -232,12 +232,12 @@ int main (int argc, char *argv[])
       if ( reoptimise == 0 && ! reoptmess){
 	puts ("# Found branch of undetermined or invalid length. Set to random value and will optimise tree");
         reoptmess = true;
-      } else if ( (Branches_Fixed==branopt || Branches_Proportional==branopt) && ! reoptmess){
+      } else if ( (0==branopt || 2==branopt) && ! reoptmess){
         puts ("# Found branch of undetermined or invalid length. Set to random value and will optimise branch lengths");
         reoptmess = true;
       }
       reoptimise = 1;
-      branopt = Branches_Variable;
+      branopt = 1;
     }
   }
 
