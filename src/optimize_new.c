@@ -129,6 +129,7 @@ double          fWrap(const double *x, void *info);
 void            Rescale(double *x, double *dx, double *H, int n, double *scale);
 void            AnalyseOptima(double *x, double *dx, int n, int *onbound, double *lb,
 				                      double *ub);
+void check_grad ( const char * str, OPTOBJ * opt );
 int             step, reset;
 int             errn=0;
 
@@ -186,7 +187,8 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 			   OPTMESS( printf("Step was small. Trying steepest descent.\n");)
 			   opt->fc = SteepestDescentStep(opt);
 			   for ( int i=0 ; i<opt->n ; i++){ opt->x[i] = opt->xn[i]; }
-			   opt->df(opt->x, opt->dx, opt->state);
+			   opt->f(opt->x,opt->state); opt->neval++;
+			   opt->df(opt->x, opt->dx, opt->state); opt->neval++;
 			   for ( int i=0 ; i<opt->n ; i++){ opt->space[i] = -opt->dx[i];}
 			   UpdateActiveSet (opt->x, opt->space, ((struct scaleinfo *) opt->state)->scale, opt->H,
 			                                       opt->lb, opt->ub, opt->onbound, opt->n,&newbound);
@@ -366,7 +368,8 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
 	opt->df = dfWrap;
 	opt->f = fWrap;
 	opt->state = sinfo;
-	opt->df(opt->x, opt->dx, opt->state);
+	opt->f(opt->x,opt->state); opt->neval++;
+	opt->df(opt->x, opt->dx, opt->state); opt->neval++;
 
 	for (i = 0; i < n; i++)
 		if ((opt->x[i] <= opt->lb[i] && opt->dx[i] >= 0.)
@@ -479,7 +482,8 @@ optexit:
 OPTMESS(printf("Failed to find improved point.\nf(x) = %e\n",opt->f(opt->x, opt->state)););
 		return sqrt(norm);
 	}
-	opt->df(opt->xn, opt->dxn, opt->state);
+	opt->f(opt->x,opt->state); opt->neval++;
+	opt->df(opt->xn, opt->dxn, opt->state); opt->neval++;
 	for ( int i=0 ; i<opt->n ; i++){direct[i] = -opt->dxn[i];}
 	UpdateActiveSet (opt->xn, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
                                     opt->lb, opt->ub, opt->onbound, opt->n,newbound);
@@ -892,3 +896,20 @@ AnalyseOptima(double *x, double *dx, int n, int *onbound, double *lb,
 		}
 	}
 }
+
+void check_grad ( const char * str, OPTOBJ * opt ){
+        return;
+        assert(NULL!=opt);
+        puts(str);
+        for ( int i=0 ; i<opt->n ; i++){
+                double oldx = opt->x[i];
+                opt->x[i] += 1e-5;
+                double fp = opt->f(opt->x,opt->state);
+                opt->x[i] -= 2e-5;
+                double fm = opt->f(opt->x,opt->state);
+                opt->x[i] = oldx;
+                printf ("%d:\t%e\t%e\t%e\n",i,(fp-fm)/2e-5,opt->dx[i],fabs((fp-fm)/2e-5 -opt->dx[i]));
+        }
+}
+
+
