@@ -45,8 +45,8 @@ double          CalcLike_Single(const double *param, void *data);
 void            UpdateAllParams(MODEL * model, TREE * tree, const double *p);
 void            UpdateParam(MODEL * model, TREE * tree, const double p, const int i);
 void            GradLike_Single(double *param, double *grad, void *data);
-void            GradLike_Full(double *param, double *grad, void *data);
-void            InfoLike_Full(double *param, double *grad, void *data);
+double *        GradLike_Full(const double *param, double *grad, void *data);
+double *        InfoLike_Full(const double *param, double *info, void *data);
 double          LikeFun_Single(TREE * tree, MODEL * model, double *p);
 void            GradLike2(TREE * tree, MODEL * model, double *p, double *grad);
 void            Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model);
@@ -556,8 +556,8 @@ GradLike_Single(double *param, double *grad, void *data)
 }
 
 
-void
-GradLike_Full(double *param, double *grad, void *data)
+double *
+GradLike_Full(const double *param, double *grad, void *data)
 {
 	struct single_fun *info;
 	int             i, n, npts;
@@ -581,34 +581,39 @@ GradLike_Full(double *param, double *grad, void *data)
 		grad[i] *= -1.;
 	}
 	free(ptgrad);
+	return grad;
 }
 
-void
-InfoLike_Full(double *param, double *grad, void *data)
+double *
+InfoLike_Full(const double *param, double *info, void *data)
 {
-	struct single_fun *info;
+	fputs("# Warning: InfoLike_Full implements an approximation to the observed information!\n",stderr);
+	fputs("# Warning: Calculation is based on \\sum (D log L)^2 rather than \\sum D^2 log L\n",stderr);
+	fputs("# Warning: Formulas are equivalent asymptotically.\n",stderr);
+	struct single_fun *state;
 	int             n, npts;
 	double         *ptgrad;
 
-	info = (struct single_fun *) data;
-	UpdateAllParams(info->model, info->tree, param);
-	n = info->model->nparam;
-	if (Branches_Variable==info->model->has_branches) {
-		n += info->tree->n_br;
+	state = (struct single_fun *) data;
+	UpdateAllParams(state->model, state->tree, param);
+	n = state->model->nparam;
+	if (Branches_Variable==state->model->has_branches) {
+		n += state->tree->n_br;
 	}
-	npts = info->model->n_unique_pts;
+	npts = state->model->n_unique_pts;
 
 	ptgrad = calloc(npts * n, sizeof(double));
-	GradLike2(info->tree, info->model, info->p, ptgrad);
+	GradLike2(state->tree, state->model, state->p, ptgrad);
 	for (int i = 0; i < n; i++) {
 		for (int j = 0; j < n; j++) {
-			grad[i * n + j] = 0.;
+			info[i * n + j] = 0.;
 			for (int k = 0; k < npts; k++) {
-				grad[i * n + j] += info->model->pt_freq[k] * ptgrad[i * npts + k] * ptgrad[j * npts + k];
+				info[i * n + j] += state->model->pt_freq[k] * ptgrad[i * npts + k] * ptgrad[j * npts + k];
 			}
 		}
 	}
 	free(ptgrad);
+	return info;
 }
 
 
