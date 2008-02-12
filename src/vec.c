@@ -26,6 +26,16 @@
 #include <string.h>
 #include "vec.h"
 
+VEC vec_from_array ( const double * a, const unsigned int n){
+	assert(NULL!=a);
+	assert(n>0);
+	VEC v = create_vec(n);
+	for ( unsigned int i=0 ; i<n ; i++){
+		vset(v,i,a[i]);
+	}
+	return v;
+}
+
 VEC create_vec ( const unsigned int n){
 	assert(n>0);
 
