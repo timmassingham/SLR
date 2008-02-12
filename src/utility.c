@@ -341,3 +341,24 @@ int teeint ( FILE * fp, const char *s, const int i){
 	fprintf(fp,"%s%d\n",s,i);
 	return i;
 }
+
+double * CopyVector ( const double * A, double * B, const unsigned int n){
+	assert(NULL!=A);
+	assert(NULL!=B);
+	assert(n>0);
+	for ( unsigned int i=0 ; i<n ; i++){
+		B[i] = A[i];
+	}
+	return B;
+}
+
+
+unsigned int sum_bool ( const bool * x, const unsigned int n){
+	assert(NULL!=x);
+	unsigned int ntrue = 0;
+	for ( unsigned int i=0 ; i<n ; i++){
+		if ( true==x[i]) ntrue++;
+	}
+	return ntrue;
+}
+

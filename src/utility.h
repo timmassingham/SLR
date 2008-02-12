@@ -26,6 +26,10 @@
 #include <stdio.h>
 #endif
 
+#ifndef _STDBOOL_H_
+#include <stdbool.h>
+#endif
+
 void slrwarn ( int i, char * s);
 void PrintMatrix ( const double * m, const int n);
 void PrintVector ( const double * x, const int n);
@@ -50,5 +54,8 @@ double * norm_vector ( double * vec, const int n, const double sum);
 double * scale_vector ( double * vec, const int n, const double fact);
 
 int teeint ( FILE * fp, const char * s, const int i);
+
+double * CopyVector ( const double * A, double * B, const unsigned int n);
+unsigned int sum_bool ( const bool * x, const unsigned int n);
 
 #endif
