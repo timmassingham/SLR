@@ -49,13 +49,14 @@ double find_root ( double min, double max, double (*f)(const double*,void*), voi
       return ( (fabs(fl)<fabs(fu))?min:max );
    }
 
-   while ( (fabs(fu)>tol || fabs(fl)>tol) && fabs(max-min)>0.5*3e-8*fabs(min+max)){
-      assert (sign(fl)!=sign(fu)); /* Ensure that [min,max] brackets a root*/
+   while ( (fabs(fu)>tol || fabs(fl)>tol) && fabs(max-min)>0.5*3e-8*(1.e-10+fabs(min)+fabs(max))){
+      //assert (sign(fl)!=sign(fu)); /* Ensure that [min,max] brackets a root*/
       c = (min+max)/2.;
       fc = f(&c,info);	*neval = *neval + 1;
       if ( 0. == fabs(fc)) return c;
-      disc = sqrt (fc*fc-fl*fu);
-      if ( disc == 0.){ return c;} /* Should only occur if fc=fl=fu=0 since fu*fl strictly positive*/
+      disc = fc*fc-fl*fu;
+      if ( disc < DBL_EPSILON){ return c;} /* Should only occur if fc=fl=fu=0 since fu*fl negative*/
+      disc = sqrt(disc);
       x = c + (c-min) * fc*sign(fl-fu)/disc;
       fx = f(&x,info);  *neval = *neval + 1;
       if ( 0. == fabs(fx)) return x;
