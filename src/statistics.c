@@ -27,6 +27,7 @@
 #include <err.h>
 #include <errno.h>
 #include "statistics.h"
+#include "utility.h"
 
 #define MAXSTEP		1000
 #define OOM(A) { if( (A) == NULL ) { fputs ("Out of memory",stderr); fflush(stderr); exit(EXIT_FAILURE); } }
@@ -262,10 +263,117 @@ double mad ( const VEC v){
 	VEC vcopy = copy_vec (v);
 	const unsigned int len = vlen(vcopy);
 	for ( unsigned int i=0 ; i<len ; i++){
-		vset(vcopy,i,vget(vcopy,i)-vmedian);
+		vset(vcopy,i,fabs(vget(vcopy,i)-vmedian));
 	}
 	const double devmedian = median(vcopy);
 	free_vec(vcopy);
 
 	return devmedian * MADSCALE;
 }
+
+struct summary * summarise_vec( VEC v){
+	assert(NULL!=v);
+	VEC quant = create_vec(5);
+	vset(quant,0,0.); vset(quant,1,0.25); vset(quant,2,0.5); vset(quant,3,0.75); vset(quant,4,1.);
+
+	struct summary * s = malloc(sizeof(struct summary));
+	s->mean = mean(v);
+	s->var = variance(v);
+	s->quantiles = quantiles(v,quant);
+	s->mad = mad(v);
+	s->data = v;
+
+	return s;
+}
+
+struct summary * fprint_summary (FILE * fp, const char * name, struct summary * s){
+	assert(NULL!=fp);
+	assert(NULL!=name);
+	assert(NULL!=s);
+	fprintf(fp,"Summary of %s:\n",name);
+	fputs(" min   25%  median mean  75%   max\n",fp);
+	fprintf(fp,"%5.3f %5.3f %5.3f %5.3f %5.3f %5.3f\n",vget(s->quantiles,0),vget(s->quantiles,1),vget(s->quantiles,2),s->mean,vget(s->quantiles,3),vget(s->quantiles,4));
+	fprintf(fp,"var %5.3f (sd %5.3f, mad %5.3f)\n",s->var,sqrt(s->var),s->mad);
+	return s;
+}
+
+void free_summary ( struct summary * s){
+	assert(NULL!=s);
+	free_vec(s->quantiles);
+	free_vec(s->data);
+	free(s);
+}
+
+/*  Reference: JD Storey (2002) A direct approach to false discovery rates. JRSS-B 64:479-498
+ * Could be made more efficent by using a sorted array and binary searching
+ */
+double pFDR_storey02 ( const double * pval, const unsigned int m, const double lambda, const double gamma){
+	assert(NULL!=pval);
+	assert(lambda>=0. && lambda<=1.);
+	assert(gamma>=0. && gamma<=1.);
+
+	//  Calc W(lambda)
+	unsigned int w = 0;
+	for ( unsigned int i=0 ; i<m ; i++){ 
+		if(pval[i]>lambda) w++;
+	}
+
+	// Calc R(gamma)
+	unsigned int r = 0;
+	for ( unsigned int i=0 ; i<m ; i++){
+		if(pval[i]<=gamma) r++;
+	}
+
+	const double pi_0 = (double)w/((1.-lambda)*(double)m);
+	const double PrReject = ((r>0)?(double)r:1.)/(double)m;
+
+	return pi_0 * gamma / ( PrReject * -pow1pm1(-gamma,(double)m));
+}
+
+double FDR_storey02 (const double * pval, const unsigned int m, const double lambda, const double gamma){
+	assert(NULL!=pval);
+	assert(lambda>=0. && lambda<=1.);
+	assert(gamma>=0. && gamma<=1.);
+
+	//  Calc W(lambda)
+	unsigned int w = 0;
+	for ( unsigned int i=0 ; i<m ; i++){
+		if(pval[i]>lambda) w++;
+	}
+
+	// Calc R(gamma)
+	unsigned int r = 0;
+	for ( unsigned int i=0 ; i<m ; i++){
+		if(pval[i]<=gamma) r++;
+	}
+
+	const double pi_0 = (double)w/((1.-lambda)*(double)m);
+	const double PrReject = ((r>0)?(double)r:1.)/(double)m;
+
+	return pi_0 * gamma / PrReject;
+}
+
+/*  Efficiency of algorithm could be improved: multiple calls to pFDR_storey02
+ * when all required pFDR's could be calculated in one iteration through pval
+ * array
+ */
+double * qvals_storey02 ( const double * pval, const unsigned int m, const double lambda){
+	assert(NULL!=pval);
+	assert(lambda>=0. && lambda<=1.);
+
+	double * qval = CopyVector(pval,malloc(m*sizeof(double)),m);
+	double ** work = calloc(m,sizeof(double *));
+	for ( unsigned int i=0 ; i<m ; i++){ work[i] = &qval[i];}
+	qsort(work,m,sizeof(double *),CmpDoublePtr);
+
+	*work[m-1] = pFDR_storey02(pval,m,lambda,*work[m-1]);
+	for ( int i=m-2 ; i>=0 ; i--){
+		const double pfdr = pFDR_storey02(pval,m,lambda,*work[i]);
+		*work[i] = (pfdr<*work[i+1])?pfdr:*work[i+1];
+	}
+
+	free(work);
+	return qval;
+}
+
+

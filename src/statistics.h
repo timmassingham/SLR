@@ -29,6 +29,12 @@
 #include "vec.h"
 #endif
 
+struct summary {
+	double mean,var;
+	VEC quantiles,data;
+	double mad;
+};
+
 double * Pvalue_adjust_SingleStep ( const double * pval, const int n, const int method);
 double * Pvalue_adjust_StepDown ( const double * pval, const int n, const int method);
 double * Pvalue_adjust_StepUp ( const double * pval, const int n, const int method);
@@ -39,5 +45,12 @@ VEC quantiles ( const VEC v, const VEC q);
 double variance (const VEC v);
 double sd(const VEC v);
 double mad ( const VEC v);
+struct summary * summarise_vec(const VEC v);
+struct summary * fprint_summary (FILE * fp, const char * name, struct summary * s);
+void free_summary ( struct summary * s);
+
+double pFDR_storey02 ( const double * pval, const unsigned int m, const double lambda, const double gamma);
+double FDR_storey02 (const double * pval, const unsigned int m, const double lambda, const double gamma);
+double * qvals_storey02 ( const double * pval, const unsigned int m, const double lambda);
 #endif
 
