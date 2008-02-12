@@ -625,7 +625,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       start = FindBestX (likelihood_grid, data->index[site], GRIDSIZE);
       fn = likelihood_neutral[data->index[site]];
 
-      bd[0] = (start>0)?vget(omega_grid,start-1):0.;
+      bd[0] = (start>0)?vget(omega_grid,start-1):(double)positive;
       bd[1] = (start<GRIDSIZE-1)?vget(omega_grid,start+1):99.;
       x[0] = vget(omega_grid,start);
       
@@ -644,10 +644,11 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       if ( dosupport ){
       	neval=0;
       	if ( likelihood_grid[data->index[site]*GRIDSIZE]-fm<=ldiff/2. ){
-        	lb = 0.;
+        	lb = (double)positive;
       	} else {
+		const double initial_lb = (double)positive;
         	Set_CalcLike_Wrapper (CalcLike_Single,fm+ldiff/2.);
-        	lb = find_root (0,omegam,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
+        	lb = find_root (initial_lb,omegam,CalcLike_Wrapper,(void*)info,NULL,NULL,1e-3,&neval);
       	}
 
         if ( likelihood_grid[data->index[site]*GRIDSIZE + GRIDSIZE - 1]-fm<=ldiff/2. ){
