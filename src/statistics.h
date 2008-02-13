@@ -25,6 +25,8 @@
 #define BONFERRONI	0
 #define SIDAK		1
 
+enum qval_lambda {DELTA,BOOTSTRAP};
+
 #ifndef _VEC_H_
 #include "vec.h"
 #endif
@@ -51,6 +53,7 @@ void free_summary ( struct summary * s);
 
 double pFDR_storey02 ( const double * pval, const unsigned int m, const double lambda, const double gamma);
 double FDR_storey02 (const double * pval, const unsigned int m, const double lambda, const double gamma);
-double * qvals_storey02 ( const double * pval, const unsigned int m, const double lambda);
+double * qvals_storey02 ( const double * pval, const unsigned int m, const enum qval_lambda est_method);
+double estimate_lambda_deltaapprox ( const double * pval, const unsigned int m, const double gamma );
 #endif
 

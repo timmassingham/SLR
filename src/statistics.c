@@ -26,6 +26,7 @@
 #include <limits.h>
 #include <err.h>
 #include <errno.h>
+#include <float.h>
 #include "statistics.h"
 #include "utility.h"
 
@@ -39,6 +40,8 @@ int CmpDoublePtr ( const void * dptr1, const void * dptr2);
 int CmpDouble ( const void * dptr1, const void * dptr2);
 double sample_variance_naive ( const VEC v);
 double variance_naive ( const VEC v);
+double mse_pfdr_deltaapprox_R0 ( const double lambda, const double gamma, const unsigned int c, const unsigned int m);
+double mse_pfdr_deltaapprox(const double lambda, const double gamma, const unsigned int a, const unsigned int b, const unsigned int c, const unsigned int d, const unsigned int m);
 
 static double pow1pm1 ( const double x, const double y){
   return expm1( y * log1p(x) );
@@ -321,7 +324,7 @@ double pFDR_storey02 ( const double * pval, const unsigned int m, const double l
 	// Calc R(gamma)
 	unsigned int r = 0;
 	for ( unsigned int i=0 ; i<m ; i++){
-		if(pval[i]<=gamma) r++;
+		if(pval[i]-gamma<=gamma*DBL_EPSILON) r++;
 	}
 
 	const double pi_0 = (double)w/((1.-lambda)*(double)m);
@@ -344,7 +347,7 @@ double FDR_storey02 (const double * pval, const unsigned int m, const double lam
 	// Calc R(gamma)
 	unsigned int r = 0;
 	for ( unsigned int i=0 ; i<m ; i++){
-		if(pval[i]<=gamma) r++;
+		if(pval[i]-gamma<=gamma*DBL_EPSILON) r++;
 	}
 
 	const double pi_0 = (double)w/((1.-lambda)*(double)m);
@@ -357,23 +360,92 @@ double FDR_storey02 (const double * pval, const unsigned int m, const double lam
  * when all required pFDR's could be calculated in one iteration through pval
  * array
  */
-double * qvals_storey02 ( const double * pval, const unsigned int m, const double lambda){
+double * qvals_storey02 ( const double * pval, const unsigned int m, const enum qval_lambda est_method){
 	assert(NULL!=pval);
-	assert(lambda>=0. && lambda<=1.);
 
 	double * qval = CopyVector(pval,malloc(m*sizeof(double)),m);
 	double ** work = calloc(m,sizeof(double *));
 	for ( unsigned int i=0 ; i<m ; i++){ work[i] = &qval[i];}
 	qsort(work,m,sizeof(double *),CmpDoublePtr);
 
-	*work[m-1] = pFDR_storey02(pval,m,lambda,*work[m-1]);
-	for ( int i=m-2 ; i>=0 ; i--){
+	for ( int i=m-1 ; i>=0 ; i--){
+		const double lambda = estimate_lambda_deltaapprox(pval,m,*work[i]);
+fprintf(stdout,"gamma = %e, lambda_hat = %e\n",*work[i],lambda);
 		const double pfdr = pFDR_storey02(pval,m,lambda,*work[i]);
-		*work[i] = (pfdr<*work[i+1])?pfdr:*work[i+1];
+		if ( i!=m-1){
+			*work[i] = (pfdr<*work[i+1])?pfdr:*work[i+1];
+		}
 	}
 
 	free(work);
 	return qval;
 }
 
+/*   Quadratic approximation for lambda that minimises MSE.
+ *   Because W(lambda) is a step function, only need to consider lambdas
+ * that coincide with p values.
+ */
+double estimate_lambda_deltaapprox ( const double * pval, const unsigned int m, const double gamma ){
+	assert(NULL!=pval);
+	assert(m>0);
+	assert(gamma>=0. && gamma<=1.);
 
+	/*  Calculate R(gamma) */
+	unsigned int Rgamma = 0;
+	for ( unsigned int i=0 ; i<m ; i++){
+		if(pval[i]<=gamma) Rgamma++;
+	}
+
+	/*  Populate vector of MSE's */
+	double * pval_sort = CopyVector(pval,malloc(m*sizeof(double)),m);
+	qsort(pval_sort,m,sizeof(double),CmpDouble);
+	double * lambda_array = malloc((m+1)*sizeof(double));
+	unsigned int a=Rgamma,b=0,c=m-Rgamma,d=0;
+	lambda_array[0] = mse_pfdr_deltaapprox(0.,gamma,a,b,c,d,m);
+	for ( unsigned int i=0 ; i<m ; i++){
+		if ( pval_sort[i]-gamma<=gamma*DBL_EPSILON){ a--; b++; assert(d==0);}
+		else { c--; d++; assert(a==0);}
+		lambda_array[i+1] = (Rgamma!=0)?mse_pfdr_deltaapprox(pval_sort[i],gamma,a,b,c,d,m)
+		                               :mse_pfdr_deltaapprox_R0(pval_sort[i],gamma,c,m);
+	}
+
+	/*  Find lambda which gives min MSE */
+	unsigned int min_idx = 0;
+	for ( unsigned int idx=0 ; idx<m ; idx++){
+		if(lambda_array[idx]<lambda_array[min_idx]){ min_idx=idx;}
+	}
+
+	const double lambda_est = (min_idx!=0)?pval_sort[min_idx-1]:0.;
+	free(lambda_array);
+	free(pval_sort);
+
+	return lambda_est;
+}
+
+double mse_pfdr_deltaapprox_R0 ( const double lambda, const double gamma, const unsigned int c, const unsigned int m){
+	assert(lambda>=0. && lambda<=1.);
+	assert(gamma>=0. && gamma<=1.);
+
+	const double Klambda = -1. / ( (1.-lambda) * pow1pm1(-gamma,(double)m) );
+
+	return Klambda*Klambda*c*(m-c)/(double)m;
+}
+
+
+double mse_pfdr_deltaapprox(const double lambda, const double gamma, const unsigned int a, const unsigned int b, const unsigned int c, const unsigned int d, const unsigned int m){
+	assert(lambda>=0. && lambda<=1.);
+	assert(gamma>=0. && gamma<=1.);
+	assert(a>=0);
+	assert(b>=0);
+	assert(c>=0);
+	assert(d>=0);
+	assert(a+b+c+d==m);
+
+	const double apb = a+b;
+	const double apb_sqr = apb*apb;
+	const double bmc = b-c;
+	const double apc = a+c;
+	const double Klambda = -1. / ( (1.-lambda) * pow1pm1(-gamma,(double)m) );
+
+	return Klambda*Klambda/(apb_sqr*apb_sqr) * (a*bmc*bmc+b*apc*apc+c*apb_sqr);
+}
