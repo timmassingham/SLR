@@ -370,7 +370,6 @@ double * qvals_storey02 ( const double * pval, const unsigned int m, const enum 
 
 	for ( int i=m-1 ; i>=0 ; i--){
 		const double lambda = estimate_lambda_deltaapprox(pval,m,*work[i]);
-fprintf(stdout,"gamma = %e, lambda_hat = %e\n",*work[i],lambda);
 		const double pfdr = pFDR_storey02(pval,m,lambda,*work[i]);
 		if ( i!=m-1){
 			*work[i] = (pfdr<*work[i+1])?pfdr:*work[i+1];
