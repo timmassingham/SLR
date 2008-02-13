@@ -1,5 +1,5 @@
 /*
- *  Copyright 2003-2007 Tim Massingham (tim.massingham@ebi.ac.uk)
+ *  Copyright 2003-2008 Tim Massingham (tim.massingham@ebi.ac.uk)
  *  Funded by EMBL - European Bioinformatics Institute
  */
 /*
