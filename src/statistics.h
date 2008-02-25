@@ -55,5 +55,6 @@ double pFDR_storey02 ( const double * pval, const unsigned int m, const double l
 double FDR_storey02 (const double * pval, const unsigned int m, const double lambda, const double gamma);
 double * qvals_storey02 ( const double * pval, const unsigned int m, const enum qval_lambda est_method);
 double estimate_lambda_deltaapprox ( const double * pval, const unsigned int m, const double gamma );
+double estimate_lambda_storey04 ( const double * pval, const unsigned int m );
 #endif
 

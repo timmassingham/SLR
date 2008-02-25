@@ -368,8 +368,8 @@ double * qvals_storey02 ( const double * pval, const unsigned int m, const enum 
 	for ( unsigned int i=0 ; i<m ; i++){ work[i] = &qval[i];}
 	qsort(work,m,sizeof(double *),CmpDoublePtr);
 
+	const double lambda = estimate_lambda_storey04 (pval, m);
 	for ( int i=m-1 ; i>=0 ; i--){
-		const double lambda = estimate_lambda_deltaapprox(pval,m,*work[i]);
 		const double pfdr = pFDR_storey02(pval,m,lambda,*work[i]);
 		if ( i!=m-1){
 			*work[i] = (pfdr<*work[i+1])?pfdr:*work[i+1];
@@ -448,3 +448,43 @@ double mse_pfdr_deltaapprox(const double lambda, const double gamma, const unsig
 
 	return Klambda*Klambda/(apb_sqr*apb_sqr) * (a*bmc*bmc+b*apc*apc+c*apb_sqr);
 }
+
+/* Estimating best value of lambda via minimising the mean squared error
+ * under bootstraps (see Storey 04, and note that the bootstrapping has
+ * an analytical solution since W(lambda) is binomial).
+ * Lambda restricted to [0,max pval)
+ */
+double estimate_lambda_storey04 ( const double * pval, const unsigned int m ){
+	assert(NULL!=pval);
+
+	/*  Sort pvals  */
+        double * pval_sort = CopyVector(pval,malloc(m*sizeof(double)),m);
+        qsort(pval_sort,m,sizeof(double),CmpDouble);
+
+	/*  Find pi_star, min_lambda pi_0(lambda)  */
+	double pi_star = 1.;
+	for ( unsigned int i=0 ; i<m ; i++){
+		double pi_0 = (double)(m-i-1)/(double)(m*(1.-pval_sort[i]));
+		if ( pi_0 < pi_star){ pi_star = pi_0; }
+	}
+
+	double lambda_min = 0.;
+	double mse_min = (1. - pi_star)*(1. - pi_star);
+	for ( unsigned int i=0 ; i<m-1 ; i++){
+		const double lambda = pval_sort[i];
+		const double p = (m-i-1)/(double)m;
+		const double pi_0 = p/(1.-lambda);
+		const double mse = p*(1-p)/((1.-lambda)*(1.-lambda)) 
+                           + pi_0*pi_0 
+                           - 2*pi_star*pi_0 
+                           + pi_star*pi_star;
+		if (mse<mse_min){
+			mse_min = mse;
+			lambda_min = pval_sort[i];
+		}
+	}
+
+	free(pval_sort);
+	return lambda_min;
+}
+
