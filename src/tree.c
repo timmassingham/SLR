@@ -73,7 +73,7 @@ void CheckIsTree (const TREE * tree)
 #endif
 
   assert (NULL != tree);
-  assert (tree->n_sp > 0 && tree->n_sp < MAX_SP);
+  assert (tree->n_sp > 0);
   assert (tree->n_br > 0);
   assert (tree->n_br >= tree->n_sp);
   //assert(tree->n_br==2*tree->n_sp-3);  // Only holds for binary trees.
@@ -544,6 +544,7 @@ TREE *CloneTree (TREE * tree)
   tree_new->tstring = malloc ((1 + strlen (tree->tstring)) * sizeof (char));
   strcpy (tree_new->tstring, tree->tstring);
   tree_new->leaves = create_rbtree(lexo,strcopykey,strfreekey);
+  tree_new->branches = calloc(tree->n_br,sizeof(NODE *));
   tree_new->tree = CloneTree_sub (tree->tree, NULL, tree, tree_new);
 
   CheckIsTree (tree_new);
@@ -727,7 +728,7 @@ TREE **read_tree_strings (char *filename)
   set = calloc ((size_t) (n_tree + 1), sizeof (TREE *));
   OOM (set);
   set[n_tree] = NULL;
-  if (n_sp < 0 || n_tree < 0 || n_sp > MAX_SP) {
+  if (n_sp < 0 || n_tree < 0) {
     printf ("Problems reading tree from file");
     fclose (fp);
     return NULL;

@@ -72,7 +72,7 @@ CheckIsDataSet(const DATA_SET * data)
 	assert(data->compressed || data->n_unique_pts == data->n_pts);
 
 
-	assert(data->n_sp > 0 && data->n_sp < MAX_SP);
+	assert(data->n_sp > 0);
 
 	assert(data->n_bases ==
 	       NumberPossibleBases(data->seq_type, data->gencode));
@@ -599,7 +599,7 @@ ExtractSequences(int *seqs, int n_seq, DATA_SET * data)
 
 
 DATA_SET       *
-CreateDataSet(int n_size, int n_sp)
+CreateDataSet(const int n_size, const int n_sp)
 {
 	DATA_SET       *data;
 	int             a;
@@ -614,6 +614,8 @@ CreateDataSet(int n_size, int n_sp)
 	data->seq_type = -1;
 	data->n_bases = -1;
 
+	data->seq = calloc(n_sp, sizeof(int *));
+	data->sp_name = calloc(n_sp, sizeof(char *));
 	for (a = 0; a < n_sp; a++) {
 		data->sp_name[a] = NULL;
 		data->seq[a] = calloc((size_t) n_size, sizeof(int));
@@ -639,7 +641,7 @@ sort_data(DATA_SET * data)
 	int             n_pts, l, ir, a, i, j;
 	double          tmp = 1.0;
 	int            *seq1;
-	int            *seq[MAX_SP];
+	int            **seq;
 
 	if (NULL==data){return NULL;}
 	CheckIsDataSet(data);
@@ -647,6 +649,7 @@ sort_data(DATA_SET * data)
 	n_pts = data->n_unique_pts;
 	if (n_pts < 2)
 		return data;
+	seq = calloc((size_t)data->n_sp,sizeof(int *));
 	seq1 = calloc((size_t) data->n_sp, sizeof(int));
 	OOM(seq1);
 	for (a = 0; a < data->n_sp; a++)
@@ -710,6 +713,7 @@ sort_data(DATA_SET * data)
 	for (a = 0; a < data->n_pts; a++)
 		assert(data->index[a] < data->n_unique_pts);
 	free(seq1);
+	free(seq);
 
 	CheckIsDataSet(data);
 	CheckIsSorted_DS(data);
@@ -970,6 +974,8 @@ FreeDataSet(DATA_SET * data)
 		free(data->seq[a]);
 	}
 
+	free(data->seq);
+	free(data->sp_name);
 	free(data->freq);
 	free(data->index);
 	free(data);
@@ -1255,8 +1261,8 @@ DATA_SET       *
 read_data(const char *filename, const int seqtype)
 {
 	FILE           *fp;
-	DATA_SET       *data;
 	int             i, j;
+	int n_sp, n_pts;
 
 	/* Attempt to open data file */
 	fp = fopen(filename, "r");
@@ -1264,35 +1270,17 @@ read_data(const char *filename, const int seqtype)
 		printf("Can't open data file %s for input!\n", filename);
 		return NULL;
 	}
-	data = malloc(sizeof(DATA_SET));
-	OOM(data);
-
-	data->seq_type = seqtype;
-	switch (data->seq_type) {
-	case SEQTYPE_NUCLEO:
-		data->n_bases = 4;
-		break;
-	case SEQTYPE_AMINO:
-		data->n_bases = 20;
-		break;
-	default:
-		printf("Unrecognised sequence type: %d\n", data->seq_type);
-		free(data);
-		return NULL;
+	if ( SEQTYPE_NUCLEO!= seqtype && SEQTYPE_AMINO!=seqtype){
+		fputs("Can only read nucleotide or amino acid sequences\n",stderr);
+		exit(EXIT_FAILURE);
 	}
-
-	data->compressed = 0;
 
 	/* Read in number of species and data points */
-	(void) fscanf(fp, "%d %d", &data->n_sp, &data->n_pts);
-	data->n_unique_pts = data->n_pts;
+	(void) fscanf(fp, "%d %d", &n_sp, &n_pts);
+	DATA_SET * data = CreateDataSet(n_pts,n_sp);
+	data->seq_type = seqtype;
+	data->n_bases = NumberPossibleBases(seqtype,GENCODE_UNIVERSAL);
 
-	/* Do basic stupidity checking on the numbers */
-	if (data->n_sp >= MAX_SP) {
-		printf("Too many species! Increase MAX_SP and try again.\n");
-		free(data);
-		return NULL;
-	}
 	if (data->n_pts <= 0) {
 		printf("Suspiciously little data, can't do much with %d points!\n", data->n_pts);
 		free(data);
