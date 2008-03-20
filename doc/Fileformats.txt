@@ -72,6 +72,13 @@ Adj. Pval
   adjusting for multiple comparisons using the Hochberg procedure 
   (see the file "MultipleComparisons.txt" in the doc directory).
 
+Qvalue
+  Q-value for results (positive false discovery rate), see Storey
+(J. Roy. Stat. Soc. B 2002,2004). The parameter lambda is estimated 
+as described in Storey (2004) but an analytical solution to the
+bootstrap is used rather than Monte Carlo estimation.
+
+
 Result
   A simple visual guide to the result. Sites detected as having been
   under positive selection are marked with a '+', sites under 
