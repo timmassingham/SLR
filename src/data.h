@@ -22,7 +22,6 @@
 #ifndef _DATA_H_
 #define _DATA_H_
 
-#define MAX_SP	1000
 #define MAX_SP_NAME 80
 
 
@@ -33,8 +32,8 @@ typedef struct {
         int     n_sp;
         int     n_bases;
         int     compressed;
-        char  * sp_name[MAX_SP];
-        int * seq[MAX_SP];
+        char  ** sp_name;
+        int ** seq;
         double  * freq;
         int * index;
 	int gencode;
@@ -43,7 +42,7 @@ typedef struct {
 void CheckIsDataSet ( const DATA_SET * data);
 void CheckIsSorted_DS ( const DATA_SET * data);
 
-DATA_SET * CreateDataSet ( int n_size, int n_sp);
+DATA_SET * CreateDataSet ( const int n_size, const int n_sp);
 void FreeDataSet ( DATA_SET * data);
 
 
