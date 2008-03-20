@@ -26,8 +26,6 @@
 #include <stdio.h>
 #endif
 
-#define MAX_BR          2010
-
 #define ISLEAF(A)       ( A->branch[1] == NULL )
 #define CHILD(A,B)      A->branch[B]
 #define CHILDP(A,B)     ((A->branch[B])->plik);
@@ -73,7 +71,7 @@ typedef struct {
         int n_br;
         char * tstring;
         NODE * tree;
-        NODE * branches[MAX_BR];
+        NODE ** branches;
         RBTREE leaves;
 } TREE;
 

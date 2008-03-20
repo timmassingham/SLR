@@ -74,7 +74,7 @@ void CheckIsTree (const TREE * tree)
 
   assert (NULL != tree);
   assert (tree->n_sp > 0 && tree->n_sp < MAX_SP);
-  assert (tree->n_br > 0 && tree->n_br < MAX_BR);
+  assert (tree->n_br > 0);
   assert (tree->n_br >= tree->n_sp);
   //assert(tree->n_br==2*tree->n_sp-3);  // Only holds for binary trees.
   assert (NULL != tree->tstring);
@@ -144,8 +144,10 @@ void create_tree (TREE * tree)
 
   tmp = tree->tstring;
   old_sp = tree->n_sp;
-  tree->leaves = create_rbtree(lexo,strcopykey,strfreekey);
   tree->n_sp = 0;
+  tree->leaves = create_rbtree(lexo,strcopykey,strfreekey);
+  //  Bifurcating tree is upper bound on number of branches
+  tree->branches = calloc(2*old_sp-3,sizeof(NODE *));
   tree->tree = create_tree_sub (&tmp, NULL, tree);
   tree->tree->bnumber = tree->n_br;
 
