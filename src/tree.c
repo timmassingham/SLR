@@ -600,6 +600,7 @@ void FreeTree (TREE * tree)
 
   FreeNode (tree->tree, NULL);
   Free (&tree->tstring);
+  Free (&tree->branches);
   free_rbtree(tree->leaves,free);
   Free (&tree);
 }
