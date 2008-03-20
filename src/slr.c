@@ -710,9 +710,9 @@ void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double
   }
 
   if ( dosupport ){
-  	fputs ("# Site  Neutral  Optimal   Omega    lower    upper LRT_Stat    Pval     Adj.Pval  Result Note\n", out_fp);
+  	fputs ("# Site  Neutral  Optimal   Omega    lower    upper LRT_Stat    Pval     Adj.Pval    Q-value Result Note\n", out_fp);
   } else {
-	fputs ("# Site  Neutral  Optimal   upper LRT_Stat    Pval     Adj.Pval  Result Note\n", out_fp);
+	fputs ("# Site  Neutral  Optimal   upper LRT_Stat    Pval     Adj.Pval    Q-value Result Note\n", out_fp);
   }
 
   for ( site=0 ; site<nsites ; site++){
@@ -734,17 +734,17 @@ void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double
     if ( pval[site]<=0.01)	result[1] = sign;
     if ( pval_adj[site]<=0.05)	result[2] = sign;
     if ( pval_adj[site]<=0.01)	result[3] = sign;
-   
+  
     if ( dosupport){ 
-    	fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %8.4f %8.4f %6.4e %6.4e %s %s\n",
-		site + 1, selinfo->llike_neu[site], selinfo->llike_max[site], 
-		selinfo->omega_max[site], selinfo->lbound[site], selinfo->ubound[site], 
-		stat, pval[site], pval_adj[site],result,OutString[selinfo->type[site]]);
+        fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %8.4f %8.4f %6.4e %6.4e %6.4e %s %s\n",
+                site + 1, selinfo->llike_neu[site], selinfo->llike_max[site], 
+                selinfo->omega_max[site], selinfo->lbound[site], selinfo->ubound[site], 
+                stat, pval[site], pval_adj[site],pval_adj[site+nsites],result,OutString[selinfo->type[site]]);
     } else {
-        fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %6.4e %6.4e %s %s\n",
+        fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %6.4e %6.4e %6.4e %s %s\n",
                 site + 1, selinfo->llike_neu[site], selinfo->llike_max[site],
-                selinfo->omega_max[site], stat, pval[site], pval_adj[site], result,
-		OutString[selinfo->type[site]]);
+                selinfo->omega_max[site], stat, pval[site], pval_adj[site], pval_adj[site+nsites], result,
+                OutString[selinfo->type[site]]);
     }
   }
 
@@ -801,33 +801,42 @@ double * CalculatePvals ( const double * lmax, const double * lneu, const int n,
 double * AdjustPvals ( const double * pval, DATA_SET * data){
   int site,idx;
   int n_idx;
-  double * adj_tmp, *adj;
+  double * adj_tmp, *adj, *qval_tmp;
   assert(NULL!=pval);
   CheckIsDataSet (data);
 
-  adj = malloc(data->n_pts*sizeof(double));
+  adj = malloc(2*data->n_pts*sizeof(double));
   OOM(adj);
  
   n_idx = 0; 
   for ( site=0 ; site<data->n_pts ; site++){
     idx = data->index[site];
     if ( idx>=0){
-      adj[n_idx++] = pval[site];
+      adj[n_idx] = pval[site];
+      adj[n_idx+data->n_pts] = pval[site];
+      n_idx++;
     }
   }
   
   adj_tmp = Pvalue_adjust_StepUp ( adj, n_idx, BONFERRONI);
+  qval_tmp = qvals_storey02(adj+data->n_pts,n_idx);
+  
   
   n_idx = 0;
   for ( site=0 ; site<data->n_pts ; site++){
     idx = data->index[site];
-    if ( idx>=0)
-      adj[site] = adj_tmp[n_idx++];
-    else
+    if ( idx>=0){
+      adj[site] = adj_tmp[n_idx];
+      adj[site+data->n_pts] = qval_tmp[n_idx];
+      n_idx++;
+    } else {
       adj[site] = 1.;
+      adj[site+data->n_pts] = 1.;
+    }
   }
 
   free(adj_tmp);
+  free(qval_tmp);
   return adj;
 }
 

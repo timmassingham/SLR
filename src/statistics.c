@@ -360,7 +360,7 @@ double FDR_storey02 (const double * pval, const unsigned int m, const double lam
  * when all required pFDR's could be calculated in one iteration through pval
  * array
  */
-double * qvals_storey02 ( const double * pval, const unsigned int m, const enum qval_lambda est_method){
+double * qvals_storey02 ( const double * pval, const unsigned int m){
 	assert(NULL!=pval);
 
 	double * qval = CopyVector(pval,malloc(m*sizeof(double)),m);
