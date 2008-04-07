@@ -251,7 +251,7 @@ NODE * find_leaf ( const int i, const TREE * tree, const DATA_SET * data){
 
    a = find_leaf_by_name(data->sp_name[i],tree);
    if ( NULL == a){ /*  Name does not exist -- leaves may be numbered instead */
-      num = itoa((i+1));
+      num = mitoa((i+1));
       a = find_leaf_by_name(num,tree);
       if( NULL == a){
 	 fprintf(stderr,"Cannot find species %s in tree (also tried %s for species num %d).\n",data->sp_name[i],num,i+1);

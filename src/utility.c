@@ -263,7 +263,7 @@ ReadString(FILE * fp)
 }
 
 char           *
-itoa(int i)
+mitoa(int i)
 {
 	int             len;
 	char           *a;
@@ -295,8 +295,8 @@ main(int argc, char *argv[])
 
 	for (a = 1; a < argc; a++) {
 		sscanf(argv[a], "%d", &i);
-		b = itoa(i);
-		printf("itoa(%d) = %s\n", i, b);
+		b = mitoa(i);
+		printf("mitoa(%d) = %s\n", i, b);
 		free(b);
 	}
 }

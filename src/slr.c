@@ -27,8 +27,12 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#include <err.h>
-#include <sys/resource.h>
+#ifndef WINDOWS
+	#include <err.h>
+	#include <sys/resource.h>
+#else
+	#include "windows/err.h"
+#endif
 #include "rng.h"
 #include "gencode.h"
 #include "model.h"
@@ -314,7 +318,7 @@ int main (int argc, char *argv[])
   	PrintResults ( outfile, selinfo, entropy, pval, pval_adj, data->n_pts);
   	PrintSummary ( stdout, selinfo, entropy, pval, pval_adj, data->n_pts);
 	}
-
+#ifndef WINDOWS
   if ( timemem ){
     struct rusage slr_usage;
     time(slr_clock+3);
@@ -322,6 +326,7 @@ int main (int argc, char *argv[])
     fprintf (stdout, "#CpuTime\t%d\n",(int)slr_usage.ru_utime.tv_sec);
     fprintf (stdout, "#DiffTimes\t%ld\t%ld\t%ld\n",slr_clock[1]-slr_clock[0],slr_clock[2]-slr_clock[1],slr_clock[3]-slr_clock[2]);
   }
+#endif
 
   if (saveseed){ RL_Close();}
   

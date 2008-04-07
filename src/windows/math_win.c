@@ -57,7 +57,6 @@ double expm1 ( const double x){
     res = x * ( 1. + x/2.);
   }
 
-  assert (res>=0.);
   return res;
 }
 
