@@ -369,11 +369,10 @@ double * qvals_storey02 ( const double * pval, const unsigned int m){
 	qsort(work,m,sizeof(double *),CmpDoublePtr);
 
 	const double lambda = estimate_lambda_storey04 (pval, m);
-	for ( int i=m-1 ; i>=0 ; i--){
+	*work[m-1] = pFDR_storey02(pval,m,lambda,*work[m-1]);
+	for ( int i=m-2 ; i>=0 ; i--){
 		const double pfdr = pFDR_storey02(pval,m,lambda,*work[i]);
-		if ( i!=m-1){
-			*work[i] = (pfdr<*work[i+1])?pfdr:*work[i+1];
-		}
+		*work[i] = (pfdr<*work[i+1])?pfdr:*work[i+1];
 	}
 
 	free(work);

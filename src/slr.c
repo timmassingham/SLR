@@ -796,7 +796,9 @@ double * CalculatePvals ( const double * lmax, const double * lneu, const int n,
    */
   if ( positive_only ){
     for ( site=0 ; site<n ; site++){
-      pval[site] /= 2.;
+      if (pval[site]+DBL_EPSILON<1.){
+        pval[site] /= 2.;
+      }
     }
   }
 
