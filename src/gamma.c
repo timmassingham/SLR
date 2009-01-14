@@ -97,14 +97,14 @@ static double gamma_contfrac ( const double x, const double a){
   /* Manually unrolled first iteration of Lentz's algorithm
    */
   f = 1e-300 + 1./(x+1.-a);
-  c = (x+1-a) + 1e300;
-  d = 1. / (x+1-a);
+  c = (x+1.-a) + 1.e300;
+  d = 1. / (x+1.-a);
 
   for ( i=1 ; ; i++){
-    dn = (x + 2*i+1 - a) - (i*(i-a)) * d;
+    dn = (x + 2.*i+1. - a) - (i*(i-a)) * d;
     if ( dn==0.)
       dn = 1e-300;
-    cn = (x + 2*i+1 - a) - (i*(i-a)) / c;
+    cn = (x + 2.*i+1. - a) - (i*(i-a)) / c;
     if ( cn==0.)
       cn = 1e-300;
     dn = 1. / dn;
@@ -126,7 +126,7 @@ double pgamma ( const double x, const double a, const double b, const int tail){
   double res,p,q;
   assert(x>=0.);
   assert(a>0.);
-  assert(b>0);
+  assert(b>0.);
   assert(tail==0 || tail==1);
 
   /* Use continued fraction approx
