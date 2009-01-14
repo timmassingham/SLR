@@ -29,8 +29,8 @@
   #include "math_win.h"
 #endif
 
-static double gamma_series ( const double x, const double a);
-static double gamma_contfrac ( const double x, const double a);
+static double __attribute__((const)) gamma_series ( const double x, const double a);
+static double __attribute__((const)) gamma_contfrac ( const double x, const double a);
 
 /*void main ( int argc, char ** argv){
   double x,a;
@@ -52,7 +52,7 @@ static double gamma_contfrac ( const double x, const double a);
 
   
 
-static double gamma_series ( const double x, const double a){
+static double __attribute__((const)) gamma_series ( const double x, const double a){
   double res,term;
   int i;
   assert(x>=0.);
@@ -78,10 +78,11 @@ static double gamma_series ( const double x, const double a){
       break;
   }
 
+  assert(res>=0. && res<=1.);
   return res;
 }
 
-static double gamma_contfrac ( const double x, const double a){
+static double __attribute__((const)) gamma_contfrac ( const double x, const double a){
   int i;
   double f,c,d,dn,cn,term;
   assert(x>=0.);
@@ -118,11 +119,12 @@ static double gamma_contfrac ( const double x, const double a){
 
   f *= exp(-x) * pow(x,a) / tgamma(a);
 
+  assert(f>=0. && f<=1.);
   return f;
 }
 
 
-double pgamma ( const double x, const double a, const double b, const int tail){
+double __attribute__((const)) pgamma ( const double x, const double a, const double b, const int tail){
   double res,p,q;
   assert(x>=0.);
   assert(a>0.);
@@ -145,9 +147,11 @@ double pgamma ( const double x, const double a, const double b, const int tail){
       res = p;
   }
 
+  assert(res>=0. && res<=1.);
   return res;
 }
 
-double pchisq ( double x, double deg, int tail){
+double __attribute__((const)) pchisq ( double x, double deg, int tail){
   return pgamma (x/2.,deg/2.,1.,tail);
 }
+
