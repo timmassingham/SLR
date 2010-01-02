@@ -1,7 +1,7 @@
 CC = gcc
 # For universal binaries on Mac
 CFLAGS = -O4 -fomit-frame-pointer -funroll-loops -DNDEBUG -std=gnu99 -arch i386 -arch ppc
-LDFLAGS =  -g -lm -framework vecLib
+LDFLAGS =  -lm -framework vecLib
 INCFLAGS = -I/System/Library/Frameworks/vecLib.framework/Headers/
 
 #CFLAGS = -static -O3 -funroll-loops -DNDEBUG -std=gnu99 -Wall
@@ -21,3 +21,5 @@ Slr: slr.o $(objects)
 clean:
 	rm -f *~ *.o
 
+archive: clean
+	cd ../.. && tar zcf slr.tgz --exclude=.git --exclude=bin --exclude=archive --exclude=test slr
