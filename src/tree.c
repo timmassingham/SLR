@@ -397,7 +397,7 @@ char * GetLeafName ( const char ** tree_str){
       }
       *(*tree_str)++;
    }
-   fprintf (stderr,"Read past end of tree string trying to read leaf name. %s\n",tree_str_old);
+   fprintf (stderr,"Read past end of tree string trying to read leaf name. %s\n",*tree_str_old);
    exit(EXIT_FAILURE);
    return NULL;
 }
