@@ -250,7 +250,7 @@ ReadString(FILE * fp)
 			free(string);
 			string = tmp;
 		}
-	} while ((c = getc(fp)) != '\n' && c != EOF);
+	} while ( (c=getc(fp)) != EOF);
 	string[a] = '\0';
 
 	tmp = calloc((size_t) (a + 1), sizeof(char));

@@ -295,7 +295,6 @@ NODE *create_tree_sub (const char **tree_str, NODE * parent, TREE * tree)
       CHILD (node, node->nbran)->branch[0] = node;
       CHILD (node, node->nbran)->branch[1] = NULL;
       CHILD (node, node->nbran)->nbran = 1;
-
       name = GetLeafName(tree_str);
       bufflen = 1+strlen(name);
       node_new->name = malloc (bufflen*sizeof(char));
@@ -384,18 +383,21 @@ char * GetLeafName ( const char ** tree_str){
       *(*tree_str)++;
    }
 
+   const char ** tree_str_old = tree_str;
    while ( *(*tree_str) != '\0' ){
-      switch( *(*tree_str) ){
-	 case '(': case ')': case ';': case ':': case ',':
-	    ret = cstring_of_mystring(string);
-	    free_mystring(string);
-	    return ret;
-	 default:
-	    append_char_to_mystring ( *(*tree_str),string);
+      if ( ! isspace(*(*tree_str)) ){
+         switch( *(*tree_str) ){
+         case '(': case ')': case ';': case ':': case ',':
+	        ret = cstring_of_mystring(string);
+	        free_mystring(string);
+	        return ret;
+         default:
+            append_char_to_mystring ( *(*tree_str),string);
+         }
       }
       *(*tree_str)++;
    }
-   fprintf (stderr,"Read past end of tree string trying to read leaf name.\n");
+   fprintf (stderr,"Read past end of tree string trying to read leaf name. %s\n",tree_str_old);
    exit(EXIT_FAILURE);
    return NULL;
 }

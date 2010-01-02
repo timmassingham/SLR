@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <float.h>
+#include <stdbool.h>
 
 #define Free(A) if( A != NULL){ free( A );  A = NULL;}
 #ifndef OOM
@@ -45,8 +46,8 @@
 static int      lexo(const int **seq, const int i, const int j, const int n);
 static int      lexo2(const int *seq1, const int **seq, const int i, const int n);
 static void     UpdateIndex(DATA_SET * data, const int a, const int b);
-static int     *ReadNucleo(FILE * fp, int n_pts);
-static int     *ReadAmino(FILE * fp, int n_pts);
+static int     *ReadNucleo(FILE * fp, int n_pts, const char * name);
+static int     *ReadAmino (FILE * fp, int n_pts, const char * name);
 static void     SaveNucleoSeq(FILE * fp, int *seq, int length);
 static void     save_amino_seq(FILE * fp, int *seq, int length);
 
@@ -132,8 +133,18 @@ ConvertNucToCodon(const DATA_SET * data, const int gencode)
 
 	if (data->compressed == 1)
 		return NULL;
-	data_new = CreateDataSet(data->n_pts / 3, data->n_sp);
+    unsigned int ncodons = data->n_pts / 3;
+    
+    if ( 0 != (data->n_pts % 3)  ){
+        fprintf(stderr,
+        "#  Warning: sequence length is not divisible by three and so cannot have\n"\
+        "# coding structure. It will be trunctated to %d sites (%d codons).\n", 3*ncodons, ncodons);
+    }
+	data_new = CreateDataSet(ncodons, data->n_sp);
+
+    bool odd_gap_anywhere = false;
 	for (i = 0; i < data->n_sp; i++) {
+        bool odd_gap_in_sequence = false;
 		for (j = 0; j < data_new->n_pts; j++) {
 			ngaps = 0;
 			tmp = data->seq[i][3 * j] * 16;
@@ -152,11 +163,16 @@ ConvertNucToCodon(const DATA_SET * data, const int gencode)
 			case 0:
 				break;
 			default:
-				printf
-					("Odd gapping in data. Sequence %s, Site %d: %c%c%c. Treating as gap.\nNote: this may be as the result of ambiguous nucleotides being translated into gaps.\n",
-				    data->sp_name[i], j, NucleoAsChar(data->seq[i][3 * j]),
-				      NucleoAsChar(data->seq[i][3 * j + 1]),
-				     NucleoAsChar(data->seq[i][3 * j + 2]));
+                if ( ! odd_gap_anywhere ){
+                    puts(  "#  Warning: Odd gapping found. Treating entire codon as gap. This may\n"\
+                           "# be the result of ambiguous nucleotides being translated into gaps.");
+                    odd_gap_anywhere = true;
+                }
+                if ( ! odd_gap_in_sequence ){ 
+				   printf ("#  Warning: Odd gapping in sequence %s,\tcodon sites: ", data->sp_name[i]);
+                   odd_gap_in_sequence = true;
+                }
+                printf("%d ",j);
 			case 3:
 				base = GapChar(SEQTYPE_CODON);
 			}
@@ -164,6 +180,7 @@ ConvertNucToCodon(const DATA_SET * data, const int gencode)
 			if (-1 == data_new->seq[i][j])
 				printf("Got -1 on %d\n", base);
 		}
+        if ( odd_gap_in_sequence ){fputc('\n',stdout);}
 		data_new->sp_name[i] = calloc((size_t) (MAX_SP_NAME + 1), sizeof(char));
 		sscanf(data->sp_name[i], "%s", data_new->sp_name[i]);
 	}
@@ -269,7 +286,7 @@ CodonBaseFreqs(const DATA_SET * data, const int method,
 	n = 0;
 
 	if (1 == perspecies) {
-		fputs("Warning: using perspecies frequencies but calculation may be in error!\n", stderr);
+		fputs("Warning: using per species frequencies but calculation may be in error!\n", stderr);
 		speciesf = calloc(data->n_sp * 13, sizeof(float));
 		if (NULL == speciesf)
 			return NULL;
@@ -1292,9 +1309,9 @@ read_data(const char *filename, const int seqtype)
 		OOM(data->sp_name[i]);
 		(void) fscanf(fp, "%s", data->sp_name[i]);
 		if (data->seq_type == SEQTYPE_NUCLEO)
-			data->seq[i] = ReadNucleo(fp, data->n_pts);
+			data->seq[i] = ReadNucleo(fp, data->n_pts, data->sp_name[i]);
 		else if (data->seq_type == SEQTYPE_AMINO)
-			data->seq[i] = ReadAmino(fp, data->n_pts);
+			data->seq[i] = ReadAmino (fp, data->n_pts, data->sp_name[i]);
 
 		if (data->seq[i] == NULL) {
 			printf("Problems reading data, aborting\n");
@@ -1370,7 +1387,7 @@ save_data(char *filename, DATA_SET * data)
  * A,C
  */
 static int     *
-ReadNucleo(FILE * fp, int n_pts)
+ReadNucleo (FILE * fp, int n_pts, const char * name)
 {
 	int            *seq;
 	char            c;
@@ -1379,24 +1396,30 @@ ReadNucleo(FILE * fp, int n_pts)
 	seq = calloc((size_t) n_pts, sizeof(int));
 	OOM(seq);
 
+    bool has_ambig_nuc = false;
 	for (i = 0; i < n_pts; i++) {
 		c = gchar(fp);
 		j = ToNucleo(c);
 
 
 		if (-1 == j) {
-			printf("Unrecognised nucleotide in ReadNucleo! %c. Treating as gap.\n", c);
+            if ( false==has_ambig_nuc ){
+               printf("#  Warning: Found unrecognised nucleotide in sequence %s: ",name);
+               has_ambig_nuc = true;
+            }
+            printf("%c(%d) ",c,i);
 			j = GapChar(SEQTYPE_NUCLEO);
 		}
 		seq[i] = j;
 	}
+    if(has_ambig_nuc){ fputc('\n',stdout); }
 
 	return seq;
 }
 
 /* Reads in sequence of animo acids and returns array */
 static int     *
-ReadAmino(FILE * fp, int n_pts)
+ReadAmino(FILE * fp, int n_pts, const char * name)
 {
 	int            *seq;
 	char            c;
@@ -1405,12 +1428,17 @@ ReadAmino(FILE * fp, int n_pts)
 	seq = calloc((size_t) n_pts, sizeof(int));
 	OOM(seq);
 
+    bool has_ambig_nuc = false;
 	for (i = 0; i < n_pts; i++) {
 		c = gchar(fp);
 		j = ToAmino(c);
 
 		if (-1 == j) {
-			printf("Unrecognised animo acid in read_animo! Treating as gap.\n");
+            if ( false==has_ambig_nuc ){
+               printf("#  Warning: Found unrecognised nucleotide in sequence %s: ",name);
+               has_ambig_nuc = true;
+            }
+            printf("%c(%d) ",c,i);
 			j = GapChar(SEQTYPE_AMINO);
 		}
 		seq[i] = j;

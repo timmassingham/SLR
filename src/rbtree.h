@@ -60,6 +60,7 @@ void * insertelt_rbtree ( RBTREE tree, void * key, void * value);
 void * removeelt_rbtree (RBTREE tree, const void * key);
 RBITER iter_rbtree (const RBTREE tree);
 const void * itervalue_rbtree (const RBITER iter);
+const void * iterkey_rbtree ( const RBITER iter);
 void freeiter_rbtree( RBITER iter);
 bool next_rbtree ( RBITER rbit );
 

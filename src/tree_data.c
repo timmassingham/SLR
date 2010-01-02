@@ -28,6 +28,7 @@
 #include "bases.h"
 #include "tree_data.h"
 #include "utility.h"
+#include "rbtree.h"
 
 
 static int memadd_plik_tree ( TREE * tree, const int size, const int exact_obs, const int nbase);
@@ -92,37 +93,71 @@ int add_data_to_tree (const DATA_SET * data_old, TREE * tree, MODEL * model)
 
 
 
-  if (data->n_sp != tree->n_sp) {
-    printf ("Error, data and tree have different number of species!\n");
-    exit(EXIT_FAILURE);
-  }
-
   (void) memadd_plik_tree (tree, data->n_unique_pts * model->nbase,
 			   model->exact_obs, model->nbase);
   (void) memadd_seq_tree (tree, data->n_unique_pts);
 
+
+  /* Flag each leaf so we can tell whether it has been visited or not */
+  for ( RBITER iter = iter_rbtree(tree->leaves) ; next_rbtree(iter) ; ){
+      const NODE * leaf = (const NODE *) itervalue_rbtree(iter);
+      leaf->seq[0] = -1;
+  }
+
+  /* Add sequence to tree */
+  bool missing_species = false;
   param = model->param;
   for (unsigned int a = 0; a < data->n_sp; a++) {
     NODE * leaf = find_leaf(a,tree,data);
+    if ( NULL == leaf ){
+       if ( false==missing_species){
+          printf("#  Species are missing from tree, will be ignored: ");
+          missing_species = true;
+       }
+       printf("%s ",data->sp_name[a]);
+       continue;
+    }
     for (unsigned int b = 0; b < data->n_unique_pts; b++)
       leaf->seq[b] = data->seq[a][b];
-
-    if (model->exact_obs != 1) {
-      unsigned int b;
-      for (b = 0, tmp = leaf->plik;
-	   b < data->n_unique_pts * model->nbase; b++, tmp++)
-	*tmp = 0.;
-      tmp = leaf->plik;
-      for (unsigned int b = 0; b < data->n_unique_pts; b++) {
-	/*  Deal with non-gap */
-	if (leaf->seq[b] != GapChar (model->seqtype))
-	  tmp[b * model->nbase + leaf->seq[b]] = 1.0;
-	else
-	  for (unsigned int c = 0; c < model->nbase; c++)
-	    tmp[b * model->nbase + c] = 1.0;
-      }
-    }
   }
+  if(missing_species){fputc('\n',stdout);}
+
+  /*  Go through all leaves in tree and fill in those that do not have sequence with gaps */
+  const int gapc = GapChar(data->seq_type);
+  bool missing_sequence = false;
+  for ( RBITER iter = iter_rbtree(tree->leaves) ; next_rbtree(iter) ; ){
+      const char * name = (const char *) iterkey_rbtree(iter);
+      const NODE * leaf = (const NODE *) itervalue_rbtree(iter);
+
+      if ( leaf->seq[0] == -1 ){
+         if ( false == missing_sequence ){
+            printf("#  Species in tree with no sequence. Will be replaced by blank sequence: ");
+            missing_sequence = true;
+         }
+         printf("%s ",name);
+
+         for ( unsigned int b=0 ; b<data->n_unique_pts ; b++){
+            leaf->seq[b] = gapc;
+         }
+      }
+
+      if (model->exact_obs != 1){
+         unsigned int b;
+         for (b = 0, tmp = leaf->plik; b < data->n_unique_pts * model->nbase; b++, tmp++) *tmp = 0.;
+             tmp = leaf->plik;
+             for (unsigned int b = 0; b < data->n_unique_pts; b++) {
+                 /*  Deal with non-gap */
+                 if (leaf->seq[b] != gapc)
+                    tmp[b * model->nbase + leaf->seq[b]] = 1.0;
+                 else
+                    for (unsigned int c = 0; c < model->nbase; c++)
+                       tmp[b * model->nbase + c] = 1.0;
+             }
+      }
+  }
+  if ( missing_sequence ){ fputc('\n',stdout); }
+
+
 
 
   CheckIsTree (tree);
@@ -253,10 +288,6 @@ NODE * find_leaf ( const int i, const TREE * tree, const DATA_SET * data){
    if ( NULL == a){ /*  Name does not exist -- leaves may be numbered instead */
       num = mitoa((i+1));
       a = find_leaf_by_name(num,tree);
-      if( NULL == a){
-	 fprintf(stderr,"Cannot find species %s in tree (also tried %s for species num %d).\n",data->sp_name[i],num,i+1);
-	 exit(EXIT_FAILURE);
-      }
       free(num);
    }
 
