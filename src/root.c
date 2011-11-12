@@ -44,6 +44,8 @@ double find_root ( double min, double max, double (*f)(const double*,void*), voi
    else { fl = f(&min,info); *neval = *neval + 1;}
    if ( NULL!=fmax){ fu = *fmax;}
    else { fu = f(&max,info); *neval = *neval + 1;}
+   if(!finite(fl)){ fl = -HUGE_VAL;}
+   if(!finite(fu)){ fu = -HUGE_VAL;}
 
    if ( fabs(fl)<tol || fabs(fu)<tol) {
       return ( (fabs(fl)<fabs(fu))?min:max );

@@ -155,8 +155,10 @@ CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 		if (1 == SCALE && node->scale > EVERY) {
 		max = 0.0;
 		for (a = 0; a < model->n_unique_pts * model->nbase; a++)
-			if (node->plik[a] > max)
-				max = node->plik[a];
+		   max += node->plik[a];
+			//if (node->plik[a] > max)
+			//	max = node->plik[a];
+	        max /= model->n_unique_pts * model->nbase;
 		for (a = 0; a < model->n_unique_pts * model->nbase; a++)
 			node->plik[a] /= max;
 		node->scalefactor += log(max);
@@ -245,11 +247,12 @@ Like(double scale, double like[], double freq[], int usize, double *pi, int nsiz
 	double          result = 0, tot = 0;
 
 	for (a = 0; a < usize; a++) {
-		if (like[a] > DBL_MIN) {
+		//if (like[a] > DBL_MIN) {
 			result += freq[a] * log(like[a]);
-		} else {
+		/*} else {
+		   fprintf(stderr,"Likelihood %e <=DBL_MIN, returning DBL_MAX",like[a]);
 			return -DBL_MAX;
-		}
+		}*/
 		tot += freq[a];
 	}
 	result += scale * tot;

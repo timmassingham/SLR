@@ -551,6 +551,28 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
   puts ("# Calculating initial estimates of sitewise conservation");
   add_data_to_tree (data, tree, model);
   const VEC omega_grid = create_grid(GRIDSIZE,positive);
+  double omega_null = omega;
+  double omega_floor=0;
+  double omega_ceiling=0;
+  for ( unsigned int row=0; row< GRIDSIZE ; row++){
+     if(vget(omega_grid,row)>omega_null){
+	omega_floor = vget(omega_grid,row-1);
+	omega_ceiling = vget(omega_grid,row);
+	break;
+     }
+  }
+  if(positive){
+     omega_null = (omega_null<1.0)?1.01:omega_null;
+     omega_floor = (omega_floor<1.0)?1.0:omega_floor;
+     if(omega_ceiling<=1.0){
+	for ( unsigned int row=0; row< GRIDSIZE ; row++){
+	   if(vget(omega_grid,row)>1.0){
+	      omega_ceiling = vget(omega_grid,row);
+	      break;
+	   }
+	}
+     }
+  }
   /*  Fill out sitewise likelihoods for grid  */
   likelihood_grid = calloc (data->n_unique_pts * GRIDSIZE, sizeof (double));
   OOM(likelihood_grid);
@@ -633,6 +655,12 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       bd[0] = (start>0)?vget(omega_grid,start-1):(double)positive;
       bd[1] = (start<GRIDSIZE-1)?vget(omega_grid,start+1):99.;
       x[0] = vget(omega_grid,start);
+      // Sanity check
+      if(!finite(x[0])){
+	 x[0] = omega_null;
+	 bd[0] = omega_floor;
+	 bd[1] = omega_ceiling;
+      }
       
       int neval=0;
       fm = linemin_1d ( CalcLike_Single, x, (void *)info, bd[0], bd[1], 1e-5,0,&neval);
