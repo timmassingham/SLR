@@ -282,23 +282,8 @@ MakeP_From_FactQ(const double *v, const double *ev, const double *inv_ev, const 
 	ev1 = 0.;
 	for (i = 0; i < n; i++) {
 		expl[i] = exp(length * rate * scale * v[i]);
-		if (expl[i] > ev1 && fabs(1. - expl[i]) > DBL_EPSILON)
-			ev1 = expl[i];
 	}
 
-	/*
-	 * Does largest ev dominate. If so, we are at equilibrium. Return
-	 * matrix with equilibrium distribution as rows. This is actually
-	 * horrid hack, should test (1+n_pi_equal_to_zero)th largest expl[i]
-	 * to be very small rather than trying to divine it by looking at
-	 * whether the ev's are close to 1. or not.
-	 */
-	/*if (fabs(ev1) < 1e-8) {
-		for (i = 0; i < n; i++)
-			for (j = 0; j < n; j++)
-				p[i * n + j] = pi[j];
-		return p;
-	}*/
 	for (i = 0; i < n; i++)
 		for (j = 0; j < n; j++)
 			p[i * n + j] = ev[i * n + j] * expl[j];
