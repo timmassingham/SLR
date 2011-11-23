@@ -60,7 +60,7 @@ struct node {
         double          *plik;
         double          *mid,*back,*dback;
         double          *mat, *bmat;
-        double          scalefactor,bscalefactor;
+        double          *scalefactor,*bscalefactor;
         int scale,bscale;
 };
 

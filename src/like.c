@@ -53,10 +53,10 @@ void            Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model
 void            DoDerivatives(MODEL * model, TREE * tree, double *grad, double *lvec);
 void
 DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
-		    double *lvec, double lscale);
+		    double *lvec, double *lscale);
 void
 DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
-		   double *lvec, double lscale);
+		   double *lvec, double *lscale);
 
 static double   GetParam(MODEL * model, TREE * tree, int i);
 
@@ -73,7 +73,9 @@ CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 	double          max;
 	int             a, b, c;
 
-	node->scalefactor = 0.0;
+	for(a = 0; a < model->n_unique_pts; a++) {
+		node->scalefactor[a] = 0.0;
+	}
 	node->scale = 0;
 
 	if (ISLEAF(node)) {
@@ -153,15 +155,18 @@ CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 
 	//Scale on this node
 		if (1 == SCALE && node->scale > EVERY) {
-		max = 0.0;
-		for (a = 0; a < model->n_unique_pts * model->nbase; a++)
-		   max += node->plik[a];
-			//if (node->plik[a] > max)
-			//	max = node->plik[a];
-	        max /= model->n_unique_pts * model->nbase;
-		for (a = 0; a < model->n_unique_pts * model->nbase; a++)
-			node->plik[a] /= max;
-		node->scalefactor += log(max);
+		for (a = 0; a < model->n_unique_pts; a++){
+			max = 0.0;
+			for ( b=0 ; b<model->nbase ; b++){
+				if(node->plik[a*model->nbase+b]>max){
+					max = node->plik[a*model->nbase+b];
+				}
+			}
+			for ( b=0 ; b<model->nbase ; b++){
+				node->plik[a*model->nbase+b] /= max;
+			}
+			node->scalefactor[a] += log(max);
+		}
 		node->scale = 0;
 	}
 	a = find_connection(node, parent);
@@ -173,7 +178,9 @@ CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 		tmp1[b] *= tmp2[b];
 
 	parent->scale += node->scale + 1;
-	parent->scalefactor += node->scalefactor;
+	for ( a = 0; a < model->n_unique_pts; a++){
+		parent->scalefactor[a] += node->scalefactor[a];
+	}
 
 	return 0;
 }
@@ -222,40 +229,17 @@ LikeVectorSub(TREE * tree, MODEL * model, double *p)
 	return 0;
 }
 
-double
-LikeDiff(double scale1, double scale2, double like1[], double like2[],
-	 double freq[], int size)
-{
-	int             a;
-	double          result = 0.;
-	double          tot = 0.;
-
-	for (a = 0; a < size; a++) {
-		result += freq[a] * log(like1[a] / like2[a]);
-		tot += freq[a];
-	}
-	result += tot * (scale1 - scale2);
-
-	return result;
-}
-
 
 double
-Like(double scale, double like[], double freq[], int usize, double *pi, int nsize, int *index)
+Like(double * scale, double like[], double freq[], int usize, double *pi, int nsize, int *index)
 {
 	int             a;
-	double          result = 0, tot = 0;
+	double          result = 0;
 
 	for (a = 0; a < usize; a++) {
-		//if (like[a] > DBL_MIN) {
-			result += freq[a] * log(like[a]);
-		/*} else {
-		   fprintf(stderr,"Likelihood %e <=DBL_MIN, returning DBL_MAX",like[a]);
-			return -DBL_MAX;
-		}*/
-		tot += freq[a];
+		result += freq[a] * log(like[a]);
+		result += freq[a] * scale[a];
 	}
-	result += scale * tot;
 
 	for (a = 0; a < nsize; a++) {
 		if (index[a] < 0 && index[a] != -INT_MAX) {
@@ -274,9 +258,9 @@ double
 PartialDeriv(TREE * tree, MODEL * model, double *p, int n)
 {
 	int             i;
-	double          d, tot, loglike, *freq;
+	double          d, loglike, *freq;
 	double         *space;
-	double          scale1, scale2;
+	double          *scale1, *scale2;
 
 	d = GetParam(model, tree, n);
 	UpdateParam(model, tree, d + DELTA, n);
@@ -294,7 +278,6 @@ PartialDeriv(TREE * tree, MODEL * model, double *p, int n)
 
 	freq = model->pt_freq;
 	loglike = 0.0;
-	tot = 0.;
 	for (i = 0; i < model->n_unique_pts; i++) {
 		if (space[i] <= DBL_MIN) {
 			return -DBL_MAX;
@@ -302,9 +285,8 @@ PartialDeriv(TREE * tree, MODEL * model, double *p, int n)
 		if (p[i] <= DBL_MIN)
 			return DBL_MAX;
 		loglike += freq[i] * log(space[i] / p[i]);
-		tot += freq[i];
+		loglike += freq[i] * (scale1[i]-scale2[i]);
 	}
-	loglike += tot * (scale1 - scale2);
 
 	if (d > DELTA)
 		loglike /= 2.0 * DELTA;
@@ -335,8 +317,8 @@ Partial2Deriv(TREE * tree, MODEL * model, double p[], int a, int b)
 	static int      size = 0;
 	int             i;
 	double          d, *freq, loglike, e;
-	double          scale, scalepm, scalemp;
-	double          scalepp, scalemm;
+	double          *scale, *scalepm, *scalemp;
+	double          *scalepp, *scalemm;
 
 	if (space == NULL || size < model->n_unique_pts) {
 		size = model->n_unique_pts;
@@ -367,16 +349,14 @@ Partial2Deriv(TREE * tree, MODEL * model, double p[], int a, int b)
 		scale = (tree->tree)->scalefactor;
 
 		loglike = 0.0;
-		d = 0.;
 		freq = model->pt_freq;
 		for (i = 0; i < model->n_unique_pts; i++) {
 			if (p[i] > DBL_MIN)
 				loglike += freq[i] * (space[i] - 2.0 * log(p[i]));
 			else
 				return DBL_MAX;
-			d += freq[i];
+			loglike += freq[i] * (scalepp[i] + scalemm[i] - scale[i] - scale[i]);
 		}
-		loglike += d * (scalepp + scalemm - scale - scale);
 
 		loglike /= DELTA * DELTA;
 
@@ -414,12 +394,10 @@ Partial2Deriv(TREE * tree, MODEL * model, double p[], int a, int b)
 
 		freq = model->pt_freq;
 		loglike = 0.0;
-		d = 0.;
 		for (i = 0; i < model->n_unique_pts; i++) {
 			loglike += freq[i] * space[i];
-			d += freq[i];
+			loglike += freq[i] * (scalepp[i] + scalemm[i] - scalepm[i] - scalemp[i]);
 		}
-		loglike += d * (scalepp + scalemm - scalepm - scalemp);
 		loglike /= 4.0 * DELTA * DELTA;
 
 		UpdateParam(model, tree, d, a);
@@ -453,15 +431,10 @@ HessianLike(TREE * tree, MODEL * model, double p[], double hess[])
 double
 LikeFun_Single(TREE * tree, MODEL * model, double *p)
 {
-	double          scale;
 
 	LikeVector(tree, model, p);
-	scale = (tree->tree)->scalefactor;
-	scale =
-		Like(scale, p, model->pt_freq, model->n_unique_pts, model->pi,
+	return Like((tree->tree)->scalefactor, p, model->pt_freq, model->n_unique_pts, model->pi,
 		     model->n_pts, model->index);
-
-	return scale;
 }
 
 
@@ -645,7 +618,9 @@ Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 		for (i = 0; i < model->nbase * model->n_unique_pts; i++)
 			node->back[i] = 1.;
 		i = 0;
-		node->bscalefactor = 0.;
+		for ( j=0 ; j<model->n_unique_pts; j++){
+			node->bscalefactor[j] = 0.;
+		}
 		node->bscale = 0;
 		while (i < parent->nbran && parent->branch[i] != NULL) {
 			bnode = parent->branch[i];
@@ -653,7 +628,9 @@ Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 				tmp_plik = bnode->mid;
 				for (j = 0; j < model->nbase * model->n_unique_pts; j++)
 					node->back[j] *= tmp_plik[j];
-				node->bscalefactor += bnode->scalefactor;
+				for(j=0 ; j<model->n_unique_pts; j++){
+					node->bscalefactor[j] += bnode->scalefactor[j];
+				}
 				node->bscale += bnode->scale;
 			}
 			i++;
@@ -661,8 +638,9 @@ Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 		/* If not at root node */
 	} else if (NULL != parent) {
 		Matrix_MatrixT_Mult(parent->back, model->n_unique_pts, model->nbase, parent->mat, model->nbase, model->nbase, node->back);
-
-		node->bscalefactor = parent->bscalefactor;
+		for(j = 0; j <model->n_unique_pts; j++){
+			node->bscalefactor[j] = parent->bscalefactor[j];
+		}
 		node->bscale = parent->bscale;
 		i = 1;
 		while (i < parent->nbran && parent->branch[i] != NULL) {
@@ -671,7 +649,9 @@ Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 				tmp_plik = bnode->mid;
 				for (j = 0; j < model->nbase * model->n_unique_pts; j++)
 					node->back[j] *= tmp_plik[j];
-				node->bscalefactor += bnode->scalefactor;
+				for (j = 0; j <model->n_unique_pts; j++){
+					node->bscalefactor[j] += bnode->scalefactor[j];
+				}
 				node->bscale += bnode->scale;
 			}
 			i++;
@@ -681,13 +661,17 @@ Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 	node->bscale++;
 
 	if (1 == SCALE && node->bscale > EVERY) {
-		max = 0.0;
-		for (i = 0; i < model->n_unique_pts * model->nbase; i++)
-			if (node->back[i] > max)
-				max = node->back[i];
-		for (i = 0; i < model->n_unique_pts * model->nbase; i++)
-			node->back[i] /= max;
-		node->bscalefactor += log(max);
+		for (i = 0; i < model->n_unique_pts; i++){
+			max = 0.0;
+			for ( j=0 ; j<model->nbase ; j++){
+				if (node->back[i*model->nbase+j] > max)
+					max = node->back[i*model->nbase+j];
+			}
+			for (j= 0; j < model->nbase; j++){
+				node->back[i*model->nbase+j] /= max;
+			}
+			node->bscalefactor[i] += log(max);
+		}
 		node->bscale = 0;
 	}
 descend:
@@ -706,7 +690,7 @@ descend:
 void
 DoDerivatives(MODEL * model, TREE * tree, double *grad, double *lvec)
 {
-	double          lscale;
+	double          *lscale;
 	double         *grad_ptr;
 
 
@@ -723,22 +707,23 @@ DoDerivatives(MODEL * model, TREE * tree, double *grad, double *lvec)
 
 void
 DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
-		    double *lvec, double lscale)
+		    double *lvec, double *lscale)
 {
 	int             i, j, k, n, npts;
 	NODE           *node;
 	int             base;
-	double          tmp, *pt_freq, fact;
+	double          tmp, fact;
 
 	n = model->nbase;
 	npts = model->n_unique_pts;
-	pt_freq = model->pt_freq;
 	fact = Rate(model) * Scale(model);
 
 	for (i = 0; i < tree->n_br; i++) {
 		node = tree->branches[i];
-		node->bscalefactor =
-			exp(node->scalefactor + node->bscalefactor - lscale);
+		for(j=0 ; j<model->n_unique_pts ; j++){
+			node->bscalefactor[j] =
+				exp(node->scalefactor[j] + node->bscalefactor[j] - lscale[j]);
+		}
 		GetQP(model->q, node->mat, node->bmat, n);
 		Matrix_MatrixT_Mult(node->back, model->n_unique_pts, model->nbase, node->bmat, model->nbase, model->nbase, model->tmp_plik);
 
@@ -751,7 +736,7 @@ DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
 							model->pi[k] * model->tmp_plik[j * n + k] * node->plik[j * n + k];
 					tmp *= fact;
 					tmp /= lvec[j];
-					grad[i * npts + j] = tmp * node->bscalefactor;
+					grad[i * npts + j] = tmp * node->bscalefactor[j];
 				}
 
 			} else {
@@ -766,7 +751,7 @@ DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
 					}
 					tmp *= fact;
 					tmp /= lvec[j];
-					grad[i * npts + j] = tmp * node->bscalefactor;
+					grad[i * npts + j] = tmp * node->bscalefactor[j];
 				}
 			}
 		}
@@ -775,13 +760,11 @@ DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
 
 void
 DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
-		   double *lvec, double lscale)
+		   double *lvec, double *lscale)
 {
-	double          factor, tmp, expscale;
+	double           tmp;
 	double         *gradpi, *dpidparam;
-	double sum;
 
-	factor = Scale(model) * Rate(model);
 	const unsigned int n = model->nbase;
 	const unsigned int npts = model->n_unique_pts;
 	unsigned int nparam = model->nparam;
@@ -792,7 +775,6 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 		gradpi = grad;
 	}
 	const unsigned int pioffset = model->nparam - model->nbase + 1;
-	expscale = exp(lscale);
 
 	for (unsigned int i = 0; i < nparam; i++) {
 		if ( Branches_Proportional==model->has_branches && 0==i){
@@ -813,36 +795,21 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 			tmp = 0.;
 			for (unsigned int k = 0; k < tree->n_br; k++) {
 				NODE * node = tree->branches[k];
-				sum = 0.;
 				if (!ISLEAF(node)) {
-					//warn("%s:%d\tThis function is not properly debugged\n",__FILE__,__LINE__);
 					for ( unsigned int base=0 ; base<n ; base++){
 						for (unsigned int l = 0; l < n; l++){
 							tmp +=
 								model->pi[l] * node->bmat[l*n+base] * node->back[j * n + l] * node->plik[j * n + base]
-								* node->bscalefactor;
-							/*sum += model->pi[l] * node->mat[l*n+base] * node->back[j * n + l] * node->plik[j * n + base]
-								* node->bscalefactor;*/
+								* node->bscalefactor[j];
 						}
-						/*if ( model->optimize_pi && i>=pioffset){ 
-							l = i - pioffset; 
-							tmp += node->mat[l*n+base] * node->back[j * n + l] * node->plik[j * n + base]
-								* node->bscalefactor;
-						}*/
 					}
 				} else {
 					unsigned int base = node->seq[j];
 					if (GapChar(model->seqtype) != base) {
 						for ( unsigned int l=0 ; l<n ; l++){
-							tmp += model->pi[l] * node->bmat[l*n+base] * node->back[j * n + l] * node->bscalefactor;
-							/*sum += model->pi[l] * node->mat[l*n+base] * node->back[j * n + l] * node->bscalefactor;*/
+							tmp += model->pi[l] * node->bmat[l*n+base] * node->back[j * n + l] * node->bscalefactor[j];
 						}
-						/*if ( model->optimize_pi && i>=pioffset){ 
-							l = i - pioffset; 
-							tmp += node->mat[l*n+base] * node->back[j * n + l] * node->bscalefactor;
-						}*/
 					} else {
-						//warn("%s:%d\tThis function is not properly debugged\n",__FILE__,__LINE__);
 						/* Note: it might be possible to simply this using reversibility.
 						 *  \sum_i \pi_i dP_{ia}/d\pi_j = \delta_{ja} - P_{ja}
 						 * Needs checking! Derived from \sum_i \pi_i P_{ia} = \pi_a 
@@ -850,13 +817,8 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 						 */
 						for (unsigned int base = 0; base < n; base++){
 							for ( unsigned int l=0 ; l<n ; l++){
-								tmp += model->pi[l] * node->bmat[l*n+base] * node->back[j * n + l] * node->bscalefactor;
-								/*sum += model->pi[l] * node->mat[l*n+base] * node->back[j * n + l] * node->bscalefactor;*/
+								tmp += model->pi[l] * node->bmat[l*n+base] * node->back[j * n + l] * node->bscalefactor[j];
 							}
-							/*if ( model->optimize_pi && i>=pioffset){ 
-								l = i - pioffset; 
-								tmp += node->mat[l*n+base] * node->back[j * n + l] * node->bscalefactor;
-							}*/
 						}
 					}
 				}
@@ -865,7 +827,7 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 			
 			if ( model->optimize_pi && i>=pioffset){ 
 				unsigned int base = i - pioffset; 
-				tmp += tree->tree->plik[j*n+base] * expscale;
+				tmp += tree->tree->plik[j*n+base] * exp(lscale[j]);
 			}
 			tmp /= lvec[j];
 			gradpi[i * npts + j] = tmp;
@@ -928,3 +890,4 @@ GetParam(MODEL * model, TREE * tree, int i)
 	assert(i - offset > 0 && i - offset < model->nparam);
 	return model->GetParam(model, i - offset);
 }
+

@@ -580,7 +580,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
     x[0] = vget(omega_grid,row);
     CalcLike_Single (x,info);
     for ( unsigned int pt=0 ; pt<data->n_unique_pts ; pt++){
-      likelihood_grid[pt*GRIDSIZE+row] = -(tree->tree)->scalefactor - log (info->p[pt]);
+      likelihood_grid[pt*GRIDSIZE+row] = -(tree->tree)->scalefactor[pt] - log (info->p[pt]);
     }
   }
   /*  Fill out vector of likelihoods for neutral evolution */
@@ -588,7 +588,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
   x[0] = 1.;
   CalcLike_Single (x,info);
   for ( unsigned int pt=0 ; pt<data->n_unique_pts ; pt++){
-    likelihood_neutral[pt] = -(tree->tree)->scalefactor - log (info->p[pt]);
+    likelihood_neutral[pt] = -(tree->tree)->scalefactor[pt] - log (info->p[pt]);
   }
 
   
