@@ -25,6 +25,7 @@
 #include <float.h>
 #include <limits.h>
 #include <assert.h>
+#include <err.h>
 
 #include "matrix.h"
 #include "utility.h"
@@ -485,9 +486,10 @@ OPTMESS(printf("Failed to find improved point.\nf(x) = %e\n",opt->f(opt->x, opt-
 	opt->f(opt->xn,opt->state); opt->neval++;
 	opt->df(opt->xn, opt->dxn, opt->state); opt->neval++;
 	for ( int i=0 ; i<opt->n ; i++){direct[i] = -opt->dxn[i];}
+OPTMESS(printf("Updating active set\n"););
 	UpdateActiveSet (opt->xn, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
                                     opt->lb, opt->ub, opt->onbound, opt->n,newbound);
-
+OPTMESS(printf("Updating bfgs set\n"););
 	UpdateH_BFGS(opt->H, opt->x, opt->xn, opt->dx, opt->dxn,
 		     ((struct scaleinfo *) opt->state)->scale, opt->n, space,
 		     opt->onbound);
@@ -567,6 +569,7 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 	int             i, j;
 	int             nremoved = 0;
 	double          diag;
+	int inverted=0;
 
 	assert(NULL != x);
 	assert(NULL != direct);
@@ -592,13 +595,15 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 				nremoved++;
 				errn = errn | PARAM_BOUND;
 				diag = InvHess[i * n + i];
-				InvertMatrix(InvHess,n);
+				if(!inverted){
+					InvertMatrix(InvHess,n);
+					inverted = 1;
+				}
 				for ( j=0 ; j<n ; j++){
 					InvHess[i*n+j] = 0.;
 					InvHess[j*n+i] = 0.;
 				}
 				InvHess[i*n+i] = fabs(diag);
-				InvertMatrix(InvHess,n);
 			}
 			onbound[i] = 1;
 			direct[i] = 0.;
@@ -607,6 +612,9 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 			 * parameter is coming off boundary */
 			onbound[i] = 0;
 		}
+	}
+	if(inverted){
+		InvertMatrix(InvHess,n);
 	}
 	*newbound += nremoved;
 	return nremoved;
