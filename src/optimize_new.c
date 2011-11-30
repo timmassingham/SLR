@@ -26,6 +26,7 @@
 #include <limits.h>
 #include <assert.h>
 #include <err.h>
+#include <string.h>
 
 #include "matrix.h"
 #include "utility.h"
@@ -114,7 +115,7 @@ void            InitializeH(OPTOBJ * opt);
 void            TestIdentity(double *A, double *B, int n);
 double          TrimAtBoundaries(const double *x, const double *direct,
 	                 const double *scale, const int n, const double *lb,
-		                      const double *ub, const int *onbound);
+		                      const double *ub, const int *onbound, int * idx);
 int             UpdateActiveSet(const double *x, double *grad, const double *scale,
 	                double *InvHess, const double *lb, const double *ub,
 				                 int *onbound, const int n, int * newbound);
@@ -380,6 +381,99 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
 
 }
 
+/* Best step in constrained region, assuming quadratic approx */
+double  GetStep(double * direct, const double * x, const double *scale, const double * InvHess, const double * grad, const int n, const double * lb, const double * ub, const int * onbound, const double tr){
+	int fix[n];
+	double fixv[n];
+	double gradf[n];
+	int nfree = n;
+	double norm;
+	bool fixed = false;
+
+	bzero(fix,n*sizeof(int));
+	bzero(fixv,n*sizeof(double));
+
+	do {
+		fixed = false;
+		// Calculate restricted Newton step
+		// First, restricted gradient
+		for ( int i=0 ; i<n ; i++){
+			gradf[i] = grad[i];
+		}
+		for ( int i=0 ; i<n ; i++){
+			if(fix[i]){
+				for(int j=0 ; j<n ; j++){
+					gradf[j] += InvHess[i * n + j] * fixv[j];
+				}
+			}
+		}
+
+		// Second, Newton step
+		norm = 0.0;
+		for ( int i=0 ; i<n ; i++){
+			direct[i] = 0.0;
+			for ( int j=0 ; j<n ; j++){
+				if(!fix[j]){
+					direct[i] -= InvHess[i * n + j] * gradf[j];
+				}
+			}
+			if(fix[i]){
+				direct[i] = fixv[i];
+			}
+			norm += direct[i] * direct[i];
+		}
+		norm = sqrt(norm);
+		// If step leaves trust region, scale back into it.
+		if(norm>tr){
+			double sf = tr/norm;
+			for ( int i=0 ; i<n ; i++){
+				direct[i] *= sf;
+			}
+			norm = tr;
+		}
+
+		// Assess whether step has hit a boundary, if so then reduce
+		// Firstly, find nearest boundary
+		int nearestB = -1;
+		double dist = HUGE_VAL;
+		for ( int i=0 ; i<n ; i++){
+			if(!fix[i]){
+				if(direct[i]<0.0){
+					double del = (lb[i]/scale[i]-x[i])/direct[i];
+					if( del < dist ){
+						dist = del;
+						nearestB = i;
+					}
+				} else if (direct[i]>0.0){
+					double del = (ub[i]/scale[i]-x[i])/direct[i];
+					if( del < dist ){
+                                                dist = del;
+                                                nearestB = i;
+                                        }
+				} else {
+					warnx("Direction %d is zero",i+1);
+				}
+			}
+		}
+
+		// If step would hit nearest boundary
+		if(dist<norm){
+			fix[nearestB] = 1;
+			fixv[nearestB] = (direct[nearestB]>0.0)?(ub[nearestB]/scale[nearestB]-x[nearestB]):(lb[nearestB]/scale[nearestB]-x[nearestB]);
+			if(onbound[nearestB]){ fixv[nearestB] = 0.0;}
+			nfree--;
+			fixed = true;
+		}
+
+	} while(fixed && nfree>0);
+
+	return norm;
+}
+
+
+
+		
+
 double 
 TakeStep(OPTOBJ * opt, const double tol, double *factor,
 	 int *newbound)
@@ -387,26 +481,30 @@ TakeStep(OPTOBJ * opt, const double tol, double *factor,
 	double          norm;
 	double         *direct, *space;
 	double          maxfactor;
-	int             i;
+	int             i,idx;
 
 	direct = opt->space;
 	space = opt->space + opt->n;
 	*newbound = 0;
 
+	/*
 	do {
-		norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound);
+		norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound,fixdirect);
 	} while (UpdateActiveSet
 	  (opt->x, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
-	   opt->lb, opt->ub, opt->onbound, opt->n,newbound));
+	   opt->lb, opt->ub, opt->onbound, opt->n,newbound) || Fix(opt,direct,fixdirect));
 
-	/*  Scale step to satisfy trust region */
+	//  Scale step to satisfy trust region
 	if ( norm>opt->trust){ scale_vector (direct,opt->n,opt->trust/norm); }
+	*/
+	norm = GetStep(direct, opt->x,((struct scaleinfo *) opt->state)->scale,opt->H, opt->dx, opt->n, opt->lb, opt->ub,opt->onbound,opt->trust);
+	if ( norm>opt->trust){ scale_vector (direct,opt->n,opt->trust/norm);}
 
 	*factor = 1.;
 	maxfactor =
 		TrimAtBoundaries(opt->x, direct,
 			   ((struct scaleinfo *) opt->state)->scale, opt->n,
-				 opt->lb, opt->ub, opt->onbound);
+				 opt->lb, opt->ub, opt->onbound,&idx);
 	/*
 	 * Three tier decision criteria. i. If Newton step is valid, accept.
 	 * ii. If not, look at function and gradient at boundary and decide
@@ -512,9 +610,9 @@ OPTMESS(printf("f(x) = %e\n",opt->f(opt->x, opt->state)););
 double 
 TrimAtBoundaries(const double *x, const double *direct,
 		 const double *scale, const int n, const double *lb,
-		 const double *ub, const int *onbound)
+		 const double *ub, const int *onbound, int * idx)
 {
-	int             i, idx;
+	int             i;
 	double          bound, maxerr, epserr;
 	volatile double maxfact, fact;
 
@@ -541,7 +639,7 @@ TrimAtBoundaries(const double *x, const double *direct,
 			epserr = (fabs(bound) + fabs(x[i])) / fabs(direct[i]);
 			assert(fact > 0.);
 			if (fact < maxfact) {
-				idx = i;
+				*idx = i;
 				maxfact = fact;
 				maxerr = epserr;
 			}
@@ -623,6 +721,7 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 double SteepestDescentStep ( OPTOBJ * opt){
 	assert(NULL!=opt);
 
+	int idx;
 	double * direct = opt->space;
 	double * space = opt->space + opt->n;
 
@@ -630,7 +729,7 @@ double SteepestDescentStep ( OPTOBJ * opt){
 		opt->xn[i] = opt->x[i];
 		direct[i] = (opt->onbound[i])?0.:-opt->dx[i];
 	}
-	double maxfactor = TrimAtBoundaries(opt->x, direct, ((struct scaleinfo *) opt->state)->scale, opt->n, opt->lb, opt->ub, opt->onbound);
+	double maxfactor = TrimAtBoundaries(opt->x, direct, ((struct scaleinfo *) opt->state)->scale, opt->n, opt->lb, opt->ub, opt->onbound, &idx);
 	double fnew = linemin_backtrack(opt->f, opt->n, opt->xn, space, direct, opt->state, 0.,
                                        maxfactor, 1e-12, 0, &opt->neval);
         OPTMESS(printf("Steepest descent: Diff = %e\n",opt->fc-fnew);)
@@ -715,7 +814,7 @@ UpdateH_BFGS( double *H, const double *x, double *xn, const double *dx,
 		}
 	}
 
-	if (gd <= 1e-5) {
+	if (gd <= 3e-8) {
 		errn = errn | HESSIAN_NONPD;
 		MakeMatrixIdentity(H, n);
 		return 1;
