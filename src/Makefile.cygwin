@@ -1,4 +1,4 @@
-CC = gcc
+CC = i686-pc-mingw32-gcc
 # For Windows
 BLASDIR =
 CFLAGS = -O4 -fomit-frame-pointer -funroll-loops -DNDEBUG -std=gnu99 -mno-cygwin -DWINDOWS
@@ -14,7 +14,7 @@ objects = like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o uti
 
 
 Slr: slr.o $(objects)
-	g77  -o ../bin/$@ slr.o $(objects) $(CFLAGS) $(LDFLAGS) /home/Tim/lib/lapack.a /home/Tim/lib/blas.a
+	 i686-pc-mingw32-gfortran  -o ../bin/$@ slr.o $(objects) $(CFLAGS) $(LDFLAGS) /usr/lib/liblapack.a /usr/lib/libblas.a
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCFLAGS) -o $@ -c $<
