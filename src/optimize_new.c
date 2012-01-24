@@ -32,6 +32,9 @@
 #include "utility.h"
 #include "spinner.h"
 #include "linemin.h"
+#ifdef WINDOWS
+	#include "windows/err.h"
+#endif /* WINDOWS */
 
 #define RESTART		1 
 #define RESET		100
@@ -390,8 +393,8 @@ double  GetStep(double * direct, const double * x, const double *scale, const do
 	double norm;
 	bool fixed = false;
 
-	bzero(fix,n*sizeof(int));
-	bzero(fixv,n*sizeof(double));
+	memset(fix,0,n*sizeof(int));
+	memset(fixv,0,n*sizeof(double));
 
 	do {
 		fixed = false;

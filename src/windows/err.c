@@ -24,7 +24,7 @@
 #include <stdarg.h>
 #include <assert.h>
 
-void warn ( const char * fmt, ...){
+void warnx ( const char * fmt, ...){
 	va_list args;
 
 	assert(NULL!=fmt);

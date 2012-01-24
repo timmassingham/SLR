@@ -19,6 +19,6 @@
  *  along with SLR.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-void warn(const char * fmt, ...);
+void warnx(const char * fmt, ...);
 void err (const int errnum, const char * fmt, ...);
 
