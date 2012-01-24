@@ -187,7 +187,7 @@ int main (int argc, char *argv[])
   SetAminoAndCodonFuncs (nucleof, aminof, nucfile, aminofile);
   gencode = GetGeneticCode (gencode_str);
 
-  if ( 0!=cleandata ){ warn("cleandata options not implemented yet. Defaulting to 0 (treat ambiguous characters as gaps).\n"); }
+  if ( 0!=cleandata ){ warnx("cleandata options not implemented yet. Defaulting to 0 (treat ambiguous characters as gaps).\n"); }
   data = ReadData (seqfile,gencode);
   if ( NULL==data){
     puts ("Problem reading data file. Aborting\n");

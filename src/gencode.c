@@ -329,7 +329,7 @@ GetAminoFrequencies(const double *codons, const int gencode)
 
 	af = calloc(20, sizeof(double));	/* Err. Magic number */
 	if (NULL == af) {
-		warn("Failed to allocate memory %s:%d\n. Returing null", __FILE__, __LINE__);
+		warnx("Failed to allocate memory %s:%d\n. Returing null", __FILE__, __LINE__);
 		return NULL;
 	}
 	for (int codon = 0; codon < 64; codon++) {

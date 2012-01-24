@@ -85,7 +85,7 @@ NewNNNModel_full(const int *desc, const double *params, const int nparam, const 
 	tnparam = opt_pi ? (nparam + 3) : nparam;
 	model = NewModel(4, tnparam);
 	if (NULL == model) {
-		warn("NewModel returned NULL at %s:%d. Trying to continue.\n", __FILE__, __LINE__);
+		warnx("NewModel returned NULL at %s:%d. Trying to continue.\n", __FILE__, __LINE__);
 		return NULL;
 	}
 	model->Getq = GetQ_Nuc;
@@ -256,7 +256,7 @@ GetdQ_JC69(MODEL * model, int n, double *q)
 			model->dq[i] *= s;
 		}
 	} else {
-		warn("Called GetdQ for JC69, which has no parameters!\n");
+		warnx("Called GetdQ for JC69, which has no parameters!\n");
 	}
 	return;
 }
