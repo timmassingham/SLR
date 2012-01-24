@@ -54,6 +54,8 @@
 
 #define BOUND_TOL	1e-5
 
+#define TEMPFILE 	"parameters.tmp"
+
 
 #ifdef USE_OPTMESS
 	#define OPTMESS(A) A
@@ -147,7 +149,7 @@ double calcerr ( const double x, const double y){
 
 void            Optimize(double *x, int n, void (*df) (const double *, double *, void *),
                      double (*f) (const double *, void *), double *fx, void *data,
-				                 double *bd, int noisy)
+		     double *bd, int noisy, const bool writeTemp, const bool readTemp)
 {
 	OPTOBJ         *opt;
 	double          fo, fn, tol, md;
@@ -158,6 +160,7 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 	double         *scale;
 	SPINNER        *spin;
 	int             newbound = 1;
+	bool tempOk = true;
 
 
 	opt = NewOpt(n);
@@ -165,6 +168,22 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 		return;
 	}
 	InitializeOpt(opt, x, n, df, f, *fx, data, bd);
+	if (readTemp){
+                FILE * fp = fopen(TEMPFILE,"r");
+                if(NULL==fp){
+                        errx(EXIT_FAILURE,"Failed from read from temporary file");
+                }
+                fread(opt->x,sizeof(double),n,fp);
+		fread(opt->dx,sizeof(double),n,fp);
+		fread(((struct scaleinfo * )opt->state)->scale,sizeof(double),n,fp);
+		fread(&opt->fc,sizeof(double),1,fp);
+                fclose(fp);
+                for ( int i=0 ; i<n ; i++){
+                        fprintf(stdout,"%e ",x[i]);
+                }
+                fputc('\n',stdout);
+        }
+
 
 	tol = 3e-8;
 	max_step = 100;
@@ -174,7 +193,7 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 	/* Do optimization, allowing restarts so don't get bogged down. */
 
 	if (noisy == 2) {
-		printf("Initial\tf: %8.6f\nStep     f(x)      delta\n", *fx);
+		printf("Initial\tf: %8.6f\nStep     f(x)      delta\n", opt->fc);
 	} else if (noisy == 1) {
 		spin = CreateSpinner(2);
 	}
@@ -205,6 +224,20 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
                         } else if (noisy == 1) {
                                 UpdateSpinner(spin);
                         }
+			// Write temporary values to file
+			if (writeTemp && tempOk){
+				FILE * fp = fopen(TEMPFILE,"w");
+				if(NULL==fp){
+					warnx("Failed to open temporary file");
+					tempOk = false;
+				} else {
+					fwrite(opt->x,sizeof(double),opt->n,fp);
+					fwrite(opt->dx,sizeof(double),n,fp);
+					fwrite(((struct scaleinfo * )opt->state)->scale,sizeof(double),n,fp);
+					fwrite(&opt->fc,sizeof(double),1,fp);
+					fclose(fp);
+				}
+			}
 
 		} while ((calcerr(fn,opt->fc) > tol) || newbound );
 

@@ -87,7 +87,7 @@ void GradLike_Full (const double *param, double *grad, void *data);
 VEC create_grid ( const unsigned int len, const int positive);
 int FindBestX (const double *grid, const int site, const int n);
 DATA_SET *ReadData (const char *name, const int gencode);
-double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt);
+double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt, const bool readTemp, const bool recover);
 struct selectioninfo *  CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf);
 void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double *entropy, const double * pval, const double * pval_adj, const int nsites);
 double * CalculatePvals ( const double * lmax, const double * lneu, const int n, const int positive_only);
@@ -111,19 +111,20 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 
 
 /*   Strings describing options and defaults */
-int n_options = 23;
+int n_options = 25;
 char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
 "nucleof", "aminof", "reoptimise", "nucfile", "aminofile", "positive_only",
 "gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed",
-"saveseed", "freqtype", "cleandata", "branopt" };
+"saveseed", "freqtype", "cleandata", "branopt", "writetmp", "recover" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", "0", "1", "0", "0","1" };
+"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", 
+"0", "1", "0", "0", "1", "0", "0" };
 char optiontype[] =
   { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 
-'s', 's', 'd', 'd', 'd', 'd','d','d'};
-int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,1 };
+'s', 's', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd'};
+int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 char *default_optionfile = "slr.ctl";
 
 int main (int argc, char *argv[])
@@ -144,6 +145,7 @@ int main (int argc, char *argv[])
   struct slr_params * paramin_str;
 	unsigned int seed, saveseed, cleandata;
   enum model_branches branopt;
+  bool writeTmp, recover;
   /*  Option variables
    */
   ReadOptions (argc, argv);
@@ -170,6 +172,8 @@ int main (int argc, char *argv[])
   freqtype = *(unsigned int *) GetOption("freqtype");
   cleandata = *(unsigned int *) GetOption("cleandata");
   branopt = *(enum model_branches *) GetOption("branopt");
+  writeTmp = *(bool *)	GetOption("writetmp");
+  recover = *(bool *)	GetOption("recover");
 
   PrintOptions ();
 
@@ -279,7 +283,7 @@ int main (int argc, char *argv[])
 
     if ( timemem ){ time(slr_clock+1);}
 
-    loglike = OptimizeTree (data,trees[0],freqs,x,freqtype,codonf,branopt);
+    loglike = OptimizeTree (data,trees[0],freqs,x,freqtype,codonf,branopt, writeTmp, recover);
     kappa = x[offset+0];
     omega = x[offset+1];
     printf ("# lnL = %e\n",loglike);
@@ -406,7 +410,7 @@ DATA_SET *ReadData (const char *name, const int gencode)
   return data;
 }
 
-double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt){
+double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt, const bool writeTmp, const bool recover){
   struct single_fun *info;
   double *bd,fx;
   int i;
@@ -454,7 +458,7 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
   //CheckModelDerivatives(model,0.5,x+nbr,1e-5);
   fx = CalcLike_Single ( x, info);
 
-  Optimize (x, nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2);
+  Optimize (x, nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2, writeTmp, recover);
 
   FreeModel (model);
   free(bd);
