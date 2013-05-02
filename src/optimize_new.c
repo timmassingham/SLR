@@ -488,7 +488,6 @@ double  GetStep(double * direct, const double * x, const double *scale, const do
 				}
 			}
 		}
-		printf("Nearest boundary is %d at distance %f (onbound=%d)\n",nearestB,dist,onbound[nearestB]);
 
 		// If step would hit nearest boundary
 		if(dist<1.0){
