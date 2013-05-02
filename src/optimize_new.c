@@ -474,26 +474,24 @@ double  GetStep(double * direct, const double * x, const double *scale, const do
 		double dist = HUGE_VAL;
 		for ( int i=0 ; i<n ; i++){
 			if(!fix[i]){
+				double del = HUGE_VAL;
 				if(direct[i]<0.0){
-					double del = (lb[i]/scale[i]-x[i])/direct[i];
-					if( del < dist ){
-						dist = del;
-						nearestB = i;
-					}
+					del = (lb[i]/scale[i]-x[i])/direct[i];
 				} else if (direct[i]>0.0){
-					double del = (ub[i]/scale[i]-x[i])/direct[i];
-					if( del < dist ){
-                                                dist = del;
-                                                nearestB = i;
-                                        }
+					del = (ub[i]/scale[i]-x[i])/direct[i];
 				} else {
 					warnx("Direction %d is zero",i+1);
 				}
+				if( del < dist ){
+					dist = del;
+					nearestB = i;
+				}
 			}
 		}
+		printf("Nearest boundary is %d at distance %f (onbound=%d)\n",nearestB,dist,onbound[nearestB]);
 
 		// If step would hit nearest boundary
-		if(dist<norm){
+		if(dist<1.0){
 			fix[nearestB] = 1;
 			fixv[nearestB] = (direct[nearestB]>0.0)?(ub[nearestB]/scale[nearestB]-x[nearestB]):(lb[nearestB]/scale[nearestB]-x[nearestB]);
 			if(onbound[nearestB]){ fixv[nearestB] = 0.0;}
@@ -659,12 +657,12 @@ TrimAtBoundaries(const double *x, const double *direct,
 	assert(NULL != lb);
 	assert(NULL != ub);
 	assert(NULL != onbound);
-	for (i = 0; i < n; i++) {
+/*	for (i = 0; i < n; i++) {
 		assert(finite(direct[i]));
 		assert((!onbound[i] && x[i] * scale[i] > lb[i]
 			&& x[i] * scale[i] < ub[i]) || onbound[i]);
 		assert(!onbound[i] || direct[i] == 0.);
-	}
+	}*/
 
 	maxfact = DBL_MAX;
 	maxerr = 0.;
@@ -747,6 +745,7 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 			onbound[i] = 0;
 		}
 	}
+
 	if(inverted){
 		InvertMatrix(InvHess,n);
 	}
@@ -815,8 +814,8 @@ ScaledStep(const double factor, const double *x, double *xn,
 	assert(NULL != onbound);
 	assert(n > 0);
 
-	for (i = 0; i < n; i++)
-		assert(!onbound[i] || direct[i] == 0.);
+	//for (i = 0; i < n; i++)
+	//	assert(!onbound[i] || direct[i] == 0.);
 
 	for (i = 0; i < n; i++)
 		xn[i] = x[i] + direct[i] * factor;
