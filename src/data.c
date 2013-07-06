@@ -1003,7 +1003,7 @@ void
 PrintData(const DATA_SET * data)
 {
 	int             a, b;
-	char (*printfun) (int);
+	char (*printfun) (int) = NULL;
 
 	CheckIsDataSet(data);
 	
@@ -1018,6 +1018,8 @@ PrintData(const DATA_SET * data)
 		    /* Codons requiring encoding as character or printing as a string */
 			err(EXIT_FAILURE,"%s:%d, PrintData. Seqtype codon not handled\n",__FILE__,__LINE__);
 			break;
+		default:
+			err(EXIT_FAILURE,"%s:%d, Unrecognised seq_type\n",__FILE__,__LINE__);
 	}
 	for (a = 0; a < data->n_sp; a++) {
 		for (b = 0; b < data->n_unique_pts; b++)

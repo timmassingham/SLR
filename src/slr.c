@@ -84,13 +84,13 @@ double CalcLike_Single (const double *param, void *data);
 void GradLike_Single (const double *param, double *grad, void *data);
 void GradLike_Full (const double *param, double *grad, void *data);
 
-VEC create_grid ( const unsigned int len, const int positive);
+VEC create_grid ( const unsigned int len, const bool positive);
 int FindBestX (const double *grid, const int site, const int n);
 DATA_SET *ReadData (const char *name, const int gencode);
 double OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, double * x, const unsigned int freqtype, const int codonf, const enum model_branches branopt, const bool readTemp, const bool recover);
 struct selectioninfo *  CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf);
 void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double *entropy, const double * pval, const double * pval_adj, const int nsites);
-double * CalculatePvals ( const double * lmax, const double * lneu, const int n, const int positive_only);
+double * CalculatePvals ( const double * lmax, const double * lneu, const int n, const bool positive_only);
 double * AdjustPvals ( const double * pval, DATA_SET * data);
 double * CalculateEntropy ( const DATA_SET * data, const double * freqs);
 int IsRandomSite ( const int site, const double * entropy, const double * lmax);
@@ -135,7 +135,8 @@ int main (int argc, char *argv[])
   struct single_fun *info;
   double kappa, omega, loglike,ldiff;
   char *seqfile, *treefile, *outfile, *nucfile, *aminofile,*gencode_str,*paramin,*paramout;
-  int codonf, nucleof, aminof, reoptimise, positive;
+  int codonf, nucleof, aminof, reoptimise;
+  bool positive;
   double *x;
   int a,bran,i;
   int gencode,timemem, skipsitewise, freqtype;
@@ -160,7 +161,7 @@ int main (int argc, char *argv[])
   nucfile = (char *)	GetOption ("nucfile");
   aminofile = (char *)	GetOption ("aminofile");
   reoptimise = *(int *)	GetOption ("reoptimise");
-  positive = *(int *)	GetOption ("positive_only");
+  positive = *(bool *)	GetOption ("positive_only");
   gencode_str = (char *)GetOption ("gencode");
   timemem = *(int *)	GetOption ("timemem");
   ldiff = *(double *)	GetOption ("ldiff");
@@ -474,7 +475,7 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
 struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double kappa, double omega, double * freqs, const double ldiff, const unsigned int freqtype, const int codonf){
   double x[1];
   struct selectioninfo * selinfo;
-  int positive;
+  bool positive;
   double factor;
   MODEL * model;
   DATA_SET * data_single;
@@ -506,7 +507,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
   }
   selinfo->type = calloc ( data->n_pts,sizeof(int));		OOM(selinfo->type);
 
-  positive = *(int *) GetOption("positive_only");
+  positive = *(bool *) GetOption("positive_only");
 
   model = NewCodonModel_single ( data->gencode, kappa,omega,freqs,codonf,freqtype);
   OOM(model);
@@ -538,7 +539,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
 
   //  Set boundaries. Lower bound is 1. if only positive selection is
   // is of interest.
-  if (positive == 1)
+  if (positive)
     bd[0] = 1.;
   else
     bd[0] = 0.;
@@ -558,7 +559,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
   double omega_null = omega;
   double omega_floor=0;
   double omega_ceiling=0;
-  for ( unsigned int row=0; row< GRIDSIZE ; row++){
+  /*for ( unsigned int row=0; row< GRIDSIZE ; row++){
      if(vget(omega_grid,row)>omega_null){
 	omega_floor = vget(omega_grid,row-1);
 	omega_ceiling = vget(omega_grid,row);
@@ -576,7 +577,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
 	   }
 	}
      }
-  }
+  }*/
   /*  Fill out sitewise likelihoods for grid  */
   likelihood_grid = calloc (data->n_unique_pts * GRIDSIZE, sizeof (double));
   OOM(likelihood_grid);
@@ -605,7 +606,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
 
   for ( unsigned int site=0 ; site<data->n_pts ; site++){
     double fm,fn;
-    double lb,ub;
+    double lb=0.0,ub=HUGE_VAL;
     double omegam;
     int type;
 
@@ -620,10 +621,6 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       fm = 0.;
       fn = 0.;
       type = 0;
-      if ( dosupport ){
-      	lb = 0.;
-      	ub = HUGE_VAL;
-      }
     }
     // Does site only exist in one sequence
     else if ( data->index[site] < 0){
@@ -631,10 +628,6 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       fm = -log(model->pi[-data->index[site]-1]);
       fn = fm;
       type = 1;
-      if ( dosupport ){
-      	lb = 0.;
-      	ub = HUGE_VAL;
-      }
       //printf ("%5d recent insert\n",site);
     }
     else if (done_usite[data->index[site]]!=-1){
@@ -661,9 +654,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       x[0] = vget(omega_grid,start);
       // Sanity check
       if(!finite(x[0])){
-	 x[0] = omega_null;
-	 bd[0] = omega_floor;
-	 bd[1] = omega_ceiling;
+	 errx(EXIT_FAILURE,"Non-finite x[0] detected");
       }
       
       int neval=0;
@@ -806,7 +797,7 @@ double * CalculateEntropy ( const DATA_SET * data, const double * freqs){
   return entropy;
 }
 
-double * CalculatePvals ( const double * lmax, const double * lneu, const int n, const int positive_only){
+double * CalculatePvals ( const double * lmax, const double * lneu, const int n, const bool positive_only){
   int site;
   double * pval;
   double x;
@@ -1082,15 +1073,14 @@ error_exit:
 #define OMEGAMAX	50.0
 #define OMEGAEXPCONST	0.5
 
-VEC create_grid ( const unsigned int len, const int positive){
+VEC create_grid ( const unsigned int len, const bool positive){
 	assert(len>1);
-	assert(0==positive || 1==positive);
 	
 	VEC grid = create_vec (len);
-	const double expconst = (positive==0) ? (OMEGAMAX / expm1(OMEGAEXPCONST*(double)(len-1)))
-                                              : ((OMEGAMAX-1.) / expm1(OMEGAEXPCONST*(double)(len-1)));
+	const double expconst = (!positive) ? (OMEGAMAX / expm1(OMEGAEXPCONST*(double)(len-1)))
+                                            : ((OMEGAMAX-1.) / expm1(OMEGAEXPCONST*(double)(len-1)));
 	for ( unsigned int i=0 ; i<len ; i++){
-		vset(grid,i,expconst*expm1(OMEGAEXPCONST*(double)i)+((positive==0)?0:1));
+		vset(grid,i,expconst*expm1(OMEGAEXPCONST*(double)i)+(positive?1.0:0.0));
 	}
 	return grid;
 }

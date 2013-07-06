@@ -43,7 +43,7 @@ void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const 
   const double alpha = 1.;
   const double beta = 0.;
   const char NoTran = 'N';
-  const char Tran = 'T';
+  //const char Tran = 'T';
   dgemm_ (&NoTran, &NoTran, &nc2, &nr1, &nc1 , &alpha, B, &nc2 , A, &nc1 , &beta, C, &nc2);
 
 

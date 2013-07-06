@@ -158,7 +158,7 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 	char           *errstring = NULL;
 	double          fact;
 	double         *scale;
-	SPINNER        *spin;
+	SPINNER        *spin = NULL;
 	int             newbound = 1;
 	bool tempOk = true;
 

@@ -65,7 +65,7 @@ static double CorrectPval ( const double p, const int n, const int method){
   return res;
 }
 
-static int IsPvals ( const double * pval, const int n){
+static int IsPvals ( const double * pval, const int n) {
   int i;
   assert (NULL!=pval);
   assert (n>0);

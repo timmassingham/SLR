@@ -393,7 +393,7 @@ GetS_Codon(double *mat, double kappa, double omega, int gencode)
 				if (i != j && !IsStop(j, gencode)) {
 					if (NumberNucChanges(i, j) > 1) {
 						mat[ib * nbase + jb] = 0.;
-					} else if (NumberNucChanges == 0)
+					} else if (NumberNucChanges(i,j) == 0)
 						printf("Error!\n");
 					else {
 						mat[ib * nbase + jb] = NucleoFunc(i, j);
@@ -793,6 +793,8 @@ GetdQ_Codon(MODEL * model, int param, double *q)
 				} else if (((diff >> 4) & 3) != 0) {
 					pos = 0;
 					nuc = (cdn2 >> 4) & 3;
+				} else {
+					errx(EXIT_FAILURE,"Nuc not set");
 				}
 				mat[i * nbase + j] *= model->mgfreq[pos * 4 + nuc];
 			}
