@@ -1282,6 +1282,7 @@ read_data(const char *filename, const int seqtype)
 	FILE           *fp;
 	int             i, j;
 	int n_sp, n_pts;
+	int ret;
 
 	/* Attempt to open data file */
 	fp = fopen(filename, "r");
@@ -1295,7 +1296,11 @@ read_data(const char *filename, const int seqtype)
 	}
 
 	/* Read in number of species and data points */
-	(void) fscanf(fp, "%d %d", &n_sp, &n_pts);
+	ret = fscanf(fp, "%d %d", &n_sp, &n_pts);
+	if( 2!=ret){
+	    printf("Data file \"%s\" must start with number of species and number of codons\n",filename);
+	    exit(EXIT_FAILURE);
+	}
 	DATA_SET * data = CreateDataSet(n_pts,n_sp);
 	data->seq_type = seqtype;
 	data->n_bases = NumberPossibleBases(seqtype,GENCODE_UNIVERSAL);
@@ -1309,7 +1314,11 @@ read_data(const char *filename, const int seqtype)
 	for (i = 0; i < data->n_sp; i++) {
 		data->sp_name[i] = calloc((size_t) (MAX_SP_NAME + 1), sizeof(char));
 		OOM(data->sp_name[i]);
-		(void) fscanf(fp, "%s", data->sp_name[i]);
+		ret = fscanf(fp, "%s", data->sp_name[i]);
+		if(ret!=1){
+		    printf("Expecting species name but failed to find one. is \"%s\" in correct format?",filename);
+		    exit(EXIT_FAILURE);
+		}
 		if (data->seq_type == SEQTYPE_NUCLEO)
 			data->seq[i] = ReadNucleo(fp, data->n_pts, data->sp_name[i]);
 		else if (data->seq_type == SEQTYPE_AMINO)
