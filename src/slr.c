@@ -134,7 +134,7 @@ int main (int argc, char *argv[])
   double *freqs;
   struct single_fun *info;
   double kappa, omega, loglike,ldiff;
-  char *seqfile, *treefile, *outfile, *nucfile, *aminofile,*gencode_str,*paramin,*paramout;
+  char *seqfile, *treefile, *outfile, *nucfile, *aminofile,*gencode_str,*paramin;
   int codonf, nucleof, aminof, reoptimise;
   bool positive;
   double *x;
@@ -166,7 +166,6 @@ int main (int argc, char *argv[])
   timemem = *(int *)	GetOption ("timemem");
   ldiff = *(double *)	GetOption ("ldiff");
   paramin = (char *)	GetOption ("paramin");
-  paramout = (char *)	GetOption ("paramout");
   skipsitewise = *(int *) GetOption ("skipsitewise");
   seed = *(unsigned int *) GetOption("seed");
   freqtype = *(unsigned int *) GetOption("freqtype");
@@ -553,28 +552,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
   puts ("# Calculating initial estimates of sitewise conservation");
   add_data_to_tree (data, tree, model);
   const VEC omega_grid = create_grid(GRIDSIZE,positive);
-  double omega_null = omega;
-  double omega_floor=0;
-  double omega_ceiling=0;
-  /*for ( unsigned int row=0; row< GRIDSIZE ; row++){
-     if(vget(omega_grid,row)>omega_null){
-	omega_floor = vget(omega_grid,row-1);
-	omega_ceiling = vget(omega_grid,row);
-	break;
-     }
-  }
-  if(positive){
-     omega_null = (omega_null<1.0)?1.01:omega_null;
-     omega_floor = (omega_floor<1.0)?1.0:omega_floor;
-     if(omega_ceiling<=1.0){
-	for ( unsigned int row=0; row< GRIDSIZE ; row++){
-	   if(vget(omega_grid,row)>1.0){
-	      omega_ceiling = vget(omega_grid,row);
-	      break;
-	   }
-	}
-     }
-  }*/
+
   /*  Fill out sitewise likelihoods for grid  */
   likelihood_grid = calloc (data->n_unique_pts * GRIDSIZE, sizeof (double));
   OOM(likelihood_grid);
@@ -869,7 +847,7 @@ double * AdjustPvals ( const double * pval, DATA_SET * data){
 
 
 void PrintSummary ( FILE * file, const struct selectioninfo * selinfo, const double * entropy, const double * pval, const double * pval_adj,const int n_pts){
-  const double * omegam, * lliken, * llikem;
+  const double * omegam, * llikem;
   int site, npos[4]={0,0,0,0}, ncons[4]={0,0,0,0}, dpos[4]={0,0,0,0};
   assert(NULL!=selinfo);
   assert(NULL!=selinfo->llike_neu);
@@ -881,7 +859,6 @@ void PrintSummary ( FILE * file, const struct selectioninfo * selinfo, const dou
   assert(n_pts>0);
 
   omegam = selinfo->omega_max;
-  lliken = selinfo->llike_neu;
   llikem = selinfo->llike_max;
 
   for ( site=0 ; site<n_pts ; site++){
