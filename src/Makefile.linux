@@ -1,8 +1,7 @@
 CC = gcc
 # For Linux, etc.
-BLASDIR =
 CFLAGS = -O4 -fomit-frame-pointer -funroll-loops -DNDEBUG -std=gnu99
-LDFLAGS = -L$(BLASDIR) -lblas -llapack -lm 
+LDFLAGS = -lblas -llapack -lm 
 
 #CFLAGS = -static -O3 -funroll-loops -DNDEBUG -std=gnu99 -Wall
 #CFLAGS = -Wall -g -DWARNINGS -std=gnu99 -pedantic
