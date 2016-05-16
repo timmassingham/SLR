@@ -111,20 +111,30 @@ char *OutString[5] = { "All gaps", "Single char", "Synonymous", "", "Constant" }
 
 
 /*   Strings describing options and defaults */
-int n_options = 25;
+int n_options = 24;
 char *options[] =
-  { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
-"nucleof", "aminof", "reoptimise", "nucfile", "aminofile", "positive_only",
-"gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed",
-"freqtype", "cleandata", "branopt", "writetmp", "recover" };
+  { "seqfile", "treefile", "outfile", "kappa", "omega", 
+    "codonf", "nucleof", "aminof", "reoptimise", "nucfile", 
+    "aminofile", "positive_only", "gencode","timemem", "ldiff", 
+    "paramin", "paramout", "skipsitewise", "seed", "freqtype", 
+    "cleandata", "branopt", "writetmp", "recover" };
 char *optiondefault[] =
-  { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
-"nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", 
-"0", "1", "0", "0", "1", "0", "0" };
+  { "incodon", "intree", "slr.res", "2.0", "0.1", 
+    "0", "0", "0", "1", "nuc.dat", 
+    "amino.dat", "0", "universal","0", "3.841459", 
+    "", "", "0", "0", "1", 
+    "0", "1", "0", "0" };
 char optiontype[] =
-  { 's', 's', 's', 'f', 'f', 'd', 'd', 'd', 'd', 's', 's', 'd', 's', 'd', 'f', 
-'s', 's', 'd', 'd', 'd', 'd', 'd', 'd', 'd', 'd'};
-int optionlength[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  { 's', 's', 's', 'f', 'f', 
+    'd', 'd', 'd', 'd', 's', 
+    's', 'd', 's', 'd', 'f', 
+    's', 's', 'd', 'd', 'd', 
+    'd', 'd', 'd', 'd'};
+int optionlength[] = { 1, 1, 1, 1, 1, 
+                       1, 1, 1, 1, 1, 
+                       1, 1, 1, 1, 1, 
+                       1, 1, 1, 1, 1, 
+                       1, 1, 1, 1 };
 char *default_optionfile = "slr.ctl";
 
 int main (int argc, char *argv[])
