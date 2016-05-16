@@ -153,7 +153,7 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 {
 	OPTOBJ         *opt;
 	double          fo, fn, tol, md;
-	int             i, max_step;
+	int             i;
 	int             max_restart, restarts;
 	char           *errstring = NULL;
 	double          fact;
@@ -186,7 +186,6 @@ void            Optimize(double *x, int n, void (*df) (const double *, double *,
 
 
 	tol = 3e-8;
-	max_step = 100;
 	max_restart = 20;
 	restarts = -1;
 

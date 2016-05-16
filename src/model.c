@@ -238,13 +238,8 @@ MakeFactQ_FromFactSym(double *ev, double *inv_ev, double *v, const double *pi, c
 void 
 FactorizeMatrix(double *mat, const int n, double *ev, double *v, double *space)
 {
-	double         *ri, *vi;
 	int             i;
 
-	ri = space;
-	space += n;
-	vi = space;
-	space += n * n;
 	if (NULL == mat || NULL == ev || NULL == v || NULL == space || n < 1)
 		return;
 
@@ -261,7 +256,6 @@ MakeP_From_FactQ(const double *v, const double *ev, const double *inv_ev, const 
 {
 	int             i, j;
 	double         *expl, *tmp;
-	double          ev1;
 
 	if (NULL == v || NULL == ev || NULL == inv_ev || n < 1 || length < 0.)
 		return NULL;
@@ -279,7 +273,6 @@ MakeP_From_FactQ(const double *v, const double *ev, const double *inv_ev, const 
 	space += n;
 	tmp = space;
 	space += n;
-	ev1 = 0.;
 	for (i = 0; i < n; i++) {
 		expl[i] = exp(length * rate * scale * v[i]);
 	}

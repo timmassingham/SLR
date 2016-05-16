@@ -42,7 +42,7 @@ extern char optiontype[];
 extern int optionlength[];
 extern char *default_optionfile;
 
-static char GetString (int maxsize, char *string, FILE * fp);
+static int GetString (int maxsize, char *string, FILE * fp);
 static void ReadOptionsFromCommandLine (int argc, char **argv);
 static void ReadOptionsFromFile (char *filename);
 static int AddOption (const int key, const char *value);
@@ -173,8 +173,8 @@ void *GetOption (char *optname)
 void ReadOptionsFromFile (char *filename)
 {
   FILE *fp;
-  char str[MAXSTRING], c;
-  int key;
+  char str[MAXSTRING];
+  int c, key;
 
   assert(NULL!=filename);
   assert(NULL!=options);
@@ -203,11 +203,11 @@ void ReadOptionsFromFile (char *filename)
       if (c == EOF) {
 	printf
 	  ("Found option but there was no value before the end of the file.\n");
-      }
-      else
+      } else{
+        fprintf(stdout,"Adding option *%s* at %d\n", str, key);
 	AddOption (key, str);
-    }
-    else {
+      }
+    } else {
       printf ("Unrecognised option %s. Continuing.\n", str);
     }
   }
@@ -245,31 +245,34 @@ void ReadOptionsFromCommandLine (int argc, char **argv)
   }
 }
 
-char GetString (int maxsize, char *string, FILE * fp)
+int GetString (int maxsize, char *string, FILE * fp)
 {
   int i = 0;
-  char c;
+  int c;
 
-  while (isspace (c = getc (fp)) && c != '\n' && c != EOF);
+  do {
+    c = fgetc(fp);
+  } while (isspace(c) && c != '\n' && c != EOF);
 
   while (c == '#' && c!='\n' && c != EOF) {
-    while ((c = getc (fp)) != EOF && c != '\n');
-    while (isspace (c = getc (fp)) && c != EOF);
+    while ((c = fgetc (fp)) != EOF && c != '\n');
+    while (isspace (c = fgetc (fp)) && c != EOF);
   }
   if (c != '\n')
     ungetc (c, fp);
 
-  while (i < (maxsize - 1) && c!='\n' && (c = getc (fp)) != EOF && !isspace (c)
+  while (i < (maxsize - 1) && c!='\n' && (c = fgetc (fp)) != EOF && !isspace (c)
 	 && c != '#') {
     if (c == '#')
-      while ((c = getc (fp)) != EOF && c != '\n');
+      while ((c = fgetc (fp)) != EOF && c != '\n');
     if (!ispunct (c) || c == '_' || c == '-' || c == '.' || c == '+')
       string[i++] = c;
   };
   string[i] = '\0';
+  fprintf(stdout, "string = ** %s **\n", string);
 
   if (c == '#')
-    while ((c = getc (fp)) != EOF && c != '\n');
+    while ((c = fgetc (fp)) != EOF && c != '\n');
   return c;
 }
 

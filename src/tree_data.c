@@ -64,7 +64,7 @@ void add_single_site_to_tree ( TREE * tree, const DATA_SET * data, const MODEL *
 
 int add_data_to_tree (const DATA_SET * data_old, TREE * tree, MODEL * model)
 {
-  double *tmp, *param;
+  double *tmp;
   const DATA_SET *data;
 
   CheckIsTree (tree);
@@ -106,7 +106,6 @@ int add_data_to_tree (const DATA_SET * data_old, TREE * tree, MODEL * model)
 
   /* Add sequence to tree */
   bool missing_species = false;
-  param = model->param;
   for (unsigned int a = 0; a < data->n_sp; a++) {
     NODE * leaf = find_leaf(a,tree,data);
     if ( NULL == leaf ){

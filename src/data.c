@@ -529,7 +529,6 @@ double         *
 AminoFreqs(const DATA_SET * data, const int perspecies)
 {
 	int             i, j, nongap = 0;
-	double          gapchar;
 	double         *f, *speciesf;
 
 	CheckIsDataSet(data);
@@ -540,8 +539,6 @@ AminoFreqs(const DATA_SET * data, const int perspecies)
 	f = calloc(20, sizeof(double));
 	if (NULL == f)
 		return NULL;
-
-	gapchar = GapChar(SEQTYPE_AMINO);
 
 	if (perspecies == 0) {
 		speciesf = malloc(20 * sizeof(double));

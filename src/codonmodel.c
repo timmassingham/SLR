@@ -884,7 +884,7 @@ Update_Codon_full(MODEL * model, double p, int i)
 double         *
 GetEquilibriumDistCodon(const double *pi, const int codonf, const int gencode)
 {
-	double         *eq, *api;
+	double         *eq;
 	double          b34[12];
 	double         *tpi;
 	int             cdn, pos, nuc;
@@ -928,8 +928,6 @@ GetEquilibriumDistCodon(const double *pi, const int codonf, const int gencode)
 			tpi[cdn] = pi[cdn];
 		}
 	}
-
-	api = GetAminoFrequencies(pi, gencode);
 
 
 	eq = calloc(NumberSenseCodonsInGenCode(gencode), sizeof(double));
