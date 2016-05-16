@@ -204,7 +204,6 @@ void ReadOptionsFromFile (char *filename)
 	printf
 	  ("Found option but there was no value before the end of the file.\n");
       } else{
-        fprintf(stdout,"Adding option *%s* at %d\n", str, key);
 	AddOption (key, str);
       }
     } else {
@@ -269,7 +268,6 @@ int GetString (int maxsize, char *string, FILE * fp)
       string[i++] = c;
   };
   string[i] = '\0';
-  fprintf(stdout, "string = ** %s **\n", string);
 
   if (c == '#')
     while ((c = fgetc (fp)) != EOF && c != '\n');
