@@ -25,7 +25,6 @@
 #define RL_LAGGED	0
 #define RL_LINEAR	1
 void RL_Init(const unsigned int seed);
-void RL_Close(void);
 
 double RandomStandardUniform ( void);
 double RandomExp (double mean);

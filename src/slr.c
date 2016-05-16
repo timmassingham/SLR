@@ -116,7 +116,7 @@ char *options[] =
   { "seqfile", "treefile", "outfile", "kappa", "omega", "codonf",
 "nucleof", "aminof", "reoptimise", "nucfile", "aminofile", "positive_only",
 "gencode","timemem","ldiff", "paramin", "paramout", "skipsitewise", "seed",
-"saveseed", "freqtype", "cleandata", "branopt", "writetmp", "recover" };
+"freqtype", "cleandata", "branopt", "writetmp", "recover" };
 char *optiondefault[] =
   { "incodon", "intree", "slr.res", "2.0", "0.1", "0", "0", "0", "1",
 "nuc.dat", "amino.dat", "0", "universal","0", "3.841459", "", "", "0", 
@@ -144,7 +144,7 @@ int main (int argc, char *argv[])
   double * entropy, *pval, *pval_adj;
   time_t slr_clock[4];
   struct slr_params * paramin_str;
-	unsigned int seed, saveseed, cleandata;
+	unsigned int seed, cleandata;
   enum model_branches branopt;
   bool writeTmp, recover;
   /*  Option variables
@@ -169,7 +169,6 @@ int main (int argc, char *argv[])
   paramout = (char *)	GetOption ("paramout");
   skipsitewise = *(int *) GetOption ("skipsitewise");
   seed = *(unsigned int *) GetOption("seed");
-  saveseed = *(unsigned int *) GetOption("saveseed");
   freqtype = *(unsigned int *) GetOption("freqtype");
   cleandata = *(unsigned int *) GetOption("cleandata");
   branopt = *(enum model_branches *) GetOption("branopt");
@@ -333,8 +332,6 @@ int main (int argc, char *argv[])
   }
 #endif
 
-  if (saveseed){ RL_Close();}
-  
   return EXIT_SUCCESS;
 }
 

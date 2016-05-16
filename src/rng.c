@@ -78,8 +78,6 @@ static ULL_TYPE RL_linear64 (void);
 void RL_sort_d (int n, double *number);
 static int ValidGenerator (int gen);
 static int double_comparison (const void *dp1, const void *dp2);
-static long long int ipow (int x, int y);
-static void InitialiseLaggedFromClock (ULL_TYPE *d, const int n);
 static void InitialiseLaggedFromSeed (const unsigned int seed, ULL_TYPE *d, const int n);
 
 
@@ -368,78 +366,27 @@ static int double_comparison (const void *dp1, const void *dp2)
 void RL_Init (const unsigned int seed)
 {
   FILE *seed_file;
-  char *s, *r;
-  char t[100];
   int a;
 
   SetRandomGenerator (RL_LAGGED);
 
-	if ( seed != 0){
-		InitialiseLaggedFromSeed (seed, history64, RL_LAGGED_K);
-		return;
-	}
-  
-  #ifdef WINDOWS
-    InitialiseLaggedFromClock (history64, RL_LAGGED_K);
+  if ( seed != 0){
+    InitialiseLaggedFromSeed (seed, history64, RL_LAGGED_K);
     return;
-  #endif
-  	
-
-  s = getenv ("HOME");
-  if ( NULL!=s){
-  	r = strcpy (t, s);
-  	r = strcat (t, "/");
-  } else {
-	  t[0] = '\0';
   }
-  r = strcat (t, SEEDFILE64);
-
-  seed_file = fopen (t, "r");
-  if (NULL == seed_file) {
-    /*  22July05. /dev/random appears to be very slow on some computers 
-     * -- to date, my PentiumM laptop and (classic) Athlon computer but P4s
-     * seem to be fine. This may have something to do with the onboard RNG on
-     * the P4. Disabled /dev/random.*/
-    /* If seed file cannot be opened, try /dev/random */
-    /*seed_file = fopen ("/dev/random", "r");
-    if (NULL == seed_file) {*/
-      /* Do not have /dev/random or seed file, fall back on
-       * C library and pretend it works.
-       */
-      InitialiseLaggedFromClock (history64, RL_LAGGED_K);
-      return;
-    /*} else {
-      puts ("Initialising random number generator from /dev/random. May take a while.");
-      for (a = 0; a < RL_LAGGED_K; a++){
-        printf("Read value %d\n",a);
-	fread (&history64[a],sizeof(ULL_TYPE),1,seed_file);
-      }
-      return;
-    }*/
-  }
-
+  
+  /*  22July05. /dev/random appears to be very slow on some computers 
+   * -- to date, my PentiumM laptop and (classic) Athlon computer but P4s
+   * seem to be fine. This may have something to do with the onboard RNG on
+   * the P4. Disabled /dev/random.*/
+  /* If seed file cannot be opened, try /dev/urandom */
+  seed_file = fopen ("/dev/urandom", "r");
+  puts ("Initialising random number generator from /dev/urandom.");
   for (a = 0; a < RL_LAGGED_K; a++){
-    (void) fscanf (seed_file, "%llu\n", &history64[a]);
+    fread (&history64[a], sizeof(ULL_TYPE), 1, seed_file);
   }
-    
-  fclose (seed_file);
-
 }
 
-
-/*  Initialise rand() from clock.
- *  This routine makes some dangerous assumptions about the relative
- * sizes of long long int and int.
- */
-static void InitialiseLaggedFromClock (ULL_TYPE *d, const int n)
-{
-  time_t t;
-  assert (NULL != d);
-  assert (n > 0);
-
-  time (&t);
-	InitialiseLaggedFromSeed(t,d,n);
-}
 
 static void InitialiseLaggedFromSeed (const unsigned int seed, ULL_TYPE *d, const int n){
   assert (NULL != d);
@@ -456,59 +403,3 @@ static void InitialiseLaggedFromSeed (const unsigned int seed, ULL_TYPE *d, cons
 }
 
 
-/*  Saves state of lagged generator to file ~/.rng64
- */
-void RL_Close (void)
-{
-  FILE *seed_file;
-  char *s, *r;
-  char t[100];
-  int a;
-  
-  #ifdef WINDOWS
-  	return;
-  #endif
-
-  s = getenv ("HOME");
-  OOM (s);
-  r = strcpy (t, s);
-  r = strcat (t, "/");
-  r = strcat (t, SEEDFILE64);
-  seed_file = fopen (t, "w");
-  if (seed_file == NULL) {
-    printf ("Failed to open random number file for writing!\n");
-    exit (EXIT_FAILURE);
-  }
-  for (a = 0; a < RL_LAGGED_K; a++)
-    fprintf (seed_file, "%llu\n", history64[a]);
-  fclose (seed_file);
-}
-
-
-/*  Divide and conquer method for calculating x^y.
- *  Even with overhead of function calling, this is
- * quicker than naive method for surprisingly small y.
- */
-static long long int ipow (int x, int y)
-{
-  long long int z;
-
-  assert (y >= 0);
-
-  if (y >= 2) {
-    /* Divide and conquer recursion. */
-    z = ipow (x, y / 2);
-    switch (y % 2) {
-    case 0:
-      return z * z;
-    case 1:
-      return x * z * z;
-    }
-  }
-  else if (1 == y) {
-    return x;
-  }
-
-  assert (0 == y);
-  return 1;			/*  Only occurs when y==0 */
-}
