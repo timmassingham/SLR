@@ -48,6 +48,7 @@ static void ReadOptionsFromFile (char *filename);
 static int AddOption (const int key, const char *value);
 static void SetDefaultOptions (void);
 static void *GetOptionByKey (const int key);
+static int skip_to_end(FILE * fp);
 
 
 void ReadOptions (int argc, char **argv)
@@ -244,6 +245,15 @@ void ReadOptionsFromCommandLine (int argc, char **argv)
   }
 }
 
+static int skip_to_end(FILE * fp){
+  /*  Skip to end of a line */
+  int c;
+  do{
+    c = fgetc(fp);
+  } while (c != EOF && c != '\n');
+  return c;
+}
+
 int GetString (int maxsize, char *string, FILE * fp)
 {
   int i = 0;
@@ -254,7 +264,7 @@ int GetString (int maxsize, char *string, FILE * fp)
   } while (isspace(c) && c != '\n' && c != EOF);
 
   while (c == '#' && c!='\n' && c != EOF) {
-    while ((c = fgetc (fp)) != EOF && c != '\n');
+    c = skip_to_end(fp);
     while (isspace (c = fgetc (fp)) && c != EOF);
   }
   if (c != '\n')
@@ -262,15 +272,18 @@ int GetString (int maxsize, char *string, FILE * fp)
 
   while (i < (maxsize - 1) && c!='\n' && (c = fgetc (fp)) != EOF && !isspace (c)
 	 && c != '#') {
-    if (c == '#')
-      while ((c = fgetc (fp)) != EOF && c != '\n');
+    if (c == '#'){
+      c = skip_to_end(fp);
+    }
     if (!ispunct (c) || c == '_' || c == '-' || c == '.' || c == '+')
       string[i++] = c;
   };
   string[i] = '\0';
 
-  if (c == '#')
-    while ((c = fgetc (fp)) != EOF && c != '\n');
+  if (c == '#'){
+    c = skip_to_end(fp);
+  }
+ 
   return c;
 }
 
