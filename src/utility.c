@@ -214,12 +214,12 @@ ReadVectorFromOpenFile(double *x, int n, FILE * fp)
 	return i;
 }
 
-char 
+int 
 gchar(FILE * fp)
 {
-	unsigned char   c;
+	int   c;
 
-	while (isalpha(c = getc(fp)) == 0 && c != '-');
+	while (isalpha(c = fgetc(fp)) == 0 && c != '-');
 
 	return c;
 }
@@ -231,11 +231,11 @@ char           *
 ReadString(FILE * fp)
 {
 	char           *string, *tmp;
-	char            c;
+	int            c;
 	int             a = 0, b;
 
 	do
-		c = getc(fp);
+		c = fgetc(fp);
 	while (isspace(c) != 0);
 
 	string = calloc((size_t) (STRLEN + 1), sizeof(char));
@@ -250,7 +250,7 @@ ReadString(FILE * fp)
 			free(string);
 			string = tmp;
 		}
-	} while ( (c=getc(fp)) != EOF);
+	} while ( (c=fgetc(fp)) != EOF);
 	string[a] = '\0';
 
 	tmp = calloc((size_t) (a + 1), sizeof(char));

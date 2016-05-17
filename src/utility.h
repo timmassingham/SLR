@@ -45,7 +45,7 @@ int TriangularCoordinate ( int i, int j, int n);
 int ReadVectorFromOpenFile (double * x, int n, FILE * fp);
 
 char * ReadString ( FILE * fp);
-char gchar ( FILE * fp);
+int gchar ( FILE * fp);
 
 char * mitoa ( int i);
 int sign (const double x);
