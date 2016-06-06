@@ -1,7 +1,7 @@
 CC = gcc
 # For Linux, etc.
 CFLAGS = -O4 -fomit-frame-pointer -funroll-loops -DNDEBUG -std=gnu99
-LDFLAGS = -lblas -llapack -lm 
+LDFLAGS = -lblas -llapacke -lm 
 
 #CFLAGS = -static -O3 -funroll-loops -DNDEBUG -std=gnu99 -Wall
 #CFLAGS = -Wall -g -DWARNINGS -std=gnu99 -pedantic

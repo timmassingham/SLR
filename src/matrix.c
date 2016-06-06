@@ -19,20 +19,18 @@
  *  along with SLR.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <assert.h>
+#include <cblas.h>
+#include <float.h>
+#include <lapacke.h>
+#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <float.h>
-#include <assert.h>
 #include <string.h>
+
 #include "matrix.h"
 #include "utility.h"
-
-/*  Definition derived from blas reference implementation
- * http://www.netlib.org/blas/dgemm.f
- */
- void dgemm_ ( const char * transA, const char * transB, const int * nrOa, const int * ncOb, const int * ncOa, const double * alpha, const double * A, const int * lda, const double * B, const int * ldb, const double * beta, double * C, const int * ldc);
 
 void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double * C){
   assert(NULL!=A);
@@ -40,13 +38,7 @@ void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const 
   assert(NULL!=C);
   assert(nc1==nr2);
 
-  const double alpha = 1.;
-  const double beta = 0.;
-  const char NoTran = 'N';
-  //const char Tran = 'T';
-  dgemm_ (&NoTran, &NoTran, &nc2, &nr1, &nc1 , &alpha, B, &nc2 , A, &nc1 , &beta, C, &nc2);
-
-
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans, nc2, nr1, nc1, 1.0, B, nc2, A, nc1, 0.0, C, nc2);
 }
 
 void Matrix_MatrixT_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C){
@@ -55,11 +47,7 @@ void Matrix_MatrixT_Mult ( const double * A, const int nr1, const int nc1, const
   assert(NULL!=C);
   assert(nc1==nr2);
 
-  const double alpha = 1.;
-  const double beta = 0.;
-  const char NoTran = 'N';
-  const char Tran = 'T';
-  dgemm_ ( &Tran, &NoTran , &nc2, &nr1, &nc1 , &alpha, B, &nr2 , A, &nc1 , &beta, C, &nc2);
+  cblas_dgemm(CblasColMajor, CblasTrans, CblasNoTrans, nc2, nr1, nc1 , 1.0, B, nr2, A, nc1, 0.0, C, nc2);
 }
 
 void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C){
@@ -68,11 +56,7 @@ void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const
   assert(NULL!=C);
   assert(nc1==nr2);
 
-  const double alpha = 1.;
-  const double beta = 0.;
-  const char NoTran = 'N';
-  const char Tran = 'T';
-  dgemm_ (&NoTran, &Tran, &nc2, &nr1, &nc1 , &alpha, B, &nc2 , A, &nr1 , &beta, C, &nc2);
+  cblas_dgemm(CblasColMajor, CblasNoTrans, CblasTrans, nc2, nr1, nc1, 1.0, B, nc2, A, nr1 , 0.0, C, nc2);
 }
 
 
@@ -201,69 +185,21 @@ void GramSchmidtTranspose ( double * A, int n){
 
 
 
-int dsyev_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w, double *work, int *lwork, int *info);
 int Factorize ( double * A, double * val, int n){
-        char JOBZ = 'V';
-        char UPLO = 'L';
-        int N;
-	int INFO;
-        static double * WORK=NULL;
-        static int LWORK=0;
-        static int last_n=0;
-
-	N = n;
-
-        if (n>last_n){
-                if(NULL==WORK){
-                        WORK=malloc(sizeof(double));
-                }
-                LWORK=-1;
-		dsyev_ (&JOBZ,&UPLO,&N,A,&N,val,WORK,&LWORK,&INFO);
-		LWORK=(int)WORK[0];
-                free(WORK);
-                WORK = malloc(LWORK*sizeof(double));
-		last_n = n;
-        }
-
-	dsyev_ (&JOBZ,&UPLO,&N,A,&N,val,WORK,&LWORK,&INFO);
+	int INFO = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'L', n, A, n, val);
 	
 	return INFO;
 }
 
 
-int dgetrf_(int *m, int *n, double *a, int * lda, int *ipiv, int *info);
-int dgetri_(int *n, double *a, int *lda, int *ipiv, double *work,int *lwork, int *info);
-
-
 int InvertMatrix ( double * A, int n){
-        int INFO;
-        int N;
-        static int * IPIV=NULL;
-        static int LWORK=0;
-        static double * WORK=NULL;
-        static int last_n=0;
-
-        N = n;
-
-        if ( n>last_n){
-                if (NULL==IPIV){
-                        WORK = malloc(sizeof(double));
-                } else {
-                        free(IPIV);
-                }
-                LWORK = -1;
-                dgetri_ (&N,A,&N,IPIV,WORK,&LWORK,&INFO);
-                LWORK=(int)WORK[0];
-                free(WORK);
-                WORK = malloc(LWORK*sizeof(double));
-                IPIV = malloc(n*sizeof(int));
-                last_n = n;
+	int INFO;
+	lapack_int * ipiv = malloc(n * sizeof(lapack_int));
+	INFO = LAPACKE_dgetrf(LAPACK_COL_MAJOR, n, n, A, n, ipiv);
+        if (INFO==0){
+		LAPACKE_dgetri(LAPACK_COL_MAJOR, n, A, n, ipiv);
         }
-
-        dgetrf_ (&N,&N,A,&N,IPIV,&INFO);
-        if ( INFO==0){
-                dgetri_ (&N,A,&N,IPIV,WORK,&LWORK,&INFO);
-        }
+	free(ipiv);
 
         if (INFO!=0)
                 return -1;
@@ -277,8 +213,8 @@ int InvertMatrix ( double * A, int n){
 void HadamardMult ( double * A, double * B, int n){
 	int i;
 
-	for ( i=0 ; i<n*n ; i++, A++, B++)
-		(*B) = (*A) * (*B);
+	for ( i=0 ; i<n*n ; i++)
+		B[i] *= A[i];
 }
 
 double MatrixMaxElt ( double * A, int n){
