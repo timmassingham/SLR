@@ -37,6 +37,6 @@
  * positive definite
  */
 
-void Optimize (  double * x, int n, void (*df)(const double *,double *, void *), double (*f)(const double *, void*), double * fx, void * data, double *bd, int noisy, const bool writeTemp, const bool readTemp);
+void Optimize (  double * x, int n, void (*df)(const double *,double *, void *), double (*f)(const double *, void*), double * fx, void * data, double *bd, const bool writeTemp, const bool readTemp);
 
 #endif

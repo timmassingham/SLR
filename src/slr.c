@@ -19,13 +19,16 @@
  *  along with SLR.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
+#include <assert.h>
+#include <err.h>
 #include <float.h>
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <time.h>
 
 #include "rng.h"
@@ -326,7 +329,7 @@ int main (int argc, char *argv[])
   	PrintResults ( outfile, selinfo, entropy, pval, pval_adj, data->n_pts);
   	PrintSummary ( stdout, selinfo, entropy, pval, pval_adj, data->n_pts);
 	}
-#ifndef WINDOWS
+
   if ( timemem ){
     struct rusage slr_usage;
     time(slr_clock+3);
@@ -334,7 +337,6 @@ int main (int argc, char *argv[])
     fprintf (stdout, "#CpuTime\t%d\n",(int)slr_usage.ru_utime.tv_sec);
     fprintf (stdout, "#DiffTimes\t%ld\t%ld\t%ld\n",slr_clock[1]-slr_clock[0],slr_clock[2]-slr_clock[1],slr_clock[3]-slr_clock[2]);
   }
-#endif
 
   return EXIT_SUCCESS;
 }
@@ -460,7 +462,7 @@ double  OptimizeTree ( const DATA_SET * data, TREE * tree, double * freqs, doubl
   //CheckModelDerivatives(model,0.5,x+nbr,1e-5);
   fx = CalcLike_Single ( x, info);
 
-  Optimize (x, nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, 2, writeTmp, recover);
+  Optimize (x, nparam, GradLike_Full, CalcLike_Single, &fx, (void *) info, bd, writeTmp, recover);
 
   FreeModel (model);
   free(bd);
