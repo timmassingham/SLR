@@ -27,12 +27,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
-#ifndef WINDOWS
-	#include <err.h>
-	#include <sys/resource.h>
-#else
-	#include "windows/err.h"
-#endif
+
 #include "rng.h"
 #include "gencode.h"
 #include "model.h"

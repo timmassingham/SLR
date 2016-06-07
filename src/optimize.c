@@ -19,22 +19,19 @@
  *  along with SLR.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <float.h>
-#include <limits.h>
 #include <assert.h>
 #include <err.h>
+#include <float.h>
+#include <limits.h>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "matrix.h"
-#include "utility.h"
-#include "spinner.h"
 #include "linemin.h"
-#ifdef WINDOWS
-	#include "windows/err.h"
-#endif /* WINDOWS */
+#include "matrix.h"
+#include "spinner.h"
+#include "utility.h"
 
 #define RESTART		1 
 #define RESET		100
