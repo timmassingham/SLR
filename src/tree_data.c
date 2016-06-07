@@ -236,7 +236,7 @@ static int memfree_plik_tree ( TREE * tree){
                         free ( (tree->branches[a])->bmat );
                 if ( (tree->branches[a])->plik != NULL)
                         free ( (tree->branches[a])->plik );
-                if ( (tree->branches[a])->dback != NULL);
+                if ( (tree->branches[a])->dback != NULL)
                         free ( (tree->branches[a])->dback );
         }
 
