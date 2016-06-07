@@ -43,7 +43,6 @@
 #include "data.h"
 #include "tree.h"
 #include "tree_data.h"
-#include "spinner.h"
 #include "gamma.h"
 #include "statistics.h"
 #include "root.h"
@@ -640,7 +639,7 @@ struct selectioninfo * CalculateSelection ( TREE * tree, DATA_SET * data, double
       }
       
       int neval=0;
-      fm = linemin_1d ( CalcLike_Single, x, (void *)info, bd[0], bd[1], 1e-5,0,&neval);
+      fm = linemin_1d ( CalcLike_Single, x, (void *)info, bd[0], bd[1], 1e-5, &neval);
       omegam = model->param[1];
       if ( IsConserved(data,site) ){
 	type = 4;
