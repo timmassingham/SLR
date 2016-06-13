@@ -383,7 +383,7 @@ void RL_Init (const unsigned int seed)
   seed_file = fopen ("/dev/urandom", "r");
   puts ("Initialising random number generator from /dev/urandom.");
   for (a = 0; a < RL_LAGGED_K; a++){
-    fread (&history64[a], sizeof(ULL_TYPE), 1, seed_file);
+    (void)fread (&history64[a], sizeof(ULL_TYPE), 1, seed_file);
   }
 }
 

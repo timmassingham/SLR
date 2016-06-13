@@ -550,9 +550,7 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
         for (i = 0; i < opt->n; i++) {
             opt->xn[i] = opt->x[i];
         }
-        opt->fn =
-            linemin_backtrack(opt->f, opt->n, opt->xn, space, direct,
-                              opt->state, 0., maxfactor, 1e-5, &opt->neval);
+        opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor, &opt->neval);
         opt->trust =
             (opt->trust / 2.0 < MIN_TRUST) ? MIN_TRUST : opt->trust / 2.0;
     } else {
@@ -564,10 +562,7 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
             for (i = 0; i < opt->n; i++) {
                 opt->xn[i] = opt->x[i];
             }
-            opt->fn =
-                linemin_backtrack(opt->f, opt->n, opt->xn, space,
-                                  direct, opt->state, 0., 1., 1e-5,
-                                  &opt->neval);
+            opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, 1., &opt->neval);
             opt->trust =
                 (opt->trust / 2.0 < MIN_TRUST) ? MIN_TRUST : opt->trust / 2.0;
         } else {
@@ -747,9 +742,7 @@ double SteepestDescentStep(OPTOBJ * opt)
                                         opt->n,
                                         opt->lb, opt->ub, opt->onbound,
                                         &idx);
-    double fnew = linemin_backtrack(opt->f, opt->n, opt->xn, space, direct,
-                                    opt->state, 0.,
-                                    maxfactor, 1e-12, &opt->neval);
+    double fnew = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor, &opt->neval);
     return fnew;
 }
 
