@@ -1,0 +1,82 @@
+     seqfile:    SLRMassinghamA1.paml
+    treefile:    tree_file
+     outfile:    SLRMassinghamASim1.res
+       kappa:    2.000000e+00
+       omega:    1.000000e-01
+      codonf:    0
+     nucleof:    0
+      aminof:    0
+  reoptimise:    1
+     nucfile:    nuc.dat
+   aminofile:    amino.dat
+positive_only:    1
+     gencode:    universal
+     timemem:    0
+       ldiff:    3.841459e+00
+     paramin:    
+    paramout:    
+skipsitewise:    0
+        seed:    0
+    freqtype:    1
+   cleandata:    0
+     branopt:    1
+    writetmp:    0
+     recover:    0
+
+Initialising random number generator from /dev/urandom.
+# SLR "Sitewise Likelihood Ratio" selection detection program. Version 1.4.3
+# Redundency. Reduced sites from 200 to 152
+# Read seqfile file SLRMassinghamA1.paml. 6 species, 200 sites.
+# Read tree from tree_file.
+((((A:0.100000, B:0.100000 ):0.100000, C:0.200000 ):0.100000, D:0.200000 ):0.100000, E:0.100000, F:0.100000 )
+# Reoptimising parameters, branches variable
+Initial	f: 1705.854166
+Step     f(x)      delta
+  1: 1682.333091 2.35211e+01    5 	  116.075
+  2: 1679.355174 2.97792e+00   12 	   85.240
+  3: 1678.000027 1.35515e+00   19 	   32.151
+  4: 1677.985739 1.42875e-02   28 	   26.579
+  5: 1677.982606 3.13349e-03   31 	   29.337
+  6: 1677.680913 3.01693e-01   34 	   27.601
+  7: 1677.369402 3.11511e-01   42 	   18.154
+  8: 1677.344193 2.52090e-02   50 	   14.899
+  9: 1677.307519 3.66739e-02   53 	   16.771
+ 10: 1676.947330 3.60189e-01   56 	   29.284
+ 11: 1675.806460 1.14087e+00   59 	   11.392
+ 12: 1675.760642 4.58181e-02   68 	    1.932
+ 13: 1675.574795 1.85846e-01   71 	    1.962
+ 14: 1675.208868 3.65928e-01   74 	    1.809
+ 15: 1674.573226 6.35642e-01   77 	    1.504
+ 16: 1673.668211 9.05015e-01   80 	    0.913
+ 17: 1673.178136 4.90075e-01   83 	    0.269
+ 18: 1673.136314 4.18221e-02   86 	    0.061
+ 19: 1673.134345 1.96929e-03   89 	    0.005
+ 20: 1673.134333 1.15484e-05   92 	    0.000
+ 21: 1673.134333 8.04728e-08   95 	    0.000
+ 22: 1673.134333 2.94517e-09  124 -	    0.000
+***
+# lnL = 1.673134e+03
+((((A:0.135826, B:0.048516 ):0.156328, C:0.132030 ):0.063629, D:0.157025 ):0.064532, E:0.090903, F:0.106273 )
+# Kappa = 1.946739 Omega = 0.293381
+# Tree length = 0.96, average branch length = 0.11 (min=0.05, max=0.16)
+# Scaling tree to neutral evolution. Factor = 2.09
+# Calculating initial estimates of sitewise conservation
+# Calculating conservation at each site. This may take a while.
+
+   1:  ..................................................
+  51:  ..................................................
+ 101:  ..................................................
+ 151:  ..................................................
+# Positively selected sites (cumulative)
+# Significance  Number sites  Number Random
+# 99% corrected      0       0
+# 95% corrected      0       0
+# 99%                1       0
+# 95%                3       0
+
+# Conserved sites (cumulative)
+# Significance  Number sites
+# 99% corrected      0
+# 95% corrected      0
+# 99%                0
+# 95%                0
