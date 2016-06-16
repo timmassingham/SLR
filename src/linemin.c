@@ -74,8 +74,7 @@ double linemin_backtrack(double (*fun) (const double *, void *), double finit,
     sufficient *= tol;
 
     double f;
-    int it = 0;
-    for (it = 0; it < niteration; it++) {
+    for (int it = 0; it < niteration; it++) {
         // Evaluate new point
         for (int i = 0; i < ndim; i++) {
             xnew[i] = x[i] + step * direct[i];
@@ -85,17 +84,14 @@ double linemin_backtrack(double (*fun) (const double *, void *), double finit,
 
         // Check for sufficient decrease
         double deltaf = f - finit;
-	if (deltaf < step * sufficient) {
+        if (deltaf < step * sufficient) {
+            // Store new value of x
+            for (int i = 0; i < ndim; i++) {
+                x[i] = xnew[i];
+	    }
             break;
         }
 	step *= factor;
-    }
-
-    // Store new value of x
-    if (it < niteration){
-        for (int i = 0; i < ndim; i++) {
-            x[i] = xnew[i];
-	}
     }
 
     return f;
