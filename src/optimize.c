@@ -119,6 +119,57 @@ void check_grad(const char *str, OPTOBJ * opt);
 int step, reset;
 int errn = 0;
 
+/** Read optimisation parameters from a file
+
+@param filename A filename to read from.
+@param opt An OPTOBJ to write the values to.
+*/
+void read_opt_parameters(const char *filename, OPTOBJ * opt)
+{
+    assert(NULL != filename);
+    assert(NULL != opt);
+
+    FILE *fp = fopen(filename, "r");
+    if (NULL == fp) {
+        errx(EXIT_FAILURE, "Failed from read from temporary file");
+    }
+    if ((fread(opt->x, sizeof(double), opt->n, fp) != opt->n) ||
+        (fread(opt->dx, sizeof(double), opt->n, fp) != opt->n) ||
+        (fread
+         (((struct scaleinfo *)opt->state)->scale, sizeof(double), opt->n,
+          fp) != opt->n) || (fread(&opt->fc, sizeof(double), 1, fp) != 1)) {
+        errx(EXIT_FAILURE, "Failed from read from temporary file");
+    }
+    fclose(fp);
+}
+
+/** Read optimisation parameters from a file
+
+@param filename A filename to write to.
+@param opt An OPTOBJ to write the values from.
+@returns success or failure
+*/
+bool write_opt_parameters(const char *filename, const OPTOBJ * opt)
+{
+    assert(NULL != filename);
+    assert(NULL != opt);
+
+    FILE *fp = fopen(filename, "w");
+    if (NULL == fp) {
+        warnx("Failed to open temporary file");
+        return false;
+    }
+
+    fwrite(opt->x, sizeof(double), opt->n, fp);
+    fwrite(opt->dx, sizeof(double), opt->n, fp);
+    fwrite(((struct scaleinfo *)opt->state)->scale, sizeof(double), opt->n, fp);
+    fwrite(&opt->fc, sizeof(double), 1, fp);
+    fclose(fp);
+
+    return true;
+}
+
+
 double calcerr(const double x, const double y)
 {
     return x - y;               /* For absolute errors */
@@ -145,19 +196,7 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
     }
     InitializeOpt(opt, x, n, df, f, *fx, data, bd);
     if (readTemp) {
-        FILE *fp = fopen(TEMPFILE, "r");
-        if (NULL == fp) {
-            errx(EXIT_FAILURE, "Failed from read from temporary file");
-        }
-        fread(opt->x, sizeof(double), n, fp);
-        fread(opt->dx, sizeof(double), n, fp);
-        fread(((struct scaleinfo *)opt->state)->scale, sizeof(double), n, fp);
-        fread(&opt->fc, sizeof(double), 1, fp);
-        fclose(fp);
-        for (int i = 0; i < n; i++) {
-            fprintf(stdout, "%e ", x[i]);
-        }
-        fputc('\n', stdout);
+        read_opt_parameters(TEMPFILE, opt);
     }
 
     tol = 3e-8;
@@ -200,18 +239,7 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
 
             // Write temporary values to file
             if (writeTemp && tempOk) {
-                FILE *fp = fopen(TEMPFILE, "w");
-                if (NULL == fp) {
-                    warnx("Failed to open temporary file");
-                    tempOk = false;
-                } else {
-                    fwrite(opt->x, sizeof(double), opt->n, fp);
-                    fwrite(opt->dx, sizeof(double), n, fp);
-                    fwrite(((struct scaleinfo *)opt->state)->scale,
-                           sizeof(double), n, fp);
-                    fwrite(&opt->fc, sizeof(double), 1, fp);
-                    fclose(fp);
-                }
+                tempOk = write_opt_parameters(TEMPFILE, opt);
             }
 
         }
