@@ -519,21 +519,13 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
     direct = opt->space;
     space = opt->space + opt->n;
     *newbound = 0;
-
     /*
-       do {
-       norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound,fixdirect);
-       } while (UpdateActiveSet
-       (opt->x, direct, ((struct scaleinfo *) opt->state)->scale, opt->H,
-       opt->lb, opt->ub, opt->onbound, opt->n,newbound) || Fix(opt,direct,fixdirect));
-
-       //  Scale step to satisfy trust region
-       if ( norm>opt->trust){ scale_vector (direct,opt->n,opt->trust/norm); }
-     */
     norm =
         GetStep(direct, opt->x, ((struct scaleinfo *)opt->state)->scale,
                 opt->H, opt->dx, opt->n, opt->lb, opt->ub, opt->onbound,
                 opt->trust);
+    */
+    norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound);
     if (norm > opt->trust) {
         scale_vector(direct, opt->n, opt->trust / norm);
     }
@@ -543,60 +535,21 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
         TrimAtBoundaries(opt->x, direct,
                          ((struct scaleinfo *)opt->state)->scale, opt->n,
                          opt->lb, opt->ub, opt->onbound, &idx);
-    /*
-     * Three tier decision criteria. i. If Newton step is valid, accept.
-     * ii. If not, look at function and gradient at boundary and decide
-     * whether to accept. iii. Otherwise do line search to find maximum.
-     */
-    if (maxfactor <= 1.0) {
-        /* Don't accept Newton step -- will hit boundary */
-        double fbound;
-        ScaledStep(maxfactor, opt->x, opt->xn, direct, opt->onbound, opt->n);
-        fbound = opt->f(opt->xn, opt->state);
-        opt->neval++;
-        if (fbound <= opt->fc) {
-            /*
-             * Point on boundary is better than current point,
-             * check grad
-             */
-            double fnearbound;
-            ScaledStep(maxfactor * (1. - BOUND_TOL), opt->x,
-                       opt->xn, direct, opt->onbound, opt->n);
-            fnearbound = opt->f(opt->xn, opt->state);
-            opt->neval++;
-            if (fnearbound > fbound) {
-                /*
-                 * If point on boundary appears to be
-                 * maximum, keep it
-                 */
-                ScaledStep(maxfactor, opt->x, opt->xn, direct,
-                           opt->onbound, opt->n);
-                opt->fn = fbound;
-                goto optexit;
-            }
-        }
+    maxfactor = (maxfactor > 1.0) ? 1.0 : maxfactor;
+    
+    ScaledStep(maxfactor, opt->x, opt->xn, direct, opt->onbound, opt->n);
+    opt->fn = opt->f(opt->xn, opt->state);
+    opt->neval++;
+    if (opt->fc < opt->fn) {
         for (i = 0; i < opt->n; i++) {
             opt->xn[i] = opt->x[i];
         }
-        opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor, &opt->neval);
+        opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor / 2.0, &opt->neval);
         opt->trust =
             (opt->trust / 2.0 < MIN_TRUST) ? MIN_TRUST : opt->trust / 2.0;
     } else {
-        /* Setup accept Newton step */
-        ScaledStep(1., opt->x, opt->xn, direct, opt->onbound, opt->n);
-        opt->fn = opt->f(opt->xn, opt->state);
-        opt->neval++;
-        if (opt->fc < opt->fn) {
-            for (i = 0; i < opt->n; i++) {
-                opt->xn[i] = opt->x[i];
-            }
-            opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, 1., &opt->neval);
-            opt->trust =
-                (opt->trust / 2.0 < MIN_TRUST) ? MIN_TRUST : opt->trust / 2.0;
-        } else {
-            opt->trust =
-                (2.0 * opt->trust >= MAX_TRUST) ? MAX_TRUST : 2.0 * opt->trust;
-        }
+        opt->trust =
+            (2.0 * opt->trust >= MAX_TRUST) ? MAX_TRUST : 2.0 * opt->trust;
     }
 
  optexit:
@@ -788,13 +741,13 @@ GetNewtonStep(double *direct, const double *InvHess,
 
     for (int i = 0; i < n; i++) {
         direct[i] = 0.;
+	if(onbound[i]){
+	    continue;
+	}
         for (int j = 0; j < n; j++) {
             if (!onbound[j]) {
                 direct[i] -= InvHess[i * n + j] * grad[j];
             }
-        }
-        if (onbound[i]) {
-            direct[i] = 0.;
         }
         norm += direct[i] * direct[i];
     }
