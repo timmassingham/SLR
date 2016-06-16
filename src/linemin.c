@@ -56,7 +56,7 @@ double linemin_backtrack(double (*fun) (const double *, void *), double finit,
                          const double *direct, void *info, double step,
                          int *neval)
 {
-    const int niteration = 8;
+    const int niteration = 16;
     const double factor = 0.5;
     const double tol = 1e-4;
     assert(NULL != fun);
