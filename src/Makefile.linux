@@ -5,7 +5,7 @@ LDFLAGS = -lblas -llapacke -lm
 
 #CFLAGS = -static -O3 -funroll-loops -DNDEBUG -std=gnu99 -Wall
 #CFLAGS = -Wall -g -DWARNINGS -std=gnu99 -pedantic
-#CFLAGS = -pg -std=gnu99 -DNDEBUG
+#CFLAGS = -pg -O -std=gnu99 -DNDEBUG
 LD = ld
 
 objects = like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o utility.o matrix.o optimize.o options.o tree_data.o linemin.o gamma.o statistics.o mystring.o nucmodel.o root.o vec.o brent.o rbtree.o

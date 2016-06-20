@@ -20,6 +20,7 @@
  */
 
 #include <assert.h>
+#include <cblas.h>
 #include <err.h>
 #include <float.h>
 #include <limits.h>
@@ -107,7 +108,7 @@ double SteepestDescentStep(OPTOBJ * opt);
 double GetNewtonStep(double *direct, const double *InvHess,
                      const double *grad, const int n, const int *onbound);
 void ScaledStep(const double factor, const double *x, double *xn,
-                const double *direct, const int *onbound, const int n);
+                const double *direct, const int n);
 void MakeMatrixDiagonal(double *A, int n);
 int CheckScaleInfo(struct scaleinfo *sinfo);
 void dfWrap(const double *x, double *grad, void *info);
@@ -413,101 +414,6 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
 
 }
 
-/* Best step in constrained region, assuming quadratic approx */
-double
-GetStep(double *direct, const double *x, const double *scale,
-        const double *InvHess, const double *grad, const int n,
-        const double *lb, const double *ub, const int *onbound, const double tr)
-{
-    int fix[n];
-    double fixv[n];
-    double gradf[n];
-    int nfree = n;
-    double norm;
-    bool fixed = false;
-
-    memset(fix, 0, n * sizeof(int));
-    memset(fixv, 0, n * sizeof(double));
-
-    do {
-        fixed = false;
-        // Calculate restricted Newton step
-        // First, restricted gradient
-        for (int i = 0; i < n; i++) {
-            gradf[i] = grad[i];
-        }
-        for (int i = 0; i < n; i++) {
-            if (fix[i]) {
-                for (int j = 0; j < n; j++) {
-                    gradf[j] += InvHess[i * n + j] * fixv[j];
-                }
-            }
-        }
-
-        // Second, Newton step
-        norm = 0.0;
-        for (int i = 0; i < n; i++) {
-            direct[i] = 0.0;
-            for (int j = 0; j < n; j++) {
-                if (!fix[j]) {
-                    direct[i] -= InvHess[i * n + j] * gradf[j];
-                }
-            }
-            if (fix[i]) {
-                direct[i] = fixv[i];
-            }
-            norm += direct[i] * direct[i];
-        }
-        norm = sqrt(norm);
-        // If step leaves trust region, scale back into it.
-        if (norm > tr) {
-            double sf = tr / norm;
-            for (int i = 0; i < n; i++) {
-                direct[i] *= sf;
-            }
-            norm = tr;
-        }
-        // Assess whether step has hit a boundary, if so then reduce
-        // Firstly, find nearest boundary
-        int nearestB = -1;
-        double dist = HUGE_VAL;
-        for (int i = 0; i < n; i++) {
-            if (!fix[i]) {
-                double del = HUGE_VAL;
-                if (direct[i] < 0.0) {
-                    del = (lb[i] / scale[i] - x[i]) / direct[i];
-                } else if (direct[i] > 0.0) {
-                    del = (ub[i] / scale[i] - x[i]) / direct[i];
-                } else {
-                    warnx("Direction %d is zero", i + 1);
-                }
-                if (del < dist) {
-                    dist = del;
-                    nearestB = i;
-                }
-            }
-        }
-
-        // If step would hit nearest boundary
-        if (dist < 1.0) {
-            fix[nearestB] = 1;
-            fixv[nearestB] =
-                (direct[nearestB] >
-                 0.0) ? (ub[nearestB] / scale[nearestB] -
-                         x[nearestB]) : (lb[nearestB] /
-                                         scale[nearestB] - x[nearestB]);
-            if (onbound[nearestB]) {
-                fixv[nearestB] = 0.0;
-            }
-            nfree--;
-            fixed = true;
-        }
-
-    }
-    while (fixed && nfree > 0);
-
-    return norm;
-}
 
 double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
 {
@@ -519,12 +425,6 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
     direct = opt->space;
     space = opt->space + opt->n;
     *newbound = 0;
-    /*
-    norm =
-        GetStep(direct, opt->x, ((struct scaleinfo *)opt->state)->scale,
-                opt->H, opt->dx, opt->n, opt->lb, opt->ub, opt->onbound,
-                opt->trust);
-    */
     norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound);
     if (norm > opt->trust) {
         scale_vector(direct, opt->n, opt->trust / norm);
@@ -537,7 +437,7 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
                          opt->lb, opt->ub, opt->onbound, &idx);
     maxfactor = (maxfactor > 1.0) ? 1.0 : maxfactor;
     
-    ScaledStep(maxfactor, opt->x, opt->xn, direct, opt->onbound, opt->n);
+    ScaledStep(maxfactor, opt->x, opt->xn, direct, opt->n);
     opt->fn = opt->f(opt->xn, opt->state);
     opt->neval++;
     if (opt->fc < opt->fn) {
@@ -651,7 +551,6 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
                 double *InvHess, const double *lb, const double *ub,
                 int *onbound, const int n, int *newbound)
 {
-    int i, j;
     int nremoved = 0;
     double diag;
     int inverted = 0;
@@ -664,15 +563,15 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
     assert(NULL != onbound);
     assert(NULL != InvHess);
     assert(n > 0);
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         assert(finite(x[i]));
         assert(finite(direct[i]));
-        for (j = 0; j < n; j++)
+        for (int j = 0; j < n; j++)
             assert(finite(InvHess[i * n + j]));
     }
 
     /*Check boundaries */
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         if ((x[i] * scale[i] - lb[i] < BOUND_TOL && direct[i] <= 0.)
             || (ub[i] - x[i] * scale[i] < BOUND_TOL && direct[i] >= 0.)) {
             if (onbound[i] == 0) {
@@ -684,7 +583,7 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
                     InvertMatrix(InvHess, n);
                     inverted = 1;
                 }
-                for (j = 0; j < n; j++) {
+                for (int j = 0; j < n; j++) {
                     InvHess[i * n + j] = 0.;
                     InvHess[j * n + i] = 0.;
                 }
@@ -731,24 +630,19 @@ double
 GetNewtonStep(double *direct, const double *InvHess,
               const double *grad, const int n, const int *onbound)
 {
-    double norm = 0.;
-
     assert(NULL != direct);
     assert(NULL != InvHess);
     assert(NULL != grad);
     assert(NULL != onbound);
     assert(n > 0);
 
+    cblas_dsymv(CblasColMajor, CblasLower, n, -1.0, InvHess, n, grad, 1, 0.0, direct, 1);
+
+    double norm = 0.0;
     for (int i = 0; i < n; i++) {
-        direct[i] = 0.;
 	if(onbound[i]){
-	    continue;
+	    direct[i] = 0.0;
 	}
-        for (int j = 0; j < n; j++) {
-            if (!onbound[j]) {
-                direct[i] -= InvHess[i * n + j] * grad[j];
-            }
-        }
         norm += direct[i] * direct[i];
     }
 
@@ -757,18 +651,14 @@ GetNewtonStep(double *direct, const double *InvHess,
 
 void
 ScaledStep(const double factor, const double *x, double *xn,
-           const double *direct, const int *onbound, const int n)
+           const double *direct, const int n)
 {
     int i;
 
     assert(NULL != x);
     assert(NULL != xn);
     assert(NULL != direct);
-    assert(NULL != onbound);
     assert(n > 0);
-
-    //for (i = 0; i < n; i++)
-    //      assert(!onbound[i] || direct[i] == 0.);
 
     for (i = 0; i < n; i++)
         xn[i] = x[i] + direct[i] * factor;
@@ -781,7 +671,7 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
              const int *onbound)
 {
     double gd = 0., *Hg, gHg = 0.;
-    double *g, *d, f;
+    double *g, *d;
     int i, j;
 
     g = space;
@@ -823,16 +713,9 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
      * Update inverse hessian using BFGS. Using fact that InvHessian is
      * symmetric, so only need to do half the matrix.
      */
-    f = 1. + gHg / gd;
-    for (i = 0; i < n; i++) {
-        if (!onbound[i]) {
-            for (j = 0; j <= i; j++)
-                if (!onbound[j]) {
-                    H[i * n + j] +=
-                        (f * d[i] * d[j] - d[i] * Hg[j] - Hg[i] * d[j]) / gd;
-                }
-        }
-    }
+    const double f = 1. + gHg / gd;
+    cblas_dsyr(CblasColMajor, CblasLower, n, f / gd, d, 1, H, n);
+    cblas_dsyr2(CblasColMajor, CblasLower, n, -1.0 / gd, d, 1, Hg, 1, H, n); 
 
     /*
      * Make matrix symmetric. Make upper diagonal equal to lower diagonal
