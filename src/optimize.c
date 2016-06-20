@@ -83,7 +83,7 @@ struct scaleinfo {
     void *state;
 };
 
-int
+void
 UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
              double *dxn, double *scale, const int n, double *space,
              const int *onbound);
@@ -693,7 +693,7 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
     if (gd <= 3e-8) {
         errn = errn | HESSIAN_NONPD;
         MakeMatrixIdentity(H, n);
-        return 1;
+        return;
     }
 
 
@@ -714,8 +714,8 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
     /*
      * Make matrix symmetric. Make upper diagonal equal to lower diagonal
      */
-    for (i = 0; i < n; i++)
-        for (j = 0; j < i; j++)
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < i; j++)
             H[j * n + i] = H[i * n + j];
     Rescale(xn, dxn, H, n, scale);
 }
