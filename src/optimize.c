@@ -544,8 +544,6 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
                 int *onbound, const int n, int *newbound)
 {
     int nremoved = 0;
-    double diag;
-    int inverted = 0;
 
     assert(NULL != x);
     assert(NULL != direct);
@@ -570,11 +568,7 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
                 /* Newly on boundary. Modify Hessian */
                 nremoved++;
                 errn = errn | PARAM_BOUND;
-                diag = InvHess[i * n + i];
-                if (!inverted) {
-                    InvertMatrix(InvHess, n);
-                    inverted = 1;
-                }
+                double diag = InvHess[i * n + i];
                 for (int j = 0; j < n; j++) {
                     InvHess[i * n + j] = 0.;
                     InvHess[j * n + i] = 0.;
@@ -588,10 +582,6 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
              * parameter is coming off boundary */
             onbound[i] = 0;
         }
-    }
-
-    if (inverted) {
-        InvertMatrix(InvHess, n);
     }
     *newbound += nremoved;
     return nremoved;
