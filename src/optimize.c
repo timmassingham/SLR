@@ -35,8 +35,9 @@
 
 #define RESTART		1
 #define RESET		100
-#define MAX_TRUST	10.0
-#define MIN_TRUST	1e-4
+#define MAX_TRUST	5.0
+#define MIN_TRUST	1e-3
+#define FACTOR_TRUST    1.2
 #define MINSCALE	0.001
 #define MAXSCALE	1000.0
 
@@ -183,7 +184,6 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
 {
     OPTOBJ *opt;
     double fo, fn, tol, md;
-    int i;
     int max_restart, restarts;
     char *errstring = NULL;
     double fact;
@@ -258,7 +258,7 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
              restarts);
     }
     scale = ((struct scaleinfo *)opt->state)->scale;
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         x[i] = opt->x[i] * scale[i];
         opt->dx[i] *= scale[i];
     }
@@ -376,12 +376,11 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
               double (*f) (const double *, void *), double fx, void *data,
               double *bd)
 {
-    int i;
     struct scaleinfo *sinfo;
 
     step = 0;
 
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         opt->x[i] = x[i];
         opt->lb[i] = bd[i];
         opt->ub[i] = bd[n + i];
@@ -395,7 +394,7 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
     sinfo->state = data;
     sinfo->sx = malloc(n * sizeof(double));
     sinfo->scale = malloc(n * sizeof(double));
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         sinfo->scale[i] = 1.;
 
     opt->df = dfWrap;
@@ -406,7 +405,7 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
     opt->df(opt->x, opt->dx, opt->state);
     opt->neval++;
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         if ((opt->x[i] <= opt->lb[i] && opt->dx[i] >= 0.)
             || (opt->x[i] >= opt->ub[i] && opt->dx[i] <= 0.))
             opt->onbound[i] = 1;
@@ -420,7 +419,7 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
     double norm;
     double *direct, *space;
     double maxfactor;
-    int i, idx;
+    int idx;
 
     direct = opt->space;
     space = opt->space + opt->n;
@@ -441,27 +440,27 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
     opt->fn = opt->f(opt->xn, opt->state);
     opt->neval++;
     if (opt->fc < opt->fn) {
-        for (i = 0; i < opt->n; i++) {
+        for (int i = 0; i < opt->n; i++) {
             opt->xn[i] = opt->x[i];
         }
-        opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor / 2.0, &opt->neval);
+        opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor / FACTOR_TRUST, &opt->neval);
         opt->trust =
-            (opt->trust / 2.0 < MIN_TRUST) ? MIN_TRUST : opt->trust / 2.0;
+            (opt->trust / FACTOR_TRUST < MIN_TRUST) ? MIN_TRUST : opt->trust / FACTOR_TRUST;
     } else {
         opt->trust =
-            (2.0 * opt->trust >= MAX_TRUST) ? MAX_TRUST : 2.0 * opt->trust;
+            (FACTOR_TRUST * opt->trust >= MAX_TRUST) ? MAX_TRUST : FACTOR_TRUST * opt->trust;
     }
 
  optexit:
     if (opt->fn > opt->fc) {
         /*  Still worse position  */
-        for (i = 0; i < opt->n; i++) {
+        for (int i = 0; i < opt->n; i++) {
             opt->xn[i] = opt->x[i];
             opt->dxn[i] = opt->dx[i];
         }
         opt->fn = opt->fc;
         norm = 0.;
-        for (i = 0; i < opt->n; i++) {
+        for (int i = 0; i < opt->n; i++) {
             if (!opt->onbound[i]) {
                 norm += opt->dxn[i] * opt->dxn[i];
             }
@@ -483,13 +482,13 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
                  opt->onbound);
 
     opt->fc = opt->fn;
-    for (i = 0; i < opt->n; i++) {
+    for (int i = 0; i < opt->n; i++) {
         opt->x[i] = opt->xn[i];
         opt->dx[i] = opt->dxn[i];
     }
 
     norm = 0.;
-    for (i = 0; i < opt->n; i++)
+    for (int i = 0; i < opt->n; i++)
         if (!opt->onbound[i])
             norm += opt->dx[i] * opt->dx[i];
     return sqrt(norm);
@@ -500,9 +499,8 @@ TrimAtBoundaries(const double *x, const double *direct,
                  const double *scale, const int n, const double *lb,
                  const double *ub, const int *onbound, int *idx)
 {
-    int i;
     double bound, maxerr, epserr;
-    volatile double maxfact, fact;
+    double maxfact, fact;
 
     assert(NULL != x);
     assert(NULL != direct);
@@ -511,16 +509,10 @@ TrimAtBoundaries(const double *x, const double *direct,
     assert(NULL != lb);
     assert(NULL != ub);
     assert(NULL != onbound);
-/*	for (i = 0; i < n; i++) {
-		assert(finite(direct[i]));
-		assert((!onbound[i] && x[i] * scale[i] > lb[i]
-			&& x[i] * scale[i] < ub[i]) || onbound[i]);
-		assert(!onbound[i] || direct[i] == 0.);
-	}*/
 
     maxfact = DBL_MAX;
     maxerr = 0.;
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         if (!onbound[i] && fabs(direct[i]) > DBL_EPSILON) {
             bound = ((direct[i] > 0.) ? ub[i] : lb[i]) / scale[i];
             fact = (bound - x[i]) / direct[i];
@@ -537,7 +529,7 @@ TrimAtBoundaries(const double *x, const double *direct,
     /* Correction for rounding to ensure bounds are never exceeded */
     maxfact -= (maxerr + maxfact) * DBL_EPSILON;
 
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         assert(onbound[i]
                || (((x[i] + maxfact * direct[i]) * scale[i] - lb[i] >= 0.)
                    && ((x[i] + maxfact * direct[i]) * scale[i] - ub[i] <= 0.)));
@@ -636,7 +628,14 @@ GetNewtonStep(double *direct, const double *InvHess,
     assert(NULL != onbound);
     assert(n > 0);
 
-    cblas_dsymv(CblasColMajor, CblasLower, n, -1.0, InvHess, n, grad, 1, 0.0, direct, 1);
+    double * g = malloc(n * sizeof(double));
+    memcpy(g, grad, n * sizeof(double));
+    for ( int i = 0 ; i < n ; i++){
+        if( onbound[i] ){
+	    g[i] = 0.0;
+	}
+    }
+    cblas_dsymv(CblasColMajor, CblasLower, n, -1.0, InvHess, n, g, 1, 0.0, direct, 1);
 
     double norm = 0.0;
     for (int i = 0; i < n; i++) {
@@ -646,6 +645,8 @@ GetNewtonStep(double *direct, const double *InvHess,
         norm += direct[i] * direct[i];
     }
 
+    free(g);
+
     return sqrt(norm);
 }
 
@@ -653,26 +654,23 @@ void
 ScaledStep(const double factor, const double *x, double *xn,
            const double *direct, const int n)
 {
-    int i;
-
     assert(NULL != x);
     assert(NULL != xn);
     assert(NULL != direct);
     assert(n > 0);
 
-    for (i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
         xn[i] = x[i] + direct[i] * factor;
 }
 
 /* Space n+n+n */
-int
+void 
 UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
              double *dxn, double *scale, const int n, double *space,
              const int *onbound)
 {
     double gd = 0., *Hg, gHg = 0.;
     double *g, *d;
-    int i, j;
 
     g = space;
     space += n;
@@ -682,7 +680,9 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
     space += n;
 
     gd = 0.;
-    for (i = 0; i < n; i++) {
+    memset(d, 0, n * sizeof(*d));
+    memset(g, 0, n * sizeof(*d));
+    for (int i = 0; i < n; i++) {
         if (!onbound[i]) {
             d[i] = xn[i] - x[i];
             g[i] = dxn[i] - dx[i];
@@ -696,17 +696,11 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
         return 1;
     }
 
+
+    cblas_dsymv(CblasColMajor, CblasLower, n, 1.0, H, n, g, 1, 0.0, Hg, 1);
     gHg = 0.;
-    for (i = 0; i < n; i++) {
-        Hg[i] = 0.;
-        if (!onbound[i]) {
-            for (j = 0; j < n; j++) {
-                if (!onbound[j]) {
-                    Hg[i] += H[i * n + j] * g[j];
-                }
-            }
-            gHg += g[i] * Hg[i];
-        }
+    for (int i = 0; i < n; i++) {
+        gHg += g[i] * Hg[i];
     }
 
     /*
@@ -724,8 +718,6 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
         for (j = 0; j < i; j++)
             H[j * n + i] = H[i * n + j];
     Rescale(xn, dxn, H, n, scale);
-
-    return 1;
 }
 
 void InitializeH(OPTOBJ * opt)
@@ -738,12 +730,11 @@ void TestIdentity(double *A, double *B, int n)
 {
 
     double tmp;
-    int i, j, k;
 
-    for (i = 0; i < n; i++)
-        for (j = 0; j < n; j++) {
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++) {
             tmp = 0.;
-            for (k = 0; k < n; k++)
+            for (int k = 0; k < n; k++)
                 tmp += A[i * n + k] * B[k * n + j];
             if (i == j && fabs(1. - tmp) > 1e-8)
                 printf("%d %d = %e\n", i, j, tmp);
@@ -754,7 +745,6 @@ void TestIdentity(double *A, double *B, int n)
 
 double fWrap(const double *x, void *info)
 {
-    int i;
     struct scaleinfo *sinfo;
     double fx;
     assert(NULL != x);
@@ -763,7 +753,7 @@ double fWrap(const double *x, void *info)
     sinfo = (struct scaleinfo *)info;
     assert(CheckScaleInfo(sinfo));
 
-    for (i = 0; i < sinfo->dim; i++) {
+    for (int i = 0; i < sinfo->dim; i++) {
         sinfo->sx[i] = x[i] * sinfo->scale[i];
     }
 
@@ -774,7 +764,6 @@ double fWrap(const double *x, void *info)
 
 void dfWrap(const double *x, double *grad, void *info)
 {
-    int i;
     struct scaleinfo *sinfo;
     assert(NULL != x);
     assert(NULL != info);
@@ -782,13 +771,13 @@ void dfWrap(const double *x, double *grad, void *info)
     sinfo = (struct scaleinfo *)info;
     assert(CheckScaleInfo(sinfo));
 
-    for (i = 0; i < sinfo->dim; i++) {
+    for (int i = 0; i < sinfo->dim; i++) {
         sinfo->sx[i] = x[i] * sinfo->scale[i];
     }
 
     sinfo->df(sinfo->sx, grad, sinfo->state);
 
-    for (i = 0; i < sinfo->dim; i++) {
+    for (int i = 0; i < sinfo->dim; i++) {
         grad[i] *= sinfo->scale[i];
     }
 
@@ -810,7 +799,6 @@ int CheckScaleInfo(struct scaleinfo *sinfo)
 
 void Rescale(double *x, double *dx, double *H, int n, double *scale)
 {
-    int i, j;
     double scalefact;
 
     assert(NULL != x);
@@ -819,11 +807,11 @@ void Rescale(double *x, double *dx, double *H, int n, double *scale)
     assert(n > 0);
     assert(NULL != scale);
 
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         scalefact = sqrt(H[i * n + i]);
         scalefact = (scalefact > MINSCALE) ? scalefact : MINSCALE;
         scalefact = (scalefact < MAXSCALE) ? scalefact : MAXSCALE;
-        for (j = 0; j < n; j++) {
+        for (int j = 0; j < n; j++) {
             H[i * n + j] /= scalefact;
             H[j * n + i] /= scalefact;
         }
@@ -837,7 +825,6 @@ void
 AnalyseOptima(double *x, double *dx, int n, int *onbound, double *lb,
               double *ub)
 {
-    int i;
     assert(NULL != x);
     assert(NULL != dx);
     assert(n > 0);
@@ -845,7 +832,7 @@ AnalyseOptima(double *x, double *dx, int n, int *onbound, double *lb,
     assert(NULL != lb);
     assert(NULL != ub);
 
-    for (i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++) {
         printf("%4d: ", i);
         if (onbound[i]) {
             printf("Boundary. lb: %e, ub: %e. Grad %e\n",
