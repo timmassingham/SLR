@@ -35,9 +35,9 @@
 
 #define RESTART		1
 #define RESET		100
-#define MAX_TRUST	5.0
-#define MIN_TRUST	1e-3
-#define FACTOR_TRUST    1.2
+#define MAX_TRUST	10.0
+#define MIN_TRUST	1e-4
+#define FACTOR_TRUST    2.0
 #define MINSCALE	0.001
 #define MAXSCALE	1000.0
 
@@ -670,8 +670,8 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
     space += n;
 
     gd = 0.;
-    memset(d, 0, n * sizeof(*d));
-    memset(g, 0, n * sizeof(*d));
+    memset(d, 0, n * sizeof(double));
+    memset(g, 0, n * sizeof(double));
     for (int i = 0; i < n; i++) {
         if (!onbound[i]) {
             d[i] = xn[i] - x[i];
@@ -704,9 +704,11 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
     /*
      * Make matrix symmetric. Make upper diagonal equal to lower diagonal
      */
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < i; j++)
+    for (int i = 0 ; i < n; i++){
+        for (int j = i ; j < n; j++){
             H[j * n + i] = H[i * n + j];
+	}
+    }
     Rescale(xn, dxn, H, n, scale);
 }
 
