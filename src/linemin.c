@@ -58,7 +58,7 @@ double linemin_backtrack(double (*fun) (const double *, void *), double finit,
 {
     const int niteration = 16;
     const double factor = 0.5;
-    const double tol = 1e-2;
+    const double tol = 1e-4;
     assert(NULL != fun);
     assert(ndim >= 1);
     assert(NULL != x);
@@ -73,14 +73,14 @@ double linemin_backtrack(double (*fun) (const double *, void *), double finit,
     }
     sufficient *= tol;
 
-    double f;
+    double fopt = finit;
     for (int it = 0; it < niteration; it++) {
         // Evaluate new point
         for (int i = 0; i < ndim; i++) {
             xnew[i] = x[i] + step * direct[i];
         }
-        f = fun(xnew, info);
-        *neval = *neval + 1;
+        double f = fun(xnew, info);
+        *neval += 1;
 
         // Check for sufficient decrease
         double deltaf = f - finit;
@@ -89,12 +89,13 @@ double linemin_backtrack(double (*fun) (const double *, void *), double finit,
             for (int i = 0; i < ndim; i++) {
                 x[i] = xnew[i];
 	    }
+	    fopt = f;
             break;
         }
 	step *= factor;
     }
 
-    return f;
+    return fopt;
 }
 
 double linemin_1d(double (*fun) (const double *, void *), double *x, void *info,
