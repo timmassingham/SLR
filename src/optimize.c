@@ -105,7 +105,6 @@ double TrimAtBoundaries(const double *x, const double *direct,
 int UpdateActiveSet(const double *x, double *grad, const double *scale,
                     double *InvHess, const double *lb, const double *ub,
                     int *onbound, const int n, int *newbound);
-double SteepestDescentStep(OPTOBJ * opt);
 double GetNewtonStep(double *direct, const double *InvHess,
                      const double *grad, const int n, const int *onbound);
 void ScaledStep(const double factor, const double *x, double *xn,
@@ -217,24 +216,6 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
             md = TakeStep(opt, tol, &fact, &newbound);
             MakeErrString(&errstring, errn);
             step++;
-            if (calcerr(fn, opt->fc) <= tol) {
-                opt->fc = SteepestDescentStep(opt);
-                for (int i = 0; i < opt->n; i++) {
-                    opt->x[i] = opt->xn[i];
-                }
-                opt->f(opt->x, opt->state);
-                opt->neval++;
-                opt->df(opt->x, opt->dx, opt->state);
-                opt->neval++;
-                for (int i = 0; i < opt->n; i++) {
-                    opt->space[i] = -opt->dx[i];
-                }
-                UpdateActiveSet(opt->x, opt->space,
-                                ((struct scaleinfo *)opt->state)->scale, opt->H,
-                                opt->lb, opt->ub, opt->onbound, opt->n,
-                                &newbound);
-                InitializeH(opt);
-            }
             printf("%3d: %9f %10.5e %4d %s\t%9.3f\n", step,
                    opt->fc, fabs(opt->fc - fn), opt->neval, errstring, md);
 
@@ -451,35 +432,17 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
             (FACTOR_TRUST * opt->trust >= MAX_TRUST) ? MAX_TRUST : FACTOR_TRUST * opt->trust;
     }
 
- optexit:
-    if (opt->fn > opt->fc) {
-        /*  Still worse position  */
-        for (int i = 0; i < opt->n; i++) {
-            opt->xn[i] = opt->x[i];
-            opt->dxn[i] = opt->dx[i];
-        }
-        opt->fn = opt->fc;
-        norm = 0.;
-        for (int i = 0; i < opt->n; i++) {
-            if (!opt->onbound[i]) {
-                norm += opt->dxn[i] * opt->dxn[i];
-            }
-        }
-        return sqrt(norm);
-    }
-    opt->f(opt->xn, opt->state);
-    opt->neval++;
     opt->df(opt->xn, opt->dxn, opt->state);
     opt->neval++;
     for (int i = 0; i < opt->n; i++) {
         direct[i] = -opt->dxn[i];
     }
-    UpdateActiveSet(opt->xn, direct,
-                    ((struct scaleinfo *)opt->state)->scale, opt->H,
-                    opt->lb, opt->ub, opt->onbound, opt->n, newbound);
     UpdateH_BFGS(opt->H, opt->x, opt->xn, opt->dx, opt->dxn,
                  ((struct scaleinfo *)opt->state)->scale, opt->n, space,
                  opt->onbound);
+    UpdateActiveSet(opt->xn, direct,
+                    ((struct scaleinfo *)opt->state)->scale, opt->H,
+                    opt->lb, opt->ub, opt->onbound, opt->n, newbound);
 
     opt->fc = opt->fn;
     for (int i = 0; i < opt->n; i++) {
@@ -563,8 +526,8 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
 
     /*Check boundaries */
     for (int i = 0; i < n; i++) {
-        if ((x[i] * scale[i] - lb[i] < BOUND_TOL && direct[i] <= 0.)
-            || (ub[i] - x[i] * scale[i] < BOUND_TOL && direct[i] >= 0.)) {
+        if ((x[i] * scale[i] - lb[i] < BOUND_TOL)
+            || (ub[i] - x[i] * scale[i] < BOUND_TOL)) {
             if (onbound[i] == 0) {
                 /* Newly on boundary. Modify Hessian */
                 nremoved++;
@@ -579,14 +542,14 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
                     InvHess[j * n + i] = 0.;
                 }
                 InvHess[i * n + i] = fabs(diag);
-            }
+	    }
+	}
+	onbound[i] = 0;
+        if ((x[i] * scale[i] - lb[i] < BOUND_TOL && direct[i] <= 0.)
+            || (ub[i] - x[i] * scale[i] < BOUND_TOL && direct[i] >= 0.)) {
             onbound[i] = 1;
             direct[i] = 0.;
-        } else {
-            /* Parameter is not on boundary or gradient is such that 
-             * parameter is coming off boundary */
-            onbound[i] = 0;
-        }
+	}
     }
 
     if (inverted) {
@@ -594,27 +557,6 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
     }
     *newbound += nremoved;
     return nremoved;
-}
-
-double SteepestDescentStep(OPTOBJ * opt)
-{
-    assert(NULL != opt);
-
-    int idx;
-    double *direct = opt->space;
-    double *space = opt->space + opt->n;
-
-    for (int i = 0; i < opt->n; i++) {
-        opt->xn[i] = opt->x[i];
-        direct[i] = (opt->onbound[i]) ? 0. : -opt->dx[i];
-    }
-    double maxfactor = TrimAtBoundaries(opt->x, direct,
-                                        ((struct scaleinfo *)opt->state)->scale,
-                                        opt->n,
-                                        opt->lb, opt->ub, opt->onbound,
-                                        &idx);
-    double fnew = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor, &opt->neval);
-    return fnew;
 }
 
 double

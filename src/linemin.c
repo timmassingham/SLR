@@ -90,11 +90,14 @@ double linemin_backtrack(double (*fun) (const double *, void *), double finit,
                 x[i] = xnew[i];
 	    }
 	    fopt = f;
-            break;
+            goto end;
         }
 	step *= factor;
     }
 
+    fopt = fun(x, info);
+
+end:
     return fopt;
 }
 
