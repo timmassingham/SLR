@@ -610,6 +610,7 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
              double *dxn, double *scale, const int n, double *space,
              const int *onbound)
 {
+    const double update_tol = 3e-8;
     double gd = 0., *Hg, gHg = 0.;
     double *g, *d;
 
@@ -631,7 +632,7 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
         }
     }
 
-    if (gd <= 3e-8) {
+    if (gd <= update_tol) {
         errn = errn | HESSIAN_NONPD;
         MakeMatrixIdentity(H, n);
         return;
@@ -652,14 +653,6 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
     cblas_dsyr(CblasColMajor, CblasLower, n, f / gd, d, 1, H, n);
     cblas_dsyr2(CblasColMajor, CblasLower, n, -1.0 / gd, d, 1, Hg, 1, H, n); 
 
-    /*
-     * Make matrix symmetric. Make upper diagonal equal to lower diagonal
-     */
-    for (int i = 0 ; i < n; i++){
-        for (int j = i ; j < n; j++){
-            H[j * n + i] = H[i * n + j];
-	}
-    }
     Rescale(xn, dxn, H, n, scale);
 }
 
