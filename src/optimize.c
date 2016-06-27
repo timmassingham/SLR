@@ -421,12 +421,12 @@ double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
     opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor, &neval);
     opt->neval += neval;
 
-    if( neval > 1){
-        opt->trust =
-            (opt->trust / FACTOR_TRUST < MIN_TRUST) ? MIN_TRUST : opt->trust / FACTOR_TRUST;
-    } else {
-        opt->trust =
-            (FACTOR_TRUST * opt->trust >= MAX_TRUST) ? MAX_TRUST : FACTOR_TRUST * opt->trust;
+    if( neval == 1){
+        opt->trust *= FACTOR_TRUST;
+        opt->trust = (opt->trust >= MAX_TRUST) ? MAX_TRUST : opt->trust;
+    } else if( neval > 2){
+        opt->trust /= FACTOR_TRUST;
+        opt->trust = (opt->trust <= MIN_TRUST) ? MIN_TRUST : opt->trust;
     }
 
     opt->df(opt->xn, opt->dxn, opt->state);
@@ -538,7 +538,7 @@ UpdateActiveSet(const double *x, double *direct, const double *scale,
                     InvHess[i * n + j] = 0.;
                     InvHess[j * n + i] = 0.;
                 }
-                InvHess[i * n + i] = fabs(diag);
+                InvHess[i * n + i] = 1.0; //fabs(diag);
 	    }
 	}
 	onbound[i] = 0;
@@ -607,7 +607,7 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
              double *dxn, double *scale, const int n, double *space,
              const int *onbound)
 {
-    const double update_tol = 1e-6;
+    const double update_tol = 1e-4;
     double gd = 0., *Hg, gHg = 0.;
     double *g, *d;
 
