@@ -66,6 +66,8 @@ double linemin_backtrack(double (*fun) (const double *, void *), double finit,
     assert(NULL != direct);
     assert(NULL != info);
 
+    *neval = 0;
+
     // Criterion for sufficient decrease
     double sufficient = 0.0;
     for (int i = 0; i < ndim; i++) {

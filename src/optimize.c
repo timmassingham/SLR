@@ -397,34 +397,31 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
 
 double TakeStep(OPTOBJ * opt, const double tol, double *factor, int *newbound)
 {
-    double norm;
-    double *direct, *space;
-    double maxfactor;
-    int idx;
+    int idx, neval=0;
 
-    direct = opt->space;
-    space = opt->space + opt->n;
+    double * direct = opt->space;
+    double * space = opt->space + opt->n;
+
     *newbound = 0;
-    norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound);
+    double norm = GetNewtonStep(direct, opt->H, opt->dx, opt->n, opt->onbound);
     if (norm > opt->trust) {
         scale_vector(direct, opt->n, opt->trust / norm);
     }
 
     *factor = 1.;
-    maxfactor =
+    double maxfactor =
         TrimAtBoundaries(opt->x, direct,
                          ((struct scaleinfo *)opt->state)->scale, opt->n,
                          opt->lb, opt->ub, opt->onbound, &idx);
     maxfactor = (maxfactor > 1.0) ? 1.0 : maxfactor;
     
-    ScaledStep(maxfactor, opt->x, opt->xn, direct, opt->n);
-    opt->fn = opt->f(opt->xn, opt->state);
-    opt->neval++;
-    if (opt->fc < opt->fn) {
-        for (int i = 0; i < opt->n; i++) {
-            opt->xn[i] = opt->x[i];
-        }
-        opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor / FACTOR_TRUST, &opt->neval);
+    for (int i = 0; i < opt->n; i++) {
+        opt->xn[i] = opt->x[i];
+    }
+    opt->fn = linemin_backtrack(opt->f, opt->fc, opt->n, opt->xn, space, opt->dx, direct, opt->state, maxfactor, &neval);
+    opt->neval += neval;
+
+    if( neval > 1){
         opt->trust =
             (opt->trust / FACTOR_TRUST < MIN_TRUST) ? MIN_TRUST : opt->trust / FACTOR_TRUST;
     } else {
@@ -610,7 +607,7 @@ UpdateH_BFGS(double *H, const double *x, double *xn, const double *dx,
              double *dxn, double *scale, const int n, double *space,
              const int *onbound)
 {
-    const double update_tol = 3e-8;
+    const double update_tol = 1e-6;
     double gd = 0., *Hg, gHg = 0.;
     double *g, *d;
 
