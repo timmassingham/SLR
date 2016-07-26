@@ -719,9 +719,9 @@ void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double
   }
 
   if ( dosupport ){
-  	fputs ("# Site  Neutral  Optimal   Omega    lower    upper LRT_Stat    Pval     Adj.Pval    Q-value Result Note\n", out_fp);
+    fputs ("#   Site  Neutral  Optimal    Omega    Lower    Upper LRT_Stat       Pval   Adj.Pval    Q-value Result Note\n", out_fp);
   } else {
-	fputs ("# Site  Neutral  Optimal   upper LRT_Stat    Pval     Adj.Pval    Q-value Result Note\n", out_fp);
+    fputs ("#   Site  Neutral  Optimal    Omega LRT_Stat       Pval   Adj.Pval    Q-value Result Note\n", out_fp);
   }
 
   for ( site=0 ; site<nsites ; site++){
@@ -745,12 +745,12 @@ void PrintResults ( char * outfile, struct selectioninfo * selinfo, const double
     if ( pval_adj[site]<=0.01)	result[3] = sign;
   
     if ( dosupport){ 
-        fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %8.4f %8.4f %6.4e %6.4e %6.4e %s %s\n",
+        fprintf (out_fp, "%8d %8.2f %8.2f %8.4f %8.4f %8.4f %8.4f %6.4e %6.4e %6.4e %s %s\n",
                 site + 1, selinfo->llike_neu[site], selinfo->llike_max[site], 
                 selinfo->omega_max[site], selinfo->lbound[site], selinfo->ubound[site], 
                 stat, pval[site], pval_adj[site],pval_adj[site+nsites],result,OutString[selinfo->type[site]]);
     } else {
-        fprintf (out_fp, " %4d %8.2f %8.2f %8.4f %8.4f %6.4e %6.4e %6.4e %s %s\n",
+        fprintf (out_fp, "%8d %8.2f %8.2f %8.4f %8.4f %6.4e %6.4e %6.4e %s %s\n",
                 site + 1, selinfo->llike_neu[site], selinfo->llike_max[site],
                 selinfo->omega_max[site], stat, pval[site], pval_adj[site], pval_adj[site+nsites], result,
                 OutString[selinfo->type[site]]);
