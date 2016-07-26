@@ -216,7 +216,7 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
             md = TakeStep(opt, tol, &fact, &newbound);
             MakeErrString(&errstring, errn);
             step++;
-            printf("%6d: %12.3f %10.3f %6d %s %12.3f\n", step,
+            printf("%6d: %12.3f %10.3f %6d %3s %12.3f\n", step,
                    opt->fc, fabs(opt->fc - fn), opt->neval, errstring, md);
 
             // Write temporary values to file
