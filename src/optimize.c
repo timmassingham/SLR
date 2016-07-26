@@ -205,7 +205,7 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
 
     /* Do optimization, allowing restarts so don't get bogged down. */
 
-    printf("Initial\tf: %8.6f\nStep     f(x)      delta\n", opt->fc);
+    printf("Initial\tf: %8.6f\nStep            f(x)      delta\n", opt->fc);
     do {
         fo = opt->fc;
         InitializeH(opt);
@@ -216,7 +216,7 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
             md = TakeStep(opt, tol, &fact, &newbound);
             MakeErrString(&errstring, errn);
             step++;
-            printf("%3d: %9f %10.5e %4d %s\t%9.3f\n", step,
+            printf("%6d: %12.3f %10.3f %6d %s %12.3f\n", step,
                    opt->fc, fabs(opt->fc - fn), opt->neval, errstring, md);
 
             // Write temporary values to file
