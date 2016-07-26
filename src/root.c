@@ -84,8 +84,8 @@ double find_root ( double min, double max, double (*f)(const double*,void*), voi
    }
 
    /*  Final linear interpolation*/
-   delta = (fabs(fu-fl)>fabs(fu)*DBL_EPSILON)?fl/(fu-fl):0.5;
-   x = min - (max-min) * delta;
+   delta = (fabs(fu - fl) > fabs(fu) * DBL_EPSILON) ? (fl / (fl - fu)) : 0.5;
+   x = min + (max - min) * delta;
    return x;
 }
 
