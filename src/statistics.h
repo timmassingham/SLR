@@ -46,7 +46,7 @@ double variance (const VEC v);
 double sd(const VEC v);
 double mad ( const VEC v);
 struct summary * summarise_vec(const VEC v);
-struct summary * fprint_summary (FILE * fp, const char * name, struct summary * s);
+struct summary * fprint_stat_summary (FILE * fp, const char * name, struct summary * s);
 void free_summary ( struct summary * s);
 
 double pFDR_storey02 ( const double * pval, const unsigned int m, const double lambda, const double gamma);

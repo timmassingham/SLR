@@ -156,7 +156,7 @@ void create_tree (TREE * tree)
 }
 
 
-void print_tree (FILE * out, const NODE * node, const NODE * parent,
+void fprint_tree (FILE * out, const NODE * node, const NODE * parent,
 		 const TREE * tree)
 {
   int a, leaf_flag = 0;
@@ -184,7 +184,7 @@ void print_tree (FILE * out, const NODE * node, const NODE * parent,
     else {
       if (leaf_flag == 1)
 	fprintf (out, ", ");
-      print_tree (out, CHILD (node, a), node, tree);
+      fprint_tree (out, CHILD (node, a), node, tree);
       leaf_flag = 1;
     }
     if (node->blength[a]>=0.){
@@ -318,7 +318,7 @@ NODE *create_tree_sub (const char **tree_str, NODE * parent, TREE * tree)
   fprintf (stderr,"Error creating tree.\n");
   fprintf (stderr,"Tree string is %s.\n",*tree_str);
   fprintf (stderr,"This is probably a bug. Please report to tim.massingham@ebi.ac.uk\n");
-  print_tree(stderr, parent,parent,tree);
+  fprint_tree(stderr, parent,parent,tree);
   exit(EXIT_FAILURE);
 
   return node;

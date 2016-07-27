@@ -1,6 +1,6 @@
 seqfile: SLRMassinghamA1.paml
 treefile: tree_file
-outfile: SLRMassinghamASim1.res
+outprefix: SLRMassinghamASim1
 positive_only: 1
 
 

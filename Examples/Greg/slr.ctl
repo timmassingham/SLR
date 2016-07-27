@@ -1,4 +1,4 @@
 seqfile: 371_9_slr.phylip
 treefile: 371_9_slr.nwk
-outfile: 371_9_matched.res
+outprefix: 371_9_matched
 positive_only: 0

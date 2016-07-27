@@ -1,4 +1,4 @@
 seqfile: incodon
 treefile: intree
-outfile: out.res
+outprefix: output
 positive_only: 0

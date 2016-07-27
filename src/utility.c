@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <float.h>
 #include <ctype.h>
@@ -362,3 +363,12 @@ unsigned int sum_bool ( const bool * x, const unsigned int n){
 	return ntrue;
 }
 
+FILE * fopen_with_suffix(const char * prefix, const char * suffix, const char * mode){
+    int prefix_len = strlen(prefix);
+    char * fname = calloc(prefix_len + strlen(suffix) + 1, sizeof(char));
+    strcpy(fname, prefix);
+    strcpy(fname + prefix_len, suffix);
+    FILE * fp = fopen(fname, mode);
+    free(fname);
+    return fp;
+}

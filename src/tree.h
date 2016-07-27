@@ -80,7 +80,7 @@ void Recurse_forward ( const TREE * tree, void (*fun)(void *, int,int), void * i
 void Recurse_backward ( const TREE * tree, void (*fun)(void *, int,int), void *info);
 void CheckIsTree ( const TREE * tree);
 void create_tree (TREE * tree);
-void print_tree ( FILE * out, const NODE * node, const NODE * parent, const TREE * tree);
+void fprint_tree ( FILE * out, const NODE * node, const NODE * parent, const TREE * tree);
 int find_branch_number ( const NODE * branch, const TREE * tree);
 int find_connection ( const NODE * from, const NODE * to);
 int add_lengths_to_tree ( TREE * tree, double *lengths);

@@ -1,4 +1,4 @@
 seqfile: HIVpol.paml
 treefile: HIVpol.trees
-outfile: out.res
+outprefix: HIVpol_output
 positive_only: 0

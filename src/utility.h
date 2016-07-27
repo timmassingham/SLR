@@ -58,4 +58,6 @@ int teeint ( FILE * fp, const char * s, const int i);
 double * CopyVector ( const double * A, double * B, const unsigned int n);
 unsigned int sum_bool ( const bool * x, const unsigned int n);
 
+FILE * fopen_with_suffix(const char * prefix, const char * suffix, const char * mode);
+
 #endif

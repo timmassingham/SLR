@@ -289,7 +289,7 @@ struct summary * summarise_vec( VEC v){
 	return s;
 }
 
-struct summary * fprint_summary (FILE * fp, const char * name, struct summary * s){
+struct summary * fprint_stat_summary (FILE * fp, const char * name, struct summary * s){
 	assert(NULL!=fp);
 	assert(NULL!=name);
 	assert(NULL!=s);

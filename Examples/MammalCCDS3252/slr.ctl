@@ -1,4 +1,4 @@
 seqfile: CCDS3253.1.fasta
 treefile: tree_PanGorPonMacCalOtoFelBosEqu.txt
-outfile: out.res
+outprefix: output
 positive_only: 0

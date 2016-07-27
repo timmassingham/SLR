@@ -1,4 +1,4 @@
 seqfile: pf00001.cdn
 treefile: PF00001.tree
-outfile: out.res
+outprefix: output
 positive_only: 0
