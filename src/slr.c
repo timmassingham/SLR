@@ -342,21 +342,19 @@ int main(int argc, char *argv[])
         fprint_tree(stdout, trees[0]->tree, NULL, trees[0]);
     }
 
-    {
-        double min, max, len;
-        double blen;
-        min = max = len = (trees[0]->branches[0])->blength[0];
-        for (i = 1; i < trees[0]->n_br; i++) {
-            blen = (trees[0]->branches[i])->blength[0];
-            len += blen;
-            max = (max > blen) ? max : blen;
-            min = (min < blen) ? min : blen;
-        }
-        printf("# Kappa = %8.6f Omega = %8.6f\n", kappa, omega);
-        printf
-            ("# Tree length = %4.2f, average branch length = %4.2f (min=%4.2f, max=%4.2f)\n",
-             len, len / trees[0]->n_br, min, max);
+    double min, max, len;
+    double blen;
+    min = max = len = (trees[0]->branches[0])->blength[0];
+    for (int i = 1; i < trees[0]->n_br; i++) {
+        blen = (trees[0]->branches[i])->blength[0];
+        len += blen;
+        max = (max > blen) ? max : blen;
+        min = (min < blen) ? min : blen;
     }
+    printf("# Kappa = %8.6f Omega = %8.6f\n", kappa, omega);
+    printf
+        ("# Tree length = %4.2f, average branch length = %4.2f (min=%4.2f, max=%4.2f)\n",
+         len, len / trees[0]->n_br, min, max);
 
     if (!skipsitewise) {
         selinfo =
@@ -376,6 +374,10 @@ int main(int argc, char *argv[])
 
 	FILE * summary_fp = fopen_with_suffix(outprefix, ".summary", "w");
 	if(NULL != summary_fp){
+            fprintf(summary_fp, "Kappa = %8.6f\nOmega = %8.6f\n", kappa, omega);
+            fprintf(summary_fp,
+             "Tree length = %4.2f, average branch length = %4.2f (min=%4.2f, max=%4.2f)\n",
+             len, len / trees[0]->n_br, min, max);
             fprint_summary(summary_fp, selinfo, entropy, pval, pval_adj, data->n_pts);
 	}
 	fclose(summary_fp);
