@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
                          writeTmp, recover);
         kappa = x[offset + 0];
         omega = x[offset + 1];
-        printf("# lnL = %e\n", loglike);
+        printf("# lnL = %.3f\n", loglike);
         free(x);
 
         if (Branches_Proportional == branopt) {
@@ -375,6 +375,7 @@ int main(int argc, char *argv[])
 	FILE * summary_fp = fopen_with_suffix(outprefix, ".summary", "w");
 	if(NULL != summary_fp){
             fprintf(summary_fp, "Kappa = %8.6f\nOmega = %8.6f\n", kappa, omega);
+	    fprintf(summary_fp, "lnL = %.3f\n", loglike);
             fprintf(summary_fp,
              "Tree length = %4.2f, average branch length = %4.2f (min=%4.2f, max=%4.2f)\n",
              len, len / trees[0]->n_br, min, max);
