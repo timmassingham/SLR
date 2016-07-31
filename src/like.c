@@ -860,19 +860,6 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 
 
 
-double
-log2v(double a, double b)
-{
-	double          max, min;
-
-	max = (a > b) ? a : b;
-	min = (a <= b) ? a : b;
-
-	return (log(max) + log1p(min / max));
-}
-
-
-
 static double
 GetParam(MODEL * model, TREE * tree, int i)
 {
