@@ -57,7 +57,7 @@ typedef struct md {
         double *dp,*F,*dq;
         void (*GetdQ)(struct md *,int ,double *);
 
-        int alternate_scaling,optimize_pi;
+        int alternate_scaling;
 	enum model_branches has_branches;
 } MODEL;
 

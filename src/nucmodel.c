@@ -101,7 +101,6 @@ NewNNNModel_full(const int *desc, const double *params, const int nparam, const 
 	model->desc = desc;
 	model->nparam = tnparam;
 	model->alternate_scaling = alt_scale;
-	model->optimize_pi = opt_pi;
 	for (int i = 0; i < nparam; i++) {	/* pi's are special */
 		model->param[i] = params[i];
 	}
@@ -222,16 +221,10 @@ Rate_Nuc(MODEL * model)
 void 
 Update_Nuc(MODEL * model, double p, int i)
 {
-	int             pioffset;
 	assert(NULL != model);
 	assert(i >= 0 && i < model->nparam);
 
-	pioffset = model->nparam - model->nbase + 1;
 	model->param[i] = p;
-
-	if (model->optimize_pi && i >= pioffset) {
-		ParamToPi(model->param + pioffset, model->pi, model->nbase);
-	}
 	model->updated = 1;
 }
 
@@ -290,108 +283,60 @@ GetdQ_NNN(MODEL * model, int p, double *q)
 		}
 		return;
 	}
-	if (model->optimize_pi && p >= pioffset) {
-		int             base = p - pioffset;
-		assert(base >= 0 && base < model->nbase);
-		model->Gets(dmat, model);
-		switch (model->freq_type) {
-		case 0:	/* Standard freqs */
-			for (int i = 0; i < n; i++) {
-				for (int j = 0; j < n; j++) {
-					if (j != base) {
-						dmat[i * n + j] = 0.;
-					}
-				}
-			}
-			break;
-		case 1:	/* GWF freqs */
-			for (int i = 0; i < n; i++) {
-				for (int j = 0; j < n; j++) {
-					if (i == j) {
-						dmat[i * n + j] = 0.;
-						continue;
-					}
-					if (i == base && model->pi[i] > DBL_EPSILON) {
-						dmat[i * n + j] *= -0.5 * sqrt(model->pi[j] / model->pi[i]) / model->pi[i];
-						continue;
-					}
-					if (j == base && model->pi[i] > DBL_EPSILON && model->pi[j] > DBL_EPSILON) {
-						dmat[i * n + j] *= 0.5 / sqrt(model->pi[i] * model->pi[j]);
-						continue;
-					}
-					dmat[i * n + j] = 0.;
-				}
-			}
-			break;
-		case 2:	/* MG freqs */
-			err(EXIT_FAILURE, "Err in %s:%d. Called with MG freqs.\n", __FILE__, __LINE__);
-			break;
-		case 3:	/* Larget freqs */
-			for (int i = 0; i < n; i++) {
-				for (int j = 0; j < n; j++) {
-					if (i == base && model->pi[i] > DBL_EPSILON) {
-						dmat[i * n + j] /= model->pi[i] * model->pi[i] * -1.;
-						continue;
-					}
-					dmat[i * n + j] = 0.;
-				}
+
+	if ( Branches_Proportional==model->has_branches){
+		assert(0!=p);
+		p--;
+	}
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++) {
+			if (model->desc[i * n + j] != p) {
+				dmat[i * n + j] = 0.;
+			} else {
+				dmat[i * n + j] = 1.;
 			}
 		}
-	} else {
-		if ( Branches_Proportional==model->has_branches){
-			assert(0!=p);
-			p--;
-		}
+	}
+
+	switch (model->freq_type) {
+	case 0:	/* Standard freqs */
 		for (int i = 0; i < n; i++) {
 			for (int j = 0; j < n; j++) {
-				if (model->desc[i * n + j] != p) {
-					dmat[i * n + j] = 0.;
-				} else {
-					dmat[i * n + j] = 1.;
-				}
+				dmat[i * n + j] *= model->pi[j];
 			}
 		}
-
-		switch (model->freq_type) {
-		case 0:	/* Standard freqs */
-			for (int i = 0; i < n; i++) {
+		break;
+	case 1:	/* GWF freqs */
+		for (int i = 0; i < n; i++) {
+			if (model->pi[i] > DBL_EPSILON) {
 				for (int j = 0; j < n; j++) {
-					dmat[i * n + j] *= model->pi[j];
+					dmat[i * n + j] *= sqrt(model->pi[j] / model->pi[i]);
+				}
+			} else {
+				for (int j = 0; j < n; j++) {
+					dmat[i * n + j] *= 0.;
 				}
 			}
-			break;
-		case 1:	/* GWF freqs */
-			for (int i = 0; i < n; i++) {
-				if (model->pi[i] > DBL_EPSILON) {
-					for (int j = 0; j < n; j++) {
-						dmat[i * n + j] *= sqrt(model->pi[j] / model->pi[i]);
-					}
-				} else {
-					for (int j = 0; j < n; j++) {
-						dmat[i * n + j] *= 0.;
-					}
-				}
-			}
-			break;
-		case 2:	/* MG freqs */
-			err(EXIT_FAILURE, "Err in %s:%d. Called with MG freqs.\n", __FILE__, __LINE__);
-			break;
-		case 3:	/* Larget freqs */
-			for (int i = 0; i < n; i++) {
-				if (model->pi[i] > DBL_EPSILON) {
-					for (int j = 0; j < n; j++) {
-						dmat[i * n + j] /= model->pi[i];
-					}
-				} else {
-					for (int j = 0; j < n; j++) {
-						dmat[i * n + j] = 0.;
-					}
-				}
-			}
-			break;
-		default:
-			err(EXIT_FAILURE, "Unrecognised frequency type %d in %s:%d\n", model->freq_type, __FILE__, __LINE__);
 		}
+		break;
+	case 2:	/* MG freqs */
+		err(EXIT_FAILURE, "Err in %s:%d. Called with MG freqs.\n", __FILE__, __LINE__);
+		break;
+	case 3:	/* Larget freqs */
+		for (int i = 0; i < n; i++) {
+			if (model->pi[i] > DBL_EPSILON) {
+				for (int j = 0; j < n; j++) {
+					dmat[i * n + j] /= model->pi[i];
+				}
+			} else {
+				for (int j = 0; j < n; j++) {
+					dmat[i * n + j] = 0.;
+				}
+			}
+		}
+		break;
+	default:
+		err(EXIT_FAILURE, "Unrecognised frequency type %d in %s:%d\n", model->freq_type, __FILE__, __LINE__);
 	}
 
 	DoDiagonalOfQ(dmat, n);
@@ -405,10 +350,6 @@ GetdQ_NNN(MODEL * model, int p, double *q)
 	} else {
 		for (int i = 0; i < n; i++)
 			ds += model->pi[i] * dmat[i * n + i];
-		if (model->optimize_pi && p >= pioffset) {
-			int             base = p - pioffset;
-			ds += q[base * n + base];
-		}
 	}
 	ds *= s;
 

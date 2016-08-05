@@ -368,7 +368,6 @@ MODEL *NewModel(const int n, const int nparam)
     model->index = NULL;
 
     model->has_branches = Branches_Fixed;
-    model->optimize_pi = 0;
     model->alternate_scaling = 0;
 
     return model;
@@ -629,32 +628,7 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param,
             MakeDerivFromP(model, blen, dp_test + i * nbase * nbase);
         }
     }
-    if (model->optimize_pi) {
-        double *dpidparam, *tmp;
-        tmp = calloc((nbase - 1) * nbase * nbase, sizeof(double));
-        dpidparam = calloc(nbase * (nbase - 1), sizeof(double));
-        dPidParam_pi(model->pi, dpidparam, nbase);
-        MakeSdQS(model, nparam);
-        MakeDerivFromP(model, blen, dp_test + nparam * nbase * nbase);
 
-        for (int j = 0; j < nbase - 1; j++) {
-            for (int base = 0; base < nbase; base++) {
-                for (int i = 0; i < nbase * nbase; i++) {
-                    tmp[j * nbase * nbase + i] +=
-                        dp_test[(base + pioffset) * nbase * nbase +
-                                i] * dpidparam[j * nbase + base];
-                }
-            }
-        }
-        for (int j = 0; j < nbase - 1; j++) {
-            for (int i = 0; i < nbase * nbase; i++) {
-                dp_test[(j + pioffset) * nbase * nbase + i] =
-                    tmp[j * nbase * nbase + i];
-            }
-        }
-        free(dpidparam);
-        free(tmp);
-    }
     for (int i = 0; i < nparam; i++) {
         double sumsqrdiff = 0., sumsqrsum = 0.;
 

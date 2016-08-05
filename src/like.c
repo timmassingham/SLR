@@ -747,18 +747,10 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
                    double *lvec, double *lscale)
 {
     double tmp;
-    double *gradpi, *dpidparam;
 
     const unsigned int n = model->nbase;
     const unsigned int npts = model->n_unique_pts;
     unsigned int nparam = model->nparam;
-    if (model->optimize_pi) {
-        nparam++;
-        gradpi = calloc(nparam * npts, sizeof(double));
-    } else {
-        gradpi = grad;
-    }
-    const unsigned int pioffset = model->nparam - model->nbase + 1;
 
     for (unsigned int i = 0; i < nparam; i++) {
         if (Branches_Proportional == model->has_branches && 0 == i) {
@@ -813,37 +805,9 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
                 }
             }
 
-            if (model->optimize_pi && i >= pioffset) {
-                unsigned int base = i - pioffset;
-                tmp += tree->tree->plik[j * n + base] * exp(lscale[j]);
-            }
             tmp /= lvec[j];
-            gradpi[i * npts + j] = tmp;
+            grad[i * npts + j] = tmp;
         }
-    }
-
-    if (model->optimize_pi) {
-        int pioffset = nparam - model->nbase;
-        dpidparam = calloc((n - 1) * n, sizeof(double));
-        dPidParam_pi(model->pi, dpidparam, n);
-        for (unsigned int i = 0; i < pioffset; i++) {
-            for (unsigned int j = 0; j < npts; j++) {
-                grad[i * npts + j] = gradpi[i * npts + j];
-            }
-        }
-        for (unsigned int p = 0; p < n - 1; p++) {
-            unsigned int paramn = p + pioffset;
-            for (unsigned int j = 0; j < npts; j++) {
-                grad[paramn * npts + j] = 0.;
-                for (unsigned int pi = 0; pi < n; pi++) {
-                    grad[paramn * npts + j] +=
-                        dpidparam[p * n + pi] * gradpi[(pi + pioffset) * npts +
-                                                       j];
-                }
-            }
-        }
-        free(dpidparam);
-        free(gradpi);
     }
 }
 
