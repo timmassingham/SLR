@@ -752,6 +752,8 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
     const unsigned int npts = model->n_unique_pts;
     unsigned int nparam = model->nparam;
 
+    memset(grad, 0, nparam * npts * sizeof(*grad));
+
     for (unsigned int i = 0; i < nparam; i++) {
         if (Branches_Proportional == model->has_branches && 0 == i) {
             for (unsigned int br = 0; br < tree->n_br; br++) {
@@ -767,46 +769,46 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
             }
         }
 
-        
-        for (unsigned int j = 0; j < npts; j++) {
-            tmp = 0.;
-            for (unsigned int br = 0; br < tree->n_br; br++) {
-                NODE *node = tree->branches[br];
-                const double * dP_dparam = node->bmat;
+        double * gradptr = grad + i * npts;
+        for (unsigned int br = 0; br < tree->n_br; br++) {
+            NODE *node = tree->branches[br];
+            const double * dP_dparam = node->bmat;
+            for (unsigned int j = 0; j < npts; j++) {
                 if (!ISLEAF(node)) {
                     for (unsigned int base = 0; base < n; base++) {
                         for (unsigned int l = 0; l < n; l++) {
-                            tmp += model->pi[l] 
-                                * dP_dparam[l * n + base] 
-                                * node->back[j * n + l] 
-                                * node->plik[j * n + base] 
-                                * node->bscalefactor[j];
+                            gradptr[j] += model->pi[l] 
+                                      * dP_dparam[l * n + base] 
+                                      * node->back[j * n + l] 
+                                      * node->plik[j * n + base] 
+                                      * node->bscalefactor[j];
                         }
                     }
                 } else {
                     unsigned int base = node->seq[j];
                     if (GapChar(model->seqtype) != base) {
                         for (unsigned int l = 0; l < n; l++) {
-                            tmp += model->pi[l] 
-                                * dP_dparam[l * n + base] 
-                                * node->back[j * n + l] 
-                                * node->bscalefactor[j];
+                            gradptr[j] += model->pi[l] 
+                                       * dP_dparam[l * n + base] 
+                                       * node->back[j * n + l] 
+                                       * node->bscalefactor[j];
                         }
                     } else {
                         for (unsigned int base = 0; base < n; base++) {
                             for (unsigned int l = 0; l < n; l++) {
-                                tmp += model->pi[l] 
-                                    * dP_dparam[l * n + base] 
-                                    * node->back[j * n + l] 
-                                    * node->bscalefactor[j];
+                                gradptr[j] += model->pi[l] 
+                                           * dP_dparam[l * n + base] 
+                                           * node->back[j * n + l] 
+                                           * node->bscalefactor[j];
                             }
                         }
                     }
                 }
             }
+        }
 
-            tmp /= lvec[j];
-            grad[i * npts + j] = tmp;
+        for (unsigned int j = 0; j < npts; j++) {
+            grad[i * npts + j] /= lvec[j];
         }
     }
 }
