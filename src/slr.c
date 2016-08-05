@@ -1085,9 +1085,9 @@ void WriteParams(const char *file, const double *params, const int nparams,
 struct slr_params *ReadParams(const char *file)
 {
     FILE *input;
-    int nbr, br, nparam, param, codon;
+    int nbr, nparam;
     struct slr_params *ret_struct;
-    double sum;
+    int nread;
 
     assert(NULL != file);
 
@@ -1100,8 +1100,8 @@ struct slr_params *ReadParams(const char *file)
         return NULL;
     }
 
-    fscanf(input, "%d", &nparam);
-    if (nparam <= 0) {
+    nread = fscanf(input, "%d", &nparam);
+    if (nread != 1 || nparam <= 0) {
         goto error_exit;
     }
     ret_struct->nparams = nparam;
@@ -1111,35 +1111,45 @@ struct slr_params *ReadParams(const char *file)
     if (NULL == ret_struct->params) {
         goto error_exit;
     }
-    for (param = 0; param < nparam; param++) {
-        fscanf(input, "%le", &(ret_struct->params[param]));
+    for (int param = 0; param < nparam; param++) {
+        nread = fscanf(input, "%le", &(ret_struct->params[param]));
+        if(nread != 1){
+            goto error_exit;
+        }
     }
 
     // Read in codon frequencies
-    fscanf(input, "%d", &(ret_struct->gencode));
+    nread = fscanf(input, "%d", &(ret_struct->gencode));
     ret_struct->cfreqs = calloc(64, sizeof(double));
-    if (NULL == ret_struct->cfreqs) {
+    if (nread != 1 || NULL == ret_struct->cfreqs) {
         goto error_exit;
     }
-    for (codon = 0, sum = 0; codon < 64; codon++) {
-        fscanf(input, "%le", &(ret_struct->cfreqs[codon]));
+    double sum = 0.0;
+    for (int codon = 0 ; codon < 64; codon++) {
+        nread = fscanf(input, "%le", &(ret_struct->cfreqs[codon]));
+        if (nread != 1){
+            goto error_exit;
+        }
         sum += ret_struct->cfreqs[codon];
     }
-    for (codon = 0; codon < 64; codon++) {
+    for (int codon = 0; codon < 64; codon++) {
         ret_struct->cfreqs[codon] /= sum;
     }
 
     // Read in branch lengths
-    fscanf(input, "%d", &nbr);
-    if (nbr <= 0) {
+    nread = fscanf(input, "%d", &nbr);
+    if (nread != 1 || nbr <= 0) {
         goto error_exit;
     }
     ret_struct->blengths = calloc(nbr, sizeof(double));
     if (NULL == ret_struct->blengths) {
         goto error_exit;
     }
-    for (br = 0; br < nbr; br++) {
-        fscanf(input, "%le", &(ret_struct->blengths[br]));
+    for (int br = 0; br < nbr; br++) {
+        nread = fscanf(input, "%le", &(ret_struct->blengths[br]));
+        if (nread != 1){
+            goto error_exit;
+        }
     }
 
     fclose(input);

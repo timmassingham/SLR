@@ -718,7 +718,6 @@ TREE **read_tree_strings (char *filename)
   FILE *fp;
   int n_sp, n_tree;
   TREE **set;
-  int a;
 
   fp = fopen (filename, "r");
   if (fp == NULL) {
@@ -726,17 +725,17 @@ TREE **read_tree_strings (char *filename)
     exit (EXIT_FAILURE);
   }
 
-  fscanf (fp, "%d %d", &n_sp, &n_tree);
+  int nread = fscanf (fp, "%d %d", &n_sp, &n_tree);
   set = calloc ((size_t) (n_tree + 1), sizeof (TREE *));
   OOM (set);
   set[n_tree] = NULL;
-  if (n_sp < 0 || n_tree < 0) {
+  if (nread != 2 || n_sp < 0 || n_tree < 0) {
     printf ("Problems reading tree from file");
     fclose (fp);
     return NULL;
   }
 
-  for (a = 0; a < n_tree; a++) {
+  for (int a = 0; a < n_tree; a++) {
     set[a] = malloc (sizeof (TREE));
     OOM (set[a]);
     set[a]->tstring = ReadString (fp);

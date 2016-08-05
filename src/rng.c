@@ -21,14 +21,14 @@
 
 #define _USE_MATH_DEFINES
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+#include <assert.h>
 #include <float.h>
 #include <limits.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <assert.h>
 #include "rng.h"
 
 
@@ -366,7 +366,6 @@ static int double_comparison (const void *dp1, const void *dp2)
 void RL_Init (const unsigned int seed)
 {
   FILE *seed_file;
-  int a;
 
   SetRandomGenerator (RL_LAGGED);
 
@@ -382,8 +381,9 @@ void RL_Init (const unsigned int seed)
   /* If seed file cannot be opened, try /dev/urandom */
   seed_file = fopen ("/dev/urandom", "r");
   puts ("Initialising random number generator from /dev/urandom.");
-  for (a = 0; a < RL_LAGGED_K; a++){
-    (void)fread (&history64[a], sizeof(ULL_TYPE), 1, seed_file);
+  for (int a = 0; a < RL_LAGGED_K; a++){
+    int nread = fread (&history64[a], sizeof(ULL_TYPE), 1, seed_file);
+    assert(1 == nread);
   }
 }
 
