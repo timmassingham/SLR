@@ -762,32 +762,32 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
 
     for (unsigned int i = 0; i < nparam; i++) {
         if (Branches_Proportional == model->has_branches && 0 == i) {
-            for (unsigned int j = 0; j < tree->n_br; j++) {
-                NODE *node = tree->branches[j];
+            for (unsigned int br = 0; br < tree->n_br; br++) {
+                NODE *node = tree->branches[br];
                 MakeRateDerivFromP(model, node->blength[0], node->bmat);
             }
         } else {
             MakeSdQS(model, i);
-            for (unsigned int j = 0; j < tree->n_br; j++) {
+            for (unsigned int br = 0; br < tree->n_br; br++) {
                 /* Note: code make assumption that parent node is always branch 0 */
-                NODE *node = tree->branches[j];
+                NODE *node = tree->branches[br];
                 MakeDerivFromP(model, node->blength[0], node->bmat);
-                /*Matrix_MatrixT_Mult(node->back, model->n_unique_pts, model->nbase, node->bmat, model->nbase, model->nbase, node->dback); */
             }
         }
+
+        
         for (unsigned int j = 0; j < npts; j++) {
             tmp = 0.;
-            for (unsigned int k = 0; k < tree->n_br; k++) {
-                NODE *node = tree->branches[k];
+            for (unsigned int br = 0; br < tree->n_br; br++) {
+                NODE *node = tree->branches[br];
+                const double * dP_dparam = node->bmat;
                 if (!ISLEAF(node)) {
                     for (unsigned int base = 0; base < n; base++) {
                         for (unsigned int l = 0; l < n; l++) {
-                            tmp +=
-                                model->pi[l] * node->bmat[l * n +
-                                                          base] * node->back[j *
-                                                                             n +
-                                                                             l]
-                                * node->plik[j * n + base]
+                            tmp += model->pi[l] 
+                                * dP_dparam[l * n + base] 
+                                * node->back[j * n + l] 
+                                * node->plik[j * n + base] 
                                 * node->bscalefactor[j];
                         }
                     }
@@ -795,31 +795,22 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
                     unsigned int base = node->seq[j];
                     if (GapChar(model->seqtype) != base) {
                         for (unsigned int l = 0; l < n; l++) {
-                            tmp +=
-                                model->pi[l] * node->bmat[l * n +
-                                                          base] * node->back[j *
-                                                                             n +
-                                                                             l]
+                            tmp += model->pi[l] 
+                                * dP_dparam[l * n + base] 
+                                * node->back[j * n + l] 
                                 * node->bscalefactor[j];
                         }
                     } else {
-                        /* Note: it might be possible to simply this using reversibility.
-                         *  \sum_i \pi_i dP_{ia}/d\pi_j = \delta_{ja} - P_{ja}
-                         * Needs checking! Derived from \sum_i \pi_i P_{ia} = \pi_a 
-                         * -- for non-pi's, this sum is zero
-                         */
                         for (unsigned int base = 0; base < n; base++) {
                             for (unsigned int l = 0; l < n; l++) {
-                                tmp +=
-                                    model->pi[l] * node->bmat[l * n +
-                                                              base] *
-                                    node->back[j * n +
-                                               l] * node->bscalefactor[j];
+                                tmp += model->pi[l] 
+                                    * dP_dparam[l * n + base] 
+                                    * node->back[j * n + l] 
+                                    * node->bscalefactor[j];
                             }
                         }
                     }
                 }
-
             }
 
             if (model->optimize_pi && i >= pioffset) {

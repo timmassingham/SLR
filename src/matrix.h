@@ -35,7 +35,7 @@ double VectorDotProduct ( const double * A, const double * B, const int n);
 void GramSchmidtTranspose ( double * A,int n);
 void CopyMatrix ( const double *A, double *B, int n);
 int Factorize ( double * A, double * val, int n);
-void HadamardMult ( double * A, double * B, int n);
+void HadamardMult (const double * restrict A, double * restrict B, int n);
 void MakeMatrixIdentity (double * mat, const int n);
 void MakeMatrixDiagonal(double *A, const int n);
 double MatrixMaxElt ( double * A, int n);

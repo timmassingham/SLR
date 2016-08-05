@@ -207,14 +207,22 @@ int InvertMatrix ( double * A, int n){
 }
 
 
-/*	Hadamard multiplication A.B
- *  Result is stored in B
- */
-void HadamardMult ( double * A, double * B, int n){
-	int i;
+/**	Hadamard multiplication A.B of two square matrices
 
-	for ( i=0 ; i<n*n ; i++)
-		B[i] *= A[i];
+   Result is stored in B
+
+@param A  Input array
+@param B  Input / output array
+@param n  Size of matrices
+**/
+void HadamardMult (const double * restrict A, double * restrict B, int n){
+    assert(NULL!=A);
+    assert(NULL!=B);
+    assert(n>0);
+
+    for (int i=0 ; i<n*n ; i++){
+        B[i] *= A[i];
+    }
 }
 
 double MatrixMaxElt ( double * A, int n){
