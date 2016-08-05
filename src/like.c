@@ -772,33 +772,44 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
         double * gradptr = grad + i * npts;
         for (unsigned int br = 0; br < tree->n_br; br++) {
             NODE *node = tree->branches[br];
-            const double * dP_dparam = node->bmat;
+            /*  Calculate f_j' dP b_j for all sites j.
+                = diag( F' dP B ) where F is the matrix of all forward vectors
+                                  and B is the matrix of all backward vectors
+                = (F' dP o B) 1
+                = 1' ( B' o dP' F)
+            */
+            const double * restrict F = node->plik;
+            const double * restrict dP = node->bmat;
+            const double * restrict B = node->back;
             for (unsigned int j = 0; j < npts; j++) {
                 if (!ISLEAF(node)) {
+                    // On internal branch.
                     for (unsigned int base = 0; base < n; base++) {
                         for (unsigned int l = 0; l < n; l++) {
                             gradptr[j] += model->pi[l] 
-                                      * dP_dparam[l * n + base] 
-                                      * node->back[j * n + l] 
-                                      * node->plik[j * n + base] 
+                                      * dP[l * n + base] 
+                                      * B[j * n + l] 
+                                      * F[j * n + base] 
                                       * node->bscalefactor[j];
                         }
                     }
                 } else {
                     unsigned int base = node->seq[j];
                     if (GapChar(model->seqtype) != base) {
+                        // Leaf has ordinary base
                         for (unsigned int l = 0; l < n; l++) {
                             gradptr[j] += model->pi[l] 
-                                       * dP_dparam[l * n + base] 
-                                       * node->back[j * n + l] 
+                                       * dP[l * n + base] 
+                                       * B[j * n + l] 
                                        * node->bscalefactor[j];
                         }
                     } else {
-                        for (unsigned int base = 0; base < n; base++) {
+                        // Leaf has gap character
+                        for (unsigned int b = 0; b < n; b++) {
                             for (unsigned int l = 0; l < n; l++) {
                                 gradptr[j] += model->pi[l] 
-                                           * dP_dparam[l * n + base] 
-                                           * node->back[j * n + l] 
+                                           * dP[l * n + b] 
+                                           * B[j * n + l] 
                                            * node->bscalefactor[j];
                             }
                         }
