@@ -746,13 +746,13 @@ void
 DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
                    double *lvec, double *lscale)
 {
-    double tmp;
-
     const unsigned int n = model->nbase;
     const unsigned int npts = model->n_unique_pts;
     unsigned int nparam = model->nparam;
 
     memset(grad, 0, nparam * npts * sizeof(*grad));
+    double * tmp = calloc(n * npts, sizeof(*tmp));
+    double * bgrad = calloc(npts, sizeof(*bgrad));
 
     for (unsigned int i = 0; i < nparam; i++) {
         if (Branches_Proportional == model->has_branches && 0 == i) {
@@ -769,7 +769,6 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
             }
         }
 
-        double * gradptr = grad + i * npts;
         for (unsigned int br = 0; br < tree->n_br; br++) {
             NODE *node = tree->branches[br];
             /*  Calculate f_j' dP b_j for all sites j.
@@ -781,47 +780,53 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
             const double * restrict F = node->plik;
             const double * restrict dP = node->bmat;
             const double * restrict B = node->back;
-            for (unsigned int j = 0; j < npts; j++) {
-                if (!ISLEAF(node)) {
-                    // On internal branch.
-                    for (unsigned int base = 0; base < n; base++) {
-                        for (unsigned int l = 0; l < n; l++) {
-                            gradptr[j] += model->pi[l] 
-                                      * dP[l * n + base] 
-                                      * B[j * n + l] 
-                                      * F[j * n + base] 
-                                      * node->bscalefactor[j];
-                        }
+            memset(bgrad, 0, npts * sizeof(double));
+
+            if (!ISLEAF(node)) {
+                // On internal branch.
+                Matrix_MatrixT_Mult(F, npts, n, dP, n, n, tmp);
+                for (unsigned int j = 0; j < npts; j++) {
+                    for (unsigned int l = 0; l < n; l++) {
+                        bgrad[j] += model->pi[l] 
+                                  * tmp[j * n + l]
+                                  * B[j * n + l] ;
                     }
-                } else {
+                    bgrad[j] *= node->bscalefactor[j];
+                }
+            } else {
+                for (unsigned int j = 0; j < npts; j++) {
                     unsigned int base = node->seq[j];
                     if (GapChar(model->seqtype) != base) {
                         // Leaf has ordinary base
                         for (unsigned int l = 0; l < n; l++) {
-                            gradptr[j] += model->pi[l] 
-                                       * dP[l * n + base] 
-                                       * B[j * n + l] 
-                                       * node->bscalefactor[j];
+                            bgrad[j] += model->pi[l] 
+                                      * dP[l * n + base] 
+                                      * B[j * n + l];
                         }
                     } else {
                         // Leaf has gap character
                         for (unsigned int b = 0; b < n; b++) {
                             for (unsigned int l = 0; l < n; l++) {
-                                gradptr[j] += model->pi[l] 
-                                           * dP[l * n + b] 
-                                           * B[j * n + l] 
-                                           * node->bscalefactor[j];
+                                bgrad[j] += model->pi[l] 
+                                          * dP[l * n + b] 
+                                          * B[j * n + l];
                             }
                         }
                     }
+                    bgrad[j] *= node->bscalefactor[j];
                 }
             }
-        }
+	    for (unsigned int j = 0; j < npts; j++) {
+               grad[i * npts + j] += bgrad[j];
+            }
+        } // br
 
         for (unsigned int j = 0; j < npts; j++) {
             grad[i * npts + j] /= lvec[j];
         }
-    }
+    }  // i
+    free(bgrad);
+    free(tmp);
 }
 
 static double GetParam(MODEL * model, TREE * tree, int i)
