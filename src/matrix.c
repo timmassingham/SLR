@@ -25,6 +25,7 @@
 #include <lapacke.h>
 #include <limits.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,24 +62,24 @@ void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const
 
 
 
-void MakeMatrixIdentity (double * mat, const int n){
+void MakeMatrixIdentity (double * restrict mat, const size_t n){
 	assert(NULL!=mat);
 	assert(n>0);
 
 	memset(mat,0,n*n*sizeof(double));
-	for ( int i=0 ; i<n ; i++){
+	for ( size_t i=0 ; i<n ; i++){
 		mat[i*n+i] = 1.;
 	}
 }
 
 void
-MakeMatrixDiagonal(double *A, const int n)
+MakeMatrixDiagonal(double * restrict A, const size_t n)
 {
         assert(NULL != A);
         assert(n > 0);
 
-        for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
+        for (size_t i = 0; i < n; i++) {
+                for (size_t j = 0; j < n; j++) {
                         if (i != j)
                                 A[i * n + j] = 0.;
                 }
@@ -87,95 +88,81 @@ MakeMatrixDiagonal(double *A, const int n)
 }
 
 
-void CopyMatrix ( const double * A, double *B, int n){
-	int i,j;
-
-	for (i=0 ; i<n ; i++)
-		for ( j=0 ; j<n ; j++)
+void CopyMatrix ( const double * restrict A, double * restrict B, size_t n){
+	for (size_t i=0 ; i<n ; i++)
+		for (size_t j=0 ; j<n ; j++)
 			B[i*n+j] = A[i*n+j];
 }
 
 
-void NormalizeRows ( double * mat, int n){
-	int i,j;
-	double a;
-
-	for ( i=0 ; i<n ; i++){
-		a = 0.;
-		for ( j=0 ; j<n ; j++)
+void NormalizeRows ( double * restrict mat, size_t n){
+	for (size_t i=0 ; i<n ; i++){
+		double a = 0.;
+		for (size_t j=0 ; j<n ; j++)
 			a += mat[i*n+j] * mat[i*n+j];
 		a = sqrt(a);
-		for ( j=0 ; j<n ; j++)
+		for (size_t j=0 ; j<n ; j++)
 			mat[i*n+j] /= a;
 	}
 }
 
 
-void TransposeMatrix (double *a, double *b, int n){
-	int i,j;
-
-	for ( i=0 ; i<n ; i++)
-		for ( j=0 ; j<n ; j++)
+void TransposeMatrix (const double * restrict a, double * restrict b, size_t n){
+	for (size_t i=0 ; i<n ; i++)
+		for (size_t j=0 ; j<n ; j++)
 			b[j*n+i] = a[i*n+j];
 }
 
-void NormalizeColumns ( double * mat, int n){
-	int i,j;
-	double a;
-
-	for ( i=0 ; i<n ; i++){
-		a = 0.;
-		for ( j=0 ; j<n ; j++)
+void NormalizeColumns ( double * restrict mat, size_t n){
+	for (size_t i=0 ; i<n ; i++){
+		double a = 0.;
+		for (size_t j=0 ; j<n ; j++)
 			a += mat[j*n+i] * mat[j*n+i];
 		a = sqrt(a);
-		for ( j=0 ; j<n ; j++)
+		for (size_t j=0 ; j<n ; j++)
 			mat[j*n+i] /= a;
 	}
 }
 
-double MatrixFMax ( double * A, int n){
-	int i,j;
+double MatrixFMax ( double * restrict A, size_t n){
 	double a=0.;
 
-	for ( i=0 ;i<n ; i++)
-		for ( j=0 ;j<n ; j++)
+	for (size_t i=0 ;i<n ; i++)
+		for (size_t j=0 ;j<n ; j++)
 			if (i!=j)
 			a = (a>fabs(A[i*n+j]))?a:fabs(A[i*n+j]);
 	return a;
 }
 
-double VectorNorm ( double * A, int n){
+double VectorNorm ( double * restrict A, size_t n){
 	double a=0.;
-	int i;
 
-	for (i=0 ;i<n; i++)
+	for (size_t i=0 ;i<n; i++)
 		a += A[i]*A[i];
 	return sqrt(a);
 }
 
-double VectorDotProduct ( const double * A, const double * B, const int n){
-	int i;
+double VectorDotProduct ( const double * restrict A, const double * restrict B, const size_t n){
 	double a=0.;
 
-	for ( i=0 ; i<n ; i++)
+	for (size_t i=0 ; i<n ; i++)
 		a += A[i] * B[i];
 	return a;
 }
 
-void GramSchmidtTranspose ( double * A, int n){
-	int i,j,k;
-	double a,max=0.;
+void GramSchmidtTranspose ( double * restrict A, size_t n){
+	double max=0.;
 
 	
 	NormalizeRows (A, n);
-	for ( i=0 ; i<n ; i++){
-		a = VectorNorm(&A[i*n],n);
-		for ( j=0 ; j<n ; j++)
+	for (size_t i=0 ; i<n ; i++){
+		double a = VectorNorm(&A[i*n],n);
+		for (size_t j=0 ; j<n ; j++)
 			A[i*n+j] /= a;
-		for ( j=i+1 ; j<n ; j++){
+		for (size_t j=i+1 ; j<n ; j++){
 			a = VectorDotProduct(&A[j*n],&A[i*n],n);
 			max = (max>fabs(a))?max:fabs(a);
-			for ( k=0 ; k<n ; k++)
+			for (size_t k=0 ; k<n ; k++)
 				A[j*n+k] -= a * A[i*n+k];
 		}
 	}
@@ -185,14 +172,14 @@ void GramSchmidtTranspose ( double * A, int n){
 
 
 
-int Factorize ( double * A, double * val, int n){
+int Factorize ( double * A, double * val, size_t n){
 	int INFO = LAPACKE_dsyev(LAPACK_COL_MAJOR, 'V', 'L', n, A, n, val);
 	
 	return INFO;
 }
 
 
-int InvertMatrix ( double * A, int n){
+int InvertMatrix ( double * A, size_t n){
 	int INFO;
 	lapack_int * ipiv = malloc(n * sizeof(lapack_int));
 	INFO = LAPACKE_dgetrf(LAPACK_COL_MAJOR, n, n, A, n, ipiv);
@@ -215,24 +202,23 @@ int InvertMatrix ( double * A, int n){
 @param B  Input / output array
 @param n  Size of matrices
 **/
-void HadamardMult (const double * restrict A, double * restrict B, int n){
+void HadamardMult (const double * restrict A, double * restrict B, size_t n){
     assert(NULL!=A);
     assert(NULL!=B);
     assert(n>0);
 
-    for (int i=0 ; i<n*n ; i++){
+    for (size_t i=0 ; i<n*n ; i++){
         B[i] *= A[i];
     }
 }
 
-double MatrixMaxElt ( double * A, int n){
-	int i,j;
+double MatrixMaxElt ( double * restrict A, size_t n){
 	double max = -DBL_MAX;
 	
 	assert (NULL!=A);
 
-	for ( i=0 ; i<n ; i++)
-		for ( j=0 ; j<n ; j++){
+	for (size_t i=0 ; i<n ; i++)
+		for (size_t j=0 ; j<n ; j++){
 			if ( A[i*n+j] >max)
 				max = A[i*n+j];
 		}
@@ -242,14 +228,13 @@ double MatrixMaxElt ( double * A, int n){
 
 
 
-double MatrixMinElt (double * A, int n){
-	int i,j;
+double MatrixMinElt (double * restrict A, size_t n){
 	double min=DBL_MAX;
 	
 	assert (NULL!=A);
 
-	for ( i=0 ; i<n ; i++)
-		for ( j=0 ; j<n ; j++){
+	for (size_t i=0 ; i<n ; i++)
+		for (size_t j=0 ; j<n ; j++){
 			if ( A[i*n+j] >min)
 				min = A[i*n+j];
 		}
@@ -259,34 +244,27 @@ double MatrixMinElt (double * A, int n){
 
 
 
-int IsFiniteVector ( const double * a, const int n){
-  int i;
-	
+bool IsFiniteVector ( const double * restrict a, const size_t n){
   assert(NULL!=a);
   assert(n>0);
 
-  for ( i=0 ; i<n ; i++){
-    if(!finite(a[i]))
-      return 0;
+  for (size_t i=0 ; i<n ; i++){
+    if(!isfinite(a[i]))
+      return false;
   }
-  return 1;
+  return true;
 }
 
-int IsZeroVector ( const double * a, const int n){
-  int nzero = 0;
-  int i;
+
+bool IsZeroVector ( const double * restrict a, const size_t n){
+  bool has_zero = true;
   
   assert(NULL!=a);
   assert(n>0);
 
-  nzero = 0;
-  for ( i=0 ; i<n ; i++){
-    if (a[i]==0.)
-      nzero++;
+  for (size_t i=0 ; i<n ; i++){
+    has_zero &= (a[i]==0.);
   }
 
-  if (nzero==n)
-    return 1;
-  return 0;
+  return has_zero;
 }
-    

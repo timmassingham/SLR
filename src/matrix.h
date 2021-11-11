@@ -22,26 +22,28 @@
 #ifndef _MATRIX_H_
 #define _MATRIX_H_
 
+#include <stdbool.h>
+
 void Matrix_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C);
 void Matrix_MatrixT_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C);
 void MatrixT_Matrix_Mult ( const double * A, const int nr1, const int nc1, const double * B, const int nr2, const int nc2, double *C);
 
-void NormalizeColumns ( double * mat, int n);
-void NormalizeRows ( double * mat, int n);
-void TransposeMatrix (double *a, double *b, int n);
-double MatrixFMax ( double * A, int n);
-double VectorNorm ( double * A, int n);
-double VectorDotProduct ( const double * A, const double * B, const int n);
-void GramSchmidtTranspose ( double * A,int n);
-void CopyMatrix ( const double *A, double *B, int n);
-int Factorize ( double * A, double * val, int n);
-void HadamardMult (const double * restrict A, double * restrict B, int n);
-void MakeMatrixIdentity (double * mat, const int n);
-void MakeMatrixDiagonal(double *A, const int n);
-double MatrixMaxElt ( double * A, int n);
-double MatrixMinElt (double * A, int n);
-int InvertMatrix (double * A, int n);
+void NormalizeColumns ( double * restrict mat, size_t n);
+void NormalizeRows ( double * restrict mat, size_t n);
+void TransposeMatrix (const double * restrict a, double * restrict b, size_t n);
+double MatrixFMax ( double * restrict A, size_t n);
+double VectorNorm ( double * restrict A, size_t n);
+double VectorDotProduct ( const double * restrict A, const double * restrict B, const size_t n);
+void GramSchmidtTranspose ( double * restrict A, size_t n);
+void CopyMatrix ( const double * restrict A, double * restrict B, size_t n);
+int Factorize ( double * A, double * val, size_t n);
+void HadamardMult (const double * restrict A, double * restrict B, size_t n);
+void MakeMatrixIdentity (double * restrict mat, const size_t n);
+void MakeMatrixDiagonal(double * restrict A, const size_t n);
+double MatrixMaxElt ( double * restrict A, size_t n);
+double MatrixMinElt (double * restrict A, size_t n);
+int InvertMatrix (double * A, size_t n);
 
-int IsFiniteVector (const double * a, const int n);
-int IsZeroVector ( const double *a , const int n);
+bool IsFiniteVector (const double * restrict a, const size_t n);
+bool IsZeroVector ( const double * restrict a , const size_t n);
 #endif

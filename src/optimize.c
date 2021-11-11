@@ -109,7 +109,7 @@ double GetNewtonStep(double *direct, const double *InvHess,
                      const double *grad, const int n, const int *onbound);
 void ScaledStep(const double factor, const double *x, double *xn,
                 const double *direct, const int n);
-void MakeMatrixDiagonal(double *A, int n);
+void MakeMatrixDiagonal(double * restrict A, size_t n);
 int CheckScaleInfo(struct scaleinfo *sinfo);
 void dfWrap(const double *x, double *grad, void *info);
 double fWrap(const double *x, void *info);

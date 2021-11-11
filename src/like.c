@@ -59,7 +59,7 @@ void
 DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
                    double *lvec, double *lscale);
 
-static double GetParam(MODEL * model, TREE * tree, int i);
+static double GetParam(MODEL * model, TREE * tree, size_t i);
 
 int CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 {
@@ -83,21 +83,21 @@ int CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
         if (model->exact_obs == 1) {
             tmp2 = parent->plik;
             tmp1 = node->mid;
-            for (int a = 0; a < model->n_unique_pts; a++) {
+            for (size_t a = 0; a < model->n_unique_pts; a++) {
                 if (node->seq[a] != GapChar(model->seqtype)){
-                    for (int b = 0; b < model->nbase; b++) {
+                    for (size_t b = 0; b < model->nbase; b++) {
                         *tmp1++ = node->mat[node->seq[a] + b * model->nbase];
                         *tmp2++ *= node->mat[node->seq[a] + b * model->nbase];
                     }
                 } else {
-                    for (int b = 0; b < model->nbase; b++){
+                    for (size_t b = 0; b < model->nbase; b++){
                         *tmp1++ = 1.0;
                     }
                     tmp2 += model->nbase;
                 }
             }
         } else {
-            for (int a = 0; a < model->n_unique_pts; a++) {
+            for (size_t a = 0; a < model->n_unique_pts; a++) {
                 result = node->mid + a * model->nbase;
                 /* Zero results array */
                 memset(result, 0, model->nbase * sizeof(*result));
@@ -106,14 +106,14 @@ int CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
                  * track of indices
                  */
                 tmp2 = node->mat;
-                for (int b = 0; b < model->nbase; b++) {
+                for (size_t b = 0; b < model->nbase; b++) {
                     tmp1 = node->plik;
-                    for (int c = 0; c < model->nbase; c++)
+                    for (size_t c = 0; c < model->nbase; c++)
                         result[b] += tmp1[a * model->nbase + c] * tmp2[c];
                 }
                 /* Multiply parent like by result */
                 tmp1 = parent->plik;
-                for (int b = 0; b < model->nbase; b++) {
+                for (size_t b = 0; b < model->nbase; b++) {
                     tmp1[a * model->nbase + b] *= result[b];
                 }
             }
@@ -130,7 +130,7 @@ int CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
      * can. Firstly, turn likelihood array into 1's
      */
     tmp1 = node->plik;
-    for (int a = 0; a < model->nbase * model->n_unique_pts; a++){
+    for (size_t a = 0; a < model->nbase * model->n_unique_pts; a++){
         tmp1[a] = 1.0;
     }
 
@@ -151,14 +151,14 @@ int CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 
     //Scale on this node
     if (1 == SCALE && node->scale > EVERY) {
-        for (int a = 0; a < model->n_unique_pts; a++) {
+        for (size_t a = 0; a < model->n_unique_pts; a++) {
             max = 0.0;
-            for (int b = 0; b < model->nbase; b++) {
+            for (size_t b = 0; b < model->nbase; b++) {
                 if (node->plik[a * model->nbase + b] > max) {
                     max = node->plik[a * model->nbase + b];
                 }
             }
-            for (int b = 0; b < model->nbase; b++) {
+            for (size_t b = 0; b < model->nbase; b++) {
                 node->plik[a * model->nbase + b] /= max;
             }
             node->scalefactor[a] += log(max);
@@ -171,11 +171,11 @@ int CalcLike_Sub(NODE * node, NODE * parent, TREE * tree, MODEL * model)
                         node->mat, model->nbase, model->nbase, node->mid);
     tmp1 = parent->plik;
     tmp2 = node->mid;
-    for (int b = 0; b < model->nbase * model->n_unique_pts; b++)
+    for (size_t b = 0; b < model->nbase * model->n_unique_pts; b++)
         tmp1[b] *= tmp2[b];
 
     parent->scale += node->scale + 1;
-    for (int a = 0; a < model->n_unique_pts; a++) {
+    for (size_t a = 0; a < model->n_unique_pts; a++) {
         parent->scalefactor[a] += node->scalefactor[a];
     }
 
@@ -201,19 +201,18 @@ int LikeVector(TREE * tree, MODEL * model, double *p)
 
 int LikeVectorSub(TREE * tree, MODEL * model, double *p)
 {
-    int a, b;
     double *plik, *freq;
 
     (void)CalcLike_Sub(tree->tree, NULL, tree, model);
     plik = (tree->tree)->plik;
     freq = model->pi;
-    for (a = 0; a < model->n_unique_pts; a++) {
+    for (size_t a = 0; a < model->n_unique_pts; a++) {
         p[a] = 0.;
-        for (b = 0; b < model->nbase; b++) {
+        for (size_t b = 0; b < model->nbase; b++) {
             if (*plik < 0.) {
                 *plik = 0.;
             }
-            if (!finite(*plik)) {
+            if (!isfinite(*plik)) {
                 *plik = 0.;
             }
             p[a] += *plik++ * freq[b];
@@ -224,18 +223,17 @@ int LikeVectorSub(TREE * tree, MODEL * model, double *p)
 }
 
 double
-Like(double *scale, double like[], double freq[], int usize, double *pi,
+Like(double *scale, double *like, double *freq, int usize, double *pi,
      int nsize, int *index)
 {
-    int a;
-    double result = 0;
+    double result = 0.0;
 
-    for (a = 0; a < usize; a++) {
+    for (size_t a = 0; a < usize; a++) {
         result += freq[a] * log(like[a]);
         result += freq[a] * scale[a];
     }
 
-    for (a = 0; a < nsize; a++) {
+    for (size_t a = 0; a < nsize; a++) {
         if (index[a] < 0 && index[a] != -INT_MAX) {
             result += log(pi[-index[a] - 1]);
         }
@@ -249,7 +247,6 @@ Like(double *scale, double like[], double freq[], int usize, double *pi,
  */
 double PartialDeriv(TREE * tree, MODEL * model, double *p, int n)
 {
-    int i;
     double d, loglike, *freq;
     double *space;
     double *scale1, *scale2;
@@ -260,7 +257,7 @@ double PartialDeriv(TREE * tree, MODEL * model, double *p, int n)
     scale1 = (tree->tree)->scalefactor;
 
     space = p + model->n_unique_pts;
-    for (i = 0; i < model->n_unique_pts; i++)
+    for (size_t i = 0; i < model->n_unique_pts; i++)
         space[i] = p[i];
 
     UpdateParam(model, tree, (d > DELTA) ? (d - DELTA) : DBL_EPSILON, n);
@@ -270,12 +267,13 @@ double PartialDeriv(TREE * tree, MODEL * model, double *p, int n)
 
     freq = model->pt_freq;
     loglike = 0.0;
-    for (i = 0; i < model->n_unique_pts; i++) {
+    for (size_t i = 0; i < model->n_unique_pts; i++) {
         if (space[i] <= DBL_MIN) {
             return -DBL_MAX;
         }
-        if (p[i] <= DBL_MIN)
+        if (p[i] <= DBL_MIN){
             return DBL_MAX;
+        }
         loglike += freq[i] * log(space[i] / p[i]);
         loglike += freq[i] * (scale1[i] - scale2[i]);
     }
@@ -289,25 +287,22 @@ double PartialDeriv(TREE * tree, MODEL * model, double *p, int n)
 }
 
 /* Returns first derivative vector of log-likelihood function */
-int GradLike(TREE * tree, MODEL * model, double p[], double grad[])
+int GradLike(TREE * tree, MODEL * model, double * p, double * grad)
 {
-    int i, nparam;
-
-    nparam =
+    const size_t nparam =
         (Branches_Variable ==
          model->has_branches) ? model->nparam + tree->n_br : model->nparam;
-    for (i = 0; i < nparam; i++)
+    for (size_t i = 0; i < nparam; i++)
         grad[i] = PartialDeriv(tree, model, p, i);
 
     return 0;
 }
 
 /* Returns the (i,j) 2nd partial derivative of the likelihood function */
-double Partial2Deriv(TREE * tree, MODEL * model, double p[], int a, int b)
+double Partial2Deriv(TREE * tree, MODEL * model, double *p, int a, int b)
 {
     static double *space = NULL;
     static int size = 0;
-    int i;
     double d, *freq, loglike, e;
     double *scale, *scalepm, *scalemp;
     double *scalepp, *scalemm;
@@ -322,19 +317,21 @@ double Partial2Deriv(TREE * tree, MODEL * model, double p[], int a, int b)
         d = GetParam(model, tree, a);
         UpdateParam(model, tree, d + DELTA, a);
         LikeVector(tree, model, p);
-        for (i = 0; i < model->n_unique_pts; i++)
+        for (size_t i = 0; i < model->n_unique_pts; i++){
             if (p[i] > DBL_MIN)
                 space[i] = log(p[i]);
             else
                 return -DBL_MAX;
+        }
         scalepp = (tree->tree)->scalefactor;
         UpdateParam(model, tree, (d > DELTA) ? (d - DELTA) : DBL_EPSILON, a);
         LikeVector(tree, model, p);
-        for (i = 0; i < model->n_unique_pts; i++)
+        for (size_t i = 0; i < model->n_unique_pts; i++){
             if (p[i] > DBL_MIN)
                 space[i] += log(p[i]);
             else
                 return -DBL_MAX;
+        }
         scalemm = (tree->tree)->scalefactor;
         UpdateParam(model, tree, d, a);
         LikeVector(tree, model, p);
@@ -342,11 +339,12 @@ double Partial2Deriv(TREE * tree, MODEL * model, double p[], int a, int b)
 
         loglike = 0.0;
         freq = model->pt_freq;
-        for (i = 0; i < model->n_unique_pts; i++) {
+        for (size_t i = 0; i < model->n_unique_pts; i++) {
             if (p[i] > DBL_MIN)
                 loglike += freq[i] * (space[i] - 2.0 * log(p[i]));
             else
                 return DBL_MAX;
+
             loglike +=
                 freq[i] * (scalepp[i] + scalemm[i] - scale[i] - scale[i]);
         }
@@ -363,31 +361,34 @@ double Partial2Deriv(TREE * tree, MODEL * model, double p[], int a, int b)
         UpdateParam(model, tree, d + DELTA, a);
         UpdateParam(model, tree, e + DELTA, b);
         LikeVector(tree, model, p);
-        for (i = 0; i < model->n_unique_pts; i++)
+        for (size_t i = 0; i < model->n_unique_pts; i++)
             space[i] = log(p[i]);
+
         scalepp = (tree->tree)->scalefactor;
 
         UpdateParam(model, tree, (d > DELTA) ? (d - DELTA) : DBL_EPSILON, a);
         LikeVector(tree, model, p);
-        for (i = 0; i < model->n_unique_pts; i++)
+        for (size_t i = 0; i < model->n_unique_pts; i++)
             space[i] -= log(p[i]);
+
         scalemp = (tree->tree)->scalefactor;
 
         UpdateParam(model, tree, (e > DELTA) ? (e - DELTA) : DBL_EPSILON, b);
         LikeVector(tree, model, p);
-        for (i = 0; i < model->n_unique_pts; i++)
+        for (size_t i = 0; i < model->n_unique_pts; i++)
             space[i] += log(p[i]);
         scalemm = (tree->tree)->scalefactor;
 
         UpdateParam(model, tree, d + DELTA, a);
         LikeVector(tree, model, p);
-        for (i = 0; i < model->n_unique_pts; i++)
+        for (size_t i = 0; i < model->n_unique_pts; i++)
             space[i] -= log(p[i]);
+
         scalepm = (tree->tree)->scalefactor;
 
         freq = model->pt_freq;
         loglike = 0.0;
-        for (i = 0; i < model->n_unique_pts; i++) {
+        for (size_t i = 0; i < model->n_unique_pts; i++) {
             loglike += freq[i] * space[i];
             loglike +=
                 freq[i] * (scalepp[i] + scalemm[i] - scalepm[i] - scalemp[i]);
@@ -402,13 +403,11 @@ double Partial2Deriv(TREE * tree, MODEL * model, double p[], int a, int b)
     return 0.0;
 }
 
-int HessianLike(TREE * tree, MODEL * model, double p[], double hess[])
+int HessianLike(TREE * tree, MODEL * model, double * p, double * hess)
 {
-    int i, j, n;
-
-    n = model->n_unique_pts;
-    for (i = 0; i < n; i++) {
-        for (j = 0; j < i; j++) {
+    const size_t n = model->n_unique_pts;
+    for (size_t i = 0; i < n; i++) {
+        for (size_t j = 0; j < i; j++) {
             hess[i * n + j] = Partial2Deriv(tree, model, p, i, j);
             hess[j * n + i] = hess[i * n + j];
         }
@@ -452,7 +451,7 @@ void UpdateAllParams(MODEL * model, TREE * tree, const double *p)
         }
     }
 
-    for (a = 0; a < model->nparam; a++) {
+    for (size_t a = 0; a < model->nparam; a++) {
         model->Update(model, p[a + i], a);
     }
 }
@@ -517,27 +516,27 @@ void GradLike_Single(double *param, double *grad, void *data)
 double *GradLike_Full(const double *param, double *grad, void *data)
 {
     struct single_fun *info;
-    int i, n, npts;
     double *ptgrad;
 
     info = (struct single_fun *)data;
     UpdateAllParams(info->model, info->tree, param);
-    n = info->model->nparam;
+    size_t n = info->model->nparam;
     if (Branches_Variable == info->model->has_branches) {
         n += info->tree->n_br;
     }
-    npts = info->model->n_unique_pts;
+    const size_t npts = info->model->n_unique_pts;
 
     ptgrad = calloc(npts * n, sizeof(double));
     GradLike2(info->tree, info->model, info->p, ptgrad);
-    for (i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         grad[i] = 0.;
-        for (int j = 0; j < npts; j++) {
+        for (size_t j = 0; j < npts; j++) {
             grad[i] += info->model->pt_freq[j] * ptgrad[i * npts + j];
         }
         grad[i] *= -1.;
     }
     free(ptgrad);
+
     return grad;
 }
 
@@ -551,23 +550,22 @@ double *InfoLike_Full(const double *param, double *info, void *data)
          stderr);
     fputs("# Warning: Formulas are equivalent asymptotically.\n", stderr);
     struct single_fun *state;
-    int n, npts;
     double *ptgrad;
 
     state = (struct single_fun *)data;
     UpdateAllParams(state->model, state->tree, param);
-    n = state->model->nparam;
+    size_t n = state->model->nparam;
     if (Branches_Variable == state->model->has_branches) {
         n += state->tree->n_br;
     }
-    npts = state->model->n_unique_pts;
+    const size_t npts = state->model->n_unique_pts;
 
     ptgrad = calloc(npts * n, sizeof(double));
     GradLike2(state->tree, state->model, state->p, ptgrad);
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
+    for (size_t i = 0; i < n; i++) {
+        for (size_t j = 0; j < n; j++) {
             info[i * n + j] = 0.;
-            for (int k = 0; k < npts; k++) {
+            for (size_t k = 0; k < npts; k++) {
                 info[i * n + j] +=
                     state->model->pt_freq[k] * ptgrad[i * npts +
                                                       k] * ptgrad[j * npts + k];
@@ -585,84 +583,83 @@ void GradLike2(TREE * tree, MODEL * model, double *p, double *grad)
 
 void Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 {
-    int i, j;
-    double *tmp_plik, max;
-    NODE *bnode;
-
     if (parent == NULL)
         goto descend;
 
     /* If parent is root, then don 't require back information. */
     if (tree->tree == parent) {
-        for (i = 0; i < model->nbase * model->n_unique_pts; i++)
+        for (size_t i = 0; i < model->nbase * model->n_unique_pts; i++){
             node->back[i] = 1.;
-        i = 0;
-        for (j = 0; j < model->n_unique_pts; j++) {
+        }
+        for (size_t j = 0; j < model->n_unique_pts; j++) {
             node->bscalefactor[j] = 0.;
         }
+
+        size_t br = 0;
         node->bscale = 0;
-        while (i < parent->nbran && parent->branch[i] != NULL) {
-            bnode = parent->branch[i];
+        while (br < parent->nbran && parent->branch[br] != NULL) {
+            NODE * bnode = parent->branch[br];
             if (bnode != node) {
-                tmp_plik = bnode->mid;
-                for (j = 0; j < model->nbase * model->n_unique_pts; j++)
+                double * tmp_plik = bnode->mid;
+                for (size_t j = 0; j < model->nbase * model->n_unique_pts; j++)
                     node->back[j] *= tmp_plik[j];
-                for (j = 0; j < model->n_unique_pts; j++) {
+                for (size_t j = 0; j < model->n_unique_pts; j++) {
                     node->bscalefactor[j] += bnode->scalefactor[j];
                 }
                 node->bscale += bnode->scale;
             }
-            i++;
+            br++;
         }
         /* If not at root node */
     } else if (NULL != parent) {
         Matrix_MatrixT_Mult(parent->back, model->n_unique_pts, model->nbase,
                             parent->mat, model->nbase, model->nbase,
                             node->back);
-        for (j = 0; j < model->n_unique_pts; j++) {
+        for (size_t j = 0; j < model->n_unique_pts; j++) {
             node->bscalefactor[j] = parent->bscalefactor[j];
         }
+
+        size_t br = 1;
         node->bscale = parent->bscale;
-        i = 1;
-        while (i < parent->nbran && parent->branch[i] != NULL) {
-            bnode = parent->branch[i];
+        while (br < parent->nbran && parent->branch[br] != NULL) {
+            NODE * bnode = parent->branch[br];
             if (bnode != node) {
-                tmp_plik = bnode->mid;
-                for (j = 0; j < model->nbase * model->n_unique_pts; j++)
+                double * tmp_plik = bnode->mid;
+                for (size_t j = 0; j < model->nbase * model->n_unique_pts; j++){
                     node->back[j] *= tmp_plik[j];
-                for (j = 0; j < model->n_unique_pts; j++) {
+                }
+                for (size_t j = 0; j < model->n_unique_pts; j++) {
                     node->bscalefactor[j] += bnode->scalefactor[j];
                 }
                 node->bscale += bnode->scale;
             }
-            i++;
+            br++;
         }
 
     }
     node->bscale++;
 
     if (1 == SCALE && node->bscale > EVERY) {
-        for (i = 0; i < model->n_unique_pts; i++) {
-            max = 0.0;
-            for (j = 0; j < model->nbase; j++) {
+        for (size_t i = 0; i < model->n_unique_pts; i++) {
+            double max = 0.0;
+            for (size_t j = 0; j < model->nbase; j++) {
                 if (node->back[i * model->nbase + j] > max)
                     max = node->back[i * model->nbase + j];
             }
-            for (j = 0; j < model->nbase; j++) {
+            for (size_t j = 0; j < model->nbase; j++) {
                 node->back[i * model->nbase + j] /= max;
             }
             node->bscalefactor[i] += log(max);
         }
         node->bscale = 0;
     }
+
  descend:
     /* Descend down tree */
-    i = 0;
-    while (i < node->nbran && node->branch[i] != NULL) {
-        if (node->branch[i] != parent) {
-            Backwards(node->branch[i], node, tree, model);
+    for (size_t br =0 ; br < node->nbran && node->branch[br] != NULL ; br++) {
+        if (node->branch[br] != parent) {
+            Backwards(node->branch[br], node, tree, model);
         }
-        i++;
     }
 
     return;
@@ -670,11 +667,8 @@ void Backwards(NODE * node, NODE * parent, TREE * tree, MODEL * model)
 
 void DoDerivatives(MODEL * model, TREE * tree, double *grad, double *lvec)
 {
-    double *lscale;
-    double *grad_ptr;
-
-    lscale = (tree->tree)->scalefactor;
-    grad_ptr = grad;
+    double * lscale = (tree->tree)->scalefactor;
+    double * grad_ptr = grad;
 
     Backwards(tree->tree, NULL, tree, model);
     DoBranchDerivatives(model, tree, grad_ptr, lvec, lscale);
@@ -688,18 +682,13 @@ void
 DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
                     double *lvec, double *lscale)
 {
-    int i, j, k, n, npts;
-    NODE *node;
-    int base;
-    double tmp, fact;
+    const size_t n = model->nbase;
+    const size_t npts = model->n_unique_pts;
+    const double fact = Rate(model) * Scale(model);
 
-    n = model->nbase;
-    npts = model->n_unique_pts;
-    fact = Rate(model) * Scale(model);
-
-    for (i = 0; i < tree->n_br; i++) {
-        node = tree->branches[i];
-        for (j = 0; j < model->n_unique_pts; j++) {
+    for (size_t i = 0; i < tree->n_br; i++) {
+        NODE * node = tree->branches[i];
+        for (size_t j = 0; j < model->n_unique_pts; j++) {
             node->bscalefactor[j] =
                 exp(node->scalefactor[j] + node->bscalefactor[j] - lscale[j]);
         }
@@ -710,9 +699,9 @@ DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
 
         if (Branches_Variable == model->has_branches) {
             if (!ISLEAF(tree->branches[i])) {
-                for (j = 0; j < model->n_unique_pts; j++) {
-                    tmp = 0.;
-                    for (k = 0; k < n; k++)
+                for (size_t j = 0; j < model->n_unique_pts; j++) {
+                    double tmp = 0.;
+                    for (size_t k = 0; k < n; k++)
                         tmp +=
                             model->pi[k] * model->tmp_plik[j * n +
                                                            k] * node->plik[j *
@@ -724,13 +713,13 @@ DoBranchDerivatives(MODEL * model, const TREE * tree, double *grad,
                 }
 
             } else {
-                for (j = 0; j < model->n_unique_pts; j++) {
-                    base = (tree->branches[i])->seq[j];
+                for (size_t j = 0; j < model->n_unique_pts; j++) {
+                    const size_t base = (tree->branches[i])->seq[j];
+                    double tmp = 0.0;
                     if (GapChar(model->seqtype) != base) {
                         tmp = model->pi[base] * model->tmp_plik[j * n + base];
                     } else {
-                        tmp = 0.;
-                        for (k = 0; k < n; k++)
+                        for (size_t k = 0; k < n; k++)
                             tmp += model->pi[k] * model->tmp_plik[j * n + k];
                     }
                     tmp *= fact;
@@ -746,30 +735,30 @@ void
 DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
                    double *lvec, double *lscale)
 {
-    const unsigned int n = model->nbase;
-    const unsigned int npts = model->n_unique_pts;
-    unsigned int nparam = model->nparam;
+    const size_t n = model->nbase;
+    const size_t npts = model->n_unique_pts;
+    const size_t nparam = model->nparam;
 
     memset(grad, 0, nparam * npts * sizeof(*grad));
     double * tmp = calloc(n * npts, sizeof(*tmp));
     double * bgrad = calloc(npts, sizeof(*bgrad));
 
-    for (unsigned int i = 0; i < nparam; i++) {
+    for (size_t i = 0; i < nparam; i++) {
         if (Branches_Proportional == model->has_branches && 0 == i) {
-            for (unsigned int br = 0; br < tree->n_br; br++) {
+            for (size_t br = 0; br < tree->n_br; br++) {
                 NODE *node = tree->branches[br];
                 MakeRateDerivFromP(model, node->blength[0], node->bmat);
             }
         } else {
             MakeSdQS(model, i);
-            for (unsigned int br = 0; br < tree->n_br; br++) {
+            for (size_t br = 0; br < tree->n_br; br++) {
                 /* Note: code make assumption that parent node is always branch 0 */
                 NODE *node = tree->branches[br];
                 MakeDerivFromP(model, node->blength[0], node->bmat);
             }
         }
 
-        for (unsigned int br = 0; br < tree->n_br; br++) {
+        for (size_t br = 0; br < tree->n_br; br++) {
             NODE *node = tree->branches[br];
             /*  Calculate f_j' dP b_j for all sites j.
                 = diag( F' dP B ) where F is the matrix of all forward vectors
@@ -785,8 +774,8 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
             if (!ISLEAF(node)) {
                 // On internal branch.
                 Matrix_MatrixT_Mult(F, npts, n, dP, n, n, tmp);
-                for (unsigned int j = 0; j < npts; j++) {
-                    for (unsigned int l = 0; l < n; l++) {
+                for (size_t j = 0; j < npts; j++) {
+                    for (size_t l = 0; l < n; l++) {
                         bgrad[j] += model->pi[l] 
                                   * tmp[j * n + l]
                                   * B[j * n + l] ;
@@ -794,19 +783,19 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
                     bgrad[j] *= node->bscalefactor[j];
                 }
             } else {
-                for (unsigned int j = 0; j < npts; j++) {
-                    unsigned int base = node->seq[j];
+                for (size_t j = 0; j < npts; j++) {
+                    const size_t base = node->seq[j];
                     if (GapChar(model->seqtype) != base) {
                         // Leaf has ordinary base
-                        for (unsigned int l = 0; l < n; l++) {
+                        for (size_t l = 0; l < n; l++) {
                             bgrad[j] += model->pi[l] 
                                       * dP[l * n + base] 
                                       * B[j * n + l];
                         }
                     } else {
                         // Leaf has gap character
-                        for (unsigned int b = 0; b < n; b++) {
-                            for (unsigned int l = 0; l < n; l++) {
+                        for (size_t b = 0; b < n; b++) {
+                            for (size_t l = 0; l < n; l++) {
                                 bgrad[j] += model->pi[l] 
                                           * dP[l * n + b] 
                                           * B[j * n + l];
@@ -816,12 +805,12 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
                     bgrad[j] *= node->bscalefactor[j];
                 }
             }
-	    for (unsigned int j = 0; j < npts; j++) {
+	    for (size_t j = 0; j < npts; j++) {
                grad[i * npts + j] += bgrad[j];
             }
         } // br
 
-        for (unsigned int j = 0; j < npts; j++) {
+        for (size_t j = 0; j < npts; j++) {
             grad[i * npts + j] /= lvec[j];
         }
     }  // i
@@ -829,12 +818,12 @@ DoModelDerviatives(MODEL * model, TREE * tree, double *grad,
     free(tmp);
 }
 
-static double GetParam(MODEL * model, TREE * tree, int i)
+static double GetParam(MODEL * model, TREE * tree, size_t i)
 {
     assert(NULL != model);
     assert(NULL != tree);
     assert(i > 0);
-    int offset = 0;
+    size_t offset = 0;
 
     if (Branches_Variable == model->has_branches) {
         if (i < tree->n_br)

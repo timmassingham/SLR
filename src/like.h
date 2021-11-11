@@ -35,12 +35,12 @@
 
 
 int CalcLike_Sub ( NODE * node, NODE * parent, TREE * tree, MODEL * model);
-int LikeVector ( TREE * tree, MODEL * model, double p[]);
-int LikeVectorSub ( TREE * tree, MODEL * model, double p[]);
-double Like ( double *scale, double like[], double freq[], int usize, double * pi , int nsize, int * index);
+int LikeVector ( TREE * tree, MODEL * model, double * p);
+int LikeVectorSub ( TREE * tree, MODEL * model, double * p);
+double Like ( double *scale, double * like, double * freq, int usize, double * pi , int nsize, int * index);
 
 
-double CalcLike ( double pt[]);
-void DCalcLike ( double pt[], double grad[]);
+double CalcLike ( double * pt);
+void DCalcLike ( double * pt, double * grad);
 #endif
 
