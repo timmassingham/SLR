@@ -69,8 +69,8 @@ typedef struct {
     void (*df) (const double *, double *, void *);
 
     int *onbound;
-    int n;
-    int neval;
+    size_t n;
+    size_t neval;
     double trust;
 } OPTOBJ;
 
@@ -94,7 +94,7 @@ InitializeOpt(OPTOBJ * opt, double *x, int n,
               void (*df) (const double *, double *, void *),
               double (*f) (const double *, void *), double fx, void *data,
               double *bd);
-OPTOBJ *NewOpt(int n);
+OPTOBJ *NewOpt(size_t n);
 void FreeOpt(OPTOBJ * opt);
 void MakeErrString(char **string, int errn);
 void InitializeH(OPTOBJ * opt);
@@ -216,7 +216,7 @@ Optimize(double *x, int n, void (*df) (const double *, double *, void *),
             md = TakeStep(opt, tol, &fact, &newbound);
             MakeErrString(&errstring, errn);
             step++;
-            printf("%6d: %12.3f %10.3f %6d %3s %12.3f\n", step,
+            printf("%6d: %12.3f %10.3f %6zu %3s %12.3f\n", step,
                    opt->fc, fabs(opt->fc - fn), opt->neval, errstring, md);
 
             // Write temporary values to file
@@ -299,7 +299,7 @@ void MakeErrString(char **str, int errn)
     *str = string;
 }
 
-OPTOBJ *NewOpt(int n)
+OPTOBJ *NewOpt(size_t n)
 {
     OPTOBJ *opt;
 

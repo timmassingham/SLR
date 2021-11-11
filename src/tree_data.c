@@ -31,7 +31,7 @@
 #include "rbtree.h"
 
 
-static int memadd_plik_tree ( TREE * tree, const int npt, const int exact_obs, const int nbase);
+static int memadd_plik_tree ( TREE * tree, const size_t npt, const size_t exact_obs, const size_t nbase);
 static int memfree_plik_tree ( TREE * tree);
 static int memadd_seq_tree ( TREE * tree, const int size);
 static int memfree_seq_tree ( TREE * tree);
@@ -165,26 +165,25 @@ int add_data_to_tree (const DATA_SET * data_old, TREE * tree, MODEL * model)
 
 
 
-static int memadd_plik_tree ( TREE * tree, const int npt, const int exact_obs, const int nbase){
-        int a;
-	int size = npt * nbase;
+static int memadd_plik_tree (TREE * tree, const size_t npt, const size_t exact_obs, const size_t nbase){
+	const size_t size = npt * nbase;
 
         if ( (tree->tree)->plik != NULL)
                 (void)memfree_plik_tree ( tree);
 
-        (tree->tree)->plik = calloc ( (size_t)size, sizeof(double));
-	(tree->tree)->scalefactor = calloc(npt,sizeof(double));
-	(tree->tree)->bscalefactor = calloc(npt,sizeof(double));
+        (tree->tree)->plik = calloc (size, sizeof(double));
+	(tree->tree)->scalefactor = calloc(npt, sizeof(double));
+	(tree->tree)->bscalefactor = calloc(npt, sizeof(double));
 
-        for ( a=0 ; a<tree->n_br ; a++){
-		(tree->branches[a])->scalefactor = calloc(npt,sizeof(double));
-		(tree->branches[a])->bscalefactor = calloc(npt,sizeof(double));
-                (tree->branches[a])->plik = calloc ( size,sizeof(double));
-                (tree->branches[a])->back = calloc ( size,sizeof(double));
-                (tree->branches[a])->mid = calloc (size,sizeof(double));
-                (tree->branches[a])->dback = calloc (size,sizeof(double));
-                (tree->branches[a])->mat = calloc (nbase*nbase,sizeof(double));
-                (tree->branches[a])->bmat = calloc (nbase*nbase,sizeof(double));
+        for (size_t a=0 ; a<tree->n_br ; a++){
+		(tree->branches[a])->scalefactor = calloc(npt, sizeof(double));
+		(tree->branches[a])->bscalefactor = calloc(npt, sizeof(double));
+                (tree->branches[a])->plik = calloc (size, sizeof(double));
+                (tree->branches[a])->back = calloc (size, sizeof(double));
+                (tree->branches[a])->mid = calloc (size, sizeof(double));
+                (tree->branches[a])->dback = calloc (size, sizeof(double));
+                (tree->branches[a])->mat = calloc (nbase*nbase, sizeof(double));
+                (tree->branches[a])->bmat = calloc (nbase*nbase, sizeof(double));
         }
 
         return 0;

@@ -364,10 +364,7 @@ NucleoFunc_Empirical(int i, int j)
 double         *
 GetS_Codon(double *mat, double kappa, double omega, int gencode)
 {
-	int             nbase;
-	int             i, j, ib, jb;
-
-	nbase = NumberSenseCodonsInGenCode(gencode);
+	size_t nbase = NumberSenseCodonsInGenCode(gencode);
 	if (-1 == nbase)
 		return NULL;
 
@@ -376,7 +373,7 @@ GetS_Codon(double *mat, double kappa, double omega, int gencode)
 		if (NULL == mat)
 			return NULL;
 	}
-	for (i = 0; i < nbase; i++)
+	for (size_t i = 0; i < nbase; i++)
 		mat[i * nbase + i] = 0.;
 	/*
 	 * Construct codon S matrix, using the symmetric property to reduce
@@ -385,11 +382,11 @@ GetS_Codon(double *mat, double kappa, double omega, int gencode)
 	 * rather than all the possible changes and then zero those that
 	 * require more than one mutation.
 	 */
-	for (i = 0; i < 64; i++) {
-		ib = CodonToQcoord(i, gencode);
+	for (size_t i = 0; i < 64; i++) {
+		int ib = CodonToQcoord(i, gencode);
 		if (!IsStop(i, gencode)) {
-			for (j = 0; j < i; j++) {
-				jb = CodonToQcoord(j, gencode);
+			for (size_t j = 0; j < i; j++) {
+				int jb = CodonToQcoord(j, gencode);
 				if (i != j && !IsStop(j, gencode)) {
 					if (NumberNucChanges(i, j) > 1) {
 						mat[ib * nbase + jb] = 0.;

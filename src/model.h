@@ -67,7 +67,7 @@ void MakeQ_From_S ( double * mat, const double * pi, const int n);
 int MakeSym_From_Q ( double * mat, const double * spi, const int n);
 void MakeFactQ_FromFactSym ( double * ev, double * inv_ev, double *v,const double * spi, const int n);
 void FactorizeMatrix ( double *mat, const int n,double * ev, double * v, double * space);
-double         *MakeP_From_FactQ(const double *v, const double *ev, const double *inv_ev, const double length, const double rate, const double scale, double *p, const int n, double *space, const double *pi, const double *q);
+double         *MakeP_From_FactQ(const double *v, const double *ev, const double *inv_ev, const double length, const double rate, const double scale, double *p, const size_t n, double *space, const double *pi, const double *q);
 void MakeQ_From_S_stdfreq(double *mat, const double *pi, const int n);
 void MakeQ_From_S_WGfreq(double *mat, const double *pi, const int n);
 void MakeQ_From_S_Largetfreq(double *mat, const double *pi, const int n);
@@ -81,7 +81,7 @@ void CheckModelDerivatives ( MODEL * model, const double blen, const double * pa
 
 
 
-MODEL * NewModel ( const int n, const int nparam);
+MODEL * NewModel ( const size_t n, const size_t nparam);
 double * GetQ ( MODEL * model);
 double * GetP ( MODEL * model, const double length, double * mat);
 void FreeModel ( MODEL * model);

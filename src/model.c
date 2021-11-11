@@ -243,10 +243,9 @@ FactorizeMatrix(double *mat, const int n, double *ev, double *v, double *space)
 double *MakeP_From_FactQ(const double *v, const double *ev,
                          const double *inv_ev, const double length,
                          const double rate, const double scale, double *p,
-                         const int n, double *space, const double *pi,
+                         const size_t n, double *space, const double *pi,
                          const double *q)
 {
-    int i, j;
     double *expl, *tmp;
 
     if (NULL == v || NULL == ev || NULL == inv_ev || n < 1 || length < 0.)
@@ -267,12 +266,12 @@ double *MakeP_From_FactQ(const double *v, const double *ev,
     space += n;
     tmp = space;
     space += n;
-    for (i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         expl[i] = exp(length * rate * scale * v[i]);
     }
 
-    for (i = 0; i < n; i++)
-        for (j = 0; j < n; j++)
+    for (size_t i = 0; i < n; i++)
+        for (size_t j = 0; j < n; j++)
             p[i * n + j] = ev[i * n + j] * expl[j];
 
     /*
@@ -280,7 +279,7 @@ double *MakeP_From_FactQ(const double *v, const double *ev,
      * for efficiency.
      */
     Matrix_MatrixT_Mult(p, n, n, inv_ev, n, n, tmp);
-    for (i = 0; i < n * n; i++)
+    for (size_t i = 0; i < n * n; i++)
         p[i] = tmp[i];
 
     return p;
@@ -330,7 +329,7 @@ double *GetP(MODEL * model, const double length, double *mat)
     return mat;
 }
 
-MODEL *NewModel(const int n, const int nparam)
+MODEL *NewModel(const size_t n, const size_t nparam)
 {
     MODEL *model;
 
@@ -600,27 +599,24 @@ void
 CheckModelDerivatives(MODEL * model, const double blen, const double *param,
                       const double delta)
 {
-    int nparam, pioffset, nbase;
-    double *p_test, *dp_test;
-
     assert(NULL != model);
     assert(NULL != param);
     assert(blen >= 0.);
     assert(delta >= 0.);
 
-    nparam = model->nparam;
-    nbase = model->nbase;
-    pioffset = model->nparam - model->nbase + 1;
-    p_test = calloc(nbase * nbase, sizeof(double));
-    dp_test = calloc((nparam + 1) * nbase * nbase, sizeof(double));
+    const size_t nparam = model->nparam;
+    const size_t nbase = model->nbase;
+    const size_t pioffset = model->nparam - model->nbase + 1;
+    double * p_test = calloc(nbase * nbase, sizeof(double));
+    double * dp_test = calloc((nparam + 1) * nbase * nbase, sizeof(double));
 
-    for (int i = 0; i < nparam; i++) {
+    for (size_t i = 0; i < nparam; i++) {
         model->Update(model, param[i], i);
     }
 
     /* Get analytic derivatives, interms of S-params and (perhaps) pi's */
     GetP(model, blen, model->p);
-    for (int i = 0; i < nparam; i++) {
+    for (size_t i = 0; i < nparam; i++) {
         if (Branches_Proportional == model->has_branches && 0 == i) {
             MakeRateDerivFromP(model, blen, dp_test + i * nbase * nbase);
         } else {
@@ -629,7 +625,7 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param,
         }
     }
 
-    for (int i = 0; i < nparam; i++) {
+    for (size_t i = 0; i < nparam; i++) {
         double sumsqrdiff = 0., sumsqrsum = 0.;
 
         model->Update(model, param[i] + delta, i);
@@ -638,7 +634,7 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param,
 
         model->Update(model, param[i] - delta, i);
         GetP(model, blen, model->p);
-        for (int j = 0; j < model->nbase * model->nbase; j++) {
+        for (size_t j = 0; j < model->nbase * model->nbase; j++) {
             p_test[j] -= model->p[j];
             p_test[j] /= 2 * delta;
             sumsqrdiff +=
@@ -654,7 +650,7 @@ CheckModelDerivatives(MODEL * model, const double blen, const double *param,
                                                                         nbase +
                                                                         j]);
         }
-        printf("param %d (%e): sumsqr = %e\tdiff = %e\t%e %e\n", i, param[i],
+        printf("param %zu (%e): sumsqr = %e\tdiff = %e\t%e %e\n", i, param[i],
                sumsqrsum, sumsqrdiff, p_test[0], dp_test[i * nbase * nbase]);
         model->Update(model, param[i], i);
     }
