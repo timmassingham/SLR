@@ -1,9 +1,9 @@
 ARCH=$(shell uname)
 ifeq ($(ARCH),Darwin)
-	include Makefile.osx
+	include src/Makefile.osx
 else ifeq ($(ARCH),Linux)
-	include Makefile.linux
+	include src/Makefile.linux
 else
 	$(warning Unsupported architecture. Trying Makefile.linux)
-	include Makefile.linux
+	include src/Makefile.linux
 endif

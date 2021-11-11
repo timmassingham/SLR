@@ -9,17 +9,17 @@ CFLAGS = -O3 -funroll-loops -DNDEBUG -std=gnu99 -Wall
 #CFLAGS = -pg -std=gnu99 -DNDEBUG
 LD = ld
 
-objects = like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o utility.o matrix.o optimize.o spinner.o options.o tree_data.o linemin.o gamma.o statistics.o mystring.o nucmodel.o root.o vec.o brent.o rbtree.o
+objects = $(addprefix src/, like.o tree.o data.o rng.o model.o  bases.o codonmodel.o gencode.o utility.o matrix.o optimize.o spinner.o options.o tree_data.o linemin.o gamma.o statistics.o mystring.o nucmodel.o root.o vec.o brent.o rbtree.o)
 
 
-Slr: slr.o $(objects)
-	gcc  -o ../bin/$@ slr.o $(objects) $(CFLAGS) $(LDFLAGS)
+Slr: src/slr.o $(objects)
+	gcc  -o bin/$@ $< $(objects) $(CFLAGS) $(LDFLAGS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCFLAGS) -o $@ -c $<
 
 clean:
-	rm -f *~ *.o
+	rm -f src/*~ src/*.o
 
 archive: clean
 	cd ../.. && tar zcf slr.tgz --exclude=.git --exclude=bin --exclude=archive --exclude=test slr
