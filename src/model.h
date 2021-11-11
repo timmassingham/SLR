@@ -33,7 +33,7 @@ typedef struct md {
         double * space;
         double scale;
         double rate;
-        int nbase;
+        size_t nbase;
         int gencode;
         void (*Getq)( struct md *);
 	void (*Gets)( double *,struct md *);
@@ -43,14 +43,14 @@ typedef struct md {
         double (*GetParam)(struct md *, int);
         double * pi, *mgfreq;
         double * param;
-        int nparam;
+        size_t nparam;
         int updated, factorized;
         double * tmp_plik;
         int seqtype,freq_type;
 	const int * desc;
 
         int exact_obs;
-        int n_unique_pts,n_pts;
+        size_t n_unique_pts,n_pts;
         double * pt_freq;
         int * index;
 
